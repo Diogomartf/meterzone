@@ -1,11 +1,11 @@
 {
   "expo": {
     "name": "MeterZone",
-    "slug": "zone-meter",
+    "slug": "meterzone",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "zonemeter",
+    "scheme": "meterzone",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": false,
@@ -65,8 +65,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "83b55314-5d42-46ca-bc43-4bacc218e7d4"
+        "projectId": "6c642743-0668-4a87-9ec4-3fa9a6b0f1ad"
       }
-    }
+    },
+    "owner": "diogomartf"
   }
 }
