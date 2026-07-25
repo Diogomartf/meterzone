@@ -8,6 +8,7 @@ import {
   HERO_KICKER,
   CONTACT_EMAIL,
   APP_NAME,
+  SITE_DESCRIPTION,
 } from '../site';
 
 const hasStoreLinks = APP_STORE_URL !== null || PLAY_STORE_URL !== null;
@@ -28,11 +29,18 @@ const steps = [
 ];
 ---
 
-<BaseLayout>
+<BaseLayout title={APP_NAME} description={SITE_DESCRIPTION}>
   <main class="page">
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-bg" aria-hidden="true">
-        <img src="/images/web-bg.png" alt="" width="1024" height="576" />
+        <img
+          src="/images/web-bg.png"
+          alt=""
+          width="1024"
+          height="576"
+          decoding="async"
+          fetchpriority="high"
+        />
       </div>
 
       <div class="hero-layout">
@@ -44,7 +52,9 @@ const steps = [
                 <span class="hero-zone"><span class="hero-zone-text">{HERO_HEADLINE.zone}</span></span>
                 <span class="hero-q">?</span>
               </span>
-              <span class="sr-only">Can you tap THE ZONE?</span>
+              <span class="sr-only"
+                >{APP_NAME}. {HERO_HEADLINE.lead} {HERO_HEADLINE.zone}?</span
+              >
             </h1>
             <p class="hero-kicker">{HERO_KICKER}</p>
           </header>
@@ -57,13 +67,15 @@ const steps = [
             <img
               class="hero-logo"
               src="/images/zone-meter-logo.png"
-              alt={APP_NAME}
-              width="612"
-              height="408"
+              alt={`${APP_NAME} logo`}
+              width="611"
+              height="393"
+              decoding="async"
+              fetchpriority="high"
             />
             <div class="cta-group">
               {APP_STORE_URL ? (
-                <a class="store-btn store-btn--ios" href={APP_STORE_URL}>
+                <a class="store-btn store-btn--ios" href={APP_STORE_URL} rel="noopener">
                   Download on the App Store
                 </a>
               ) : (
@@ -73,7 +85,7 @@ const steps = [
               )}
 
               {PLAY_STORE_URL ? (
-                <a class="store-btn store-btn--android" href={PLAY_STORE_URL}>
+                <a class="store-btn store-btn--android" href={PLAY_STORE_URL} rel="noopener">
                   Get it on Google Play
                 </a>
               ) : (
@@ -92,7 +104,11 @@ const steps = [
     </section>
 
     <section class="how" aria-labelledby="how-title">
-      <h2 id="how-title">How it works</h2>
+      <h2 id="how-title">How {APP_NAME} works</h2>
+      <p class="how-intro">
+        {APP_NAME} is a fast casual timing game: read the rising meter, tap in the
+        sweet spot, and see how long you can stay in the zone.
+      </p>
       <ol class="steps">
         {steps.map((step) => (
           <li>
@@ -104,11 +120,12 @@ const steps = [
     </section>
 
     <footer class="footer">
+      <p class="footer-brand">{APP_NAME}</p>
       <nav aria-label="Footer">
-        <a href="/privacy">Privacy</a>
+        <a href="/privacy/">Privacy Policy</a>
         <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
       </nav>
-      <p>© {new Date().getFullYear()} {APP_NAME}</p>
+      <p>© {new Date().getFullYear()} {APP_NAME}. All rights reserved.</p>
     </footer>
   </main>
 </BaseLayout>
@@ -186,6 +203,8 @@ const steps = [
     display: flex;
     flex-direction: column;
     align-items: center;
+    align-self: stretch;
+    width: 100%;
     animation: rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.35s both;
   }
 
@@ -391,12 +410,14 @@ const steps = [
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    width: min(100%, 20rem);
+    width: 100%;
     margin-top: 0.75rem;
   }
 
   .store-btn {
     display: block;
+    width: 100%;
+    box-sizing: border-box;
     padding: 0.95rem 1.25rem;
     border-radius: 1rem;
     font-weight: 600;
@@ -448,11 +469,19 @@ const steps = [
   }
 
   .how h2 {
-    margin: 0 0 2.25rem;
+    margin: 0 0 0.75rem;
     font-size: clamp(1.5rem, 4vw, 2rem);
     font-weight: 700;
     text-align: center;
     color: var(--ink);
+  }
+
+  .how-intro {
+    margin: 0 auto 2.25rem;
+    max-width: 32rem;
+    text-align: center;
+    line-height: 1.55;
+    color: var(--panel-ink);
   }
 
   .steps {
@@ -507,6 +536,13 @@ const steps = [
     background: rgba(255, 255, 255, 0.35);
   }
 
+  .footer-brand {
+    margin: 0 0 0.5rem;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--ink);
+  }
+
   .footer nav {
     display: flex;
     flex-wrap: wrap;
@@ -526,19 +562,6 @@ const steps = [
     margin: 0;
     font-size: 0.875rem;
     color: var(--panel-ink);
-  }
-
-  @media (min-width: 640px) {
-    .cta-group {
-      flex-direction: row;
-      width: auto;
-      max-width: 36rem;
-    }
-
-    .store-btn {
-      flex: 1;
-      min-width: 14rem;
-    }
   }
 
   @media (min-width: 900px) {
@@ -575,23 +598,14 @@ const steps = [
     }
 
     .hero-actions {
-      justify-self: start;
-      align-items: flex-start;
+      justify-self: stretch;
+      align-items: stretch;
+      width: 100%;
     }
 
     .hero-logo {
       width: min(13rem, 100%);
-    }
-
-    .cta-group {
-      flex-direction: column;
-      width: min(100%, 18rem);
-      max-width: none;
-    }
-
-    .store-btn {
-      flex: none;
-      min-width: 0;
+      align-self: flex-start;
     }
   }
 </style>

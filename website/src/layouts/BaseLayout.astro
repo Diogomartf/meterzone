@@ -1,18 +1,98 @@
 ---
-import { APP_NAME, SITE_URL } from '../site';
+import {
+  APP_NAME,
+  APP_STORE_URL,
+  CONTACT_EMAIL,
+  OG_IMAGE,
+  PLAY_STORE_URL,
+  SITE_DESCRIPTION,
+  SITE_TITLE,
+  SITE_URL,
+  THEME_COLOR,
+} from '../site';
 import '../styles/global.css';
 
 interface Props {
   title?: string;
   description?: string;
+  /** Path only, e.g. "/" or "/privacy/". Defaults to current pathname. */
+  canonicalPath?: string;
+  /** Override OG/Twitter image path. */
+  image?: string;
+  /** Set false to discourage indexing (e.g. staging). */
+  index?: boolean;
+  /** Open Graph type — use "article" for long-form if needed. */
+  ogType?: 'website' | 'article';
 }
 
 const {
-  title = APP_NAME,
-  description = 'Tap the zone. Chase the combo. Can you top that?',
+  title,
+  description = SITE_DESCRIPTION,
+  canonicalPath = Astro.url.pathname,
+  image = OG_IMAGE.path,
+  index = true,
+  ogType = 'website',
 } = Astro.props;
 
-const pageTitle = title === APP_NAME ? title : `${title} · ${APP_NAME}`;
+const pageTitle = title
+  ? title === APP_NAME
+    ? SITE_TITLE
+    : `${title} · ${APP_NAME}`
+  : SITE_TITLE;
+
+const canonical = new URL(canonicalPath, SITE_URL).href;
+const imageUrl = new URL(image, SITE_URL).href;
+const robots = index ? 'index, follow' : 'noindex, nofollow';
+
+const sameAs = [APP_STORE_URL, PLAY_STORE_URL].filter(
+  (url): url is string => typeof url === 'string' && url.length > 0,
+);
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      '@id': `${SITE_URL}/#website`,
+      url: SITE_URL,
+      name: APP_NAME,
+      description: SITE_DESCRIPTION,
+      publisher: { '@id': `${SITE_URL}/#app` },
+      inLanguage: 'en',
+    },
+    {
+      '@type': 'WebPage',
+      '@id': `${canonical}#webpage`,
+      url: canonical,
+      name: pageTitle,
+      description,
+      isPartOf: { '@id': `${SITE_URL}/#website` },
+      about: { '@id': `${SITE_URL}/#app` },
+      inLanguage: 'en',
+    },
+    {
+      '@type': 'MobileApplication',
+      '@id': `${SITE_URL}/#app`,
+      name: APP_NAME,
+      description: SITE_DESCRIPTION,
+      url: SITE_URL,
+      applicationCategory: 'GameApplication',
+      operatingSystem: 'iOS, Android',
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'USD',
+      },
+      ...(sameAs.length > 0 ? { downloadUrl: sameAs, sameAs } : {}),
+      author: {
+        '@type': 'Organization',
+        name: APP_NAME,
+        email: CONTACT_EMAIL,
+        url: SITE_URL,
+      },
+    },
+  ],
+};
 ---
 
 <!doctype html>
@@ -20,16 +100,50 @@ const pageTitle = title === APP_NAME ? title : `${title} · ${APP_NAME}`;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
     <meta name="description" content={description} />
-    <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="canonical" href={new URL(Astro.url.pathname, SITE_URL).href} />
+    <meta name="robots" content={robots} />
+    <meta name="author" content={APP_NAME} />
+    <meta name="theme-color" content={THEME_COLOR} />
+    <meta name="color-scheme" content="light" />
+    <meta name="application-name" content={APP_NAME} />
+    <meta name="apple-mobile-web-app-title" content={APP_NAME} />
+    <meta name="format-detection" content="telephone=no" />
+
+    <link rel="canonical" href={canonical} />
+    <link rel="sitemap" type="application/xml" href="/sitemap-index.xml" />
+    <link rel="icon" type="image/png" href="/favicon.png" sizes="48x48" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content={ogType} />
+    <meta property="og:site_name" content={APP_NAME} />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={imageUrl} />
+    <meta property="og:image:secure_url" content={imageUrl} />
+    <meta property="og:image:type" content={OG_IMAGE.type} />
+    <meta property="og:image:width" content={String(OG_IMAGE.width)} />
+    <meta property="og:image:height" content={String(OG_IMAGE.height)} />
+    <meta property="og:image:alt" content={OG_IMAGE.alt} />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={imageUrl} />
+    <meta name="twitter:image:alt" content={OG_IMAGE.alt} />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <title>{pageTitle}</title>
+
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(structuredData)} />
   </head>
   <body>
     <slot />

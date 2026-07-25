@@ -7,9 +7,10 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "deploy": "bun run build && wrangler pages deploy dist --project-name zonemeter"
+    "deploy": "bun run build && wrangler pages deploy dist --project-name meterzone"
   },
   "dependencies": {
+    "@astrojs/sitemap": "^3.7.3",
     "astro": "^7.1.3"
   },
   "devDependencies": {

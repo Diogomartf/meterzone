@@ -53,6 +53,7 @@
     "build:dev:ios": "bunx eas-cli build --profile development --platform ios",
     "deploy:ios": "bunx eas-cli build --profile production --platform ios --auto-submit",
     "deploy:android": "bunx eas-cli build --profile production --platform android --auto-submit",
-    "deploy:all": "bunx eas-cli build --profile production --platform all --auto-submit"
+    "deploy:all": "bunx eas-cli build --profile production --platform all --auto-submit",
+    "deploy:website": "bun run --cwd website deploy"
   }
 }

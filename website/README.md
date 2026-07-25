@@ -1,6 +1,6 @@
-# Zone Meter website
+# MeterZone website
 
-Static marketing site for Zone Meter — built with [Astro](https://astro.build). Live URL for now: **https://zonemeter.pages.dev** (swap to your domain in [`src/site.ts`](src/site.ts) after purchase).
+Static marketing site for MeterZone — built with [Astro](https://astro.build). Production URL: **https://meterzone.net**.
 
 ## Develop
 
@@ -32,11 +32,22 @@ Or connect the repo in the Cloudflare dashboard:
 - **Build output directory:** `dist`
 - **Root directory:** `website`
 
-Attach a custom domain in Cloudflare Pages when ready. Until then, the site uses `https://zonemeter.pages.dev` (set in [`src/site.ts`](src/site.ts)).
+Attach **meterzone.net** as a custom domain on the Cloudflare Pages project (`meterzone`). `SITE_URL` in [`src/site.ts`](src/site.ts) is already set to `https://meterzone.net`.
 
 ## Configuration
 
-Edit [`src/site.ts`](src/site.ts) for store URLs, contact email, taglines, and hero media. Set `APP_STORE_URL` and `PLAY_STORE_URL` when the app is live — until then, CTAs show “Coming soon”.
+Edit [`src/site.ts`](src/site.ts) for store URLs, contact email, taglines, SEO copy, and hero media. Set `APP_STORE_URL` and `PLAY_STORE_URL` when the app is live — until then, CTAs show “Coming soon”.
+
+## SEO
+
+The site ships with:
+
+- Canonical URLs, Open Graph, and Twitter cards (via [`BaseLayout.astro`](src/layouts/BaseLayout.astro))
+- JSON-LD for `WebSite`, `WebPage`, and `MobileApplication`
+- Auto-generated sitemap (`@astrojs/sitemap`) and `robots.txt`
+- Social share image at `public/images/og.png` (1200×630)
+
+Submit `https://meterzone.net/sitemap-index.xml` in [Google Search Console](https://search.google.com/search-console) and [Bing Webmaster Tools](https://www.bing.com/webmasters) once DNS is live.
 
 **Hero phone preview** — `HERO_MEDIA` in `site.ts`:
 - Image (default): `{ type: 'image', src: '/images/game-preview.png', ... }`

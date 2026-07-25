@@ -61,7 +61,7 @@ import { VerticalMeter } from "@/game/VerticalMeter";
 
 const LOGO = require("../../assets/images/zone-meter-logo.png");
 const GAME_BG = require("../../assets/images/game-bg.png");
-const FEEDBACK_EMAIL = "hello@zonemeter.com";
+const FEEDBACK_EMAIL = "hello@meterzone.net";
 
 /** Yellow pad surface in game-bg.png (fraction of image height from top). */
 const PAD_SURFACE_Y = 0.905;
@@ -866,7 +866,7 @@ export function GameScreen() {
 
   const sendFeedback = async () => {
     void gameHaptics.next();
-    const subject = encodeURIComponent("Zone Meter feedback");
+    const subject = encodeURIComponent("MeterZone feedback");
     const url = `mailto:${FEEDBACK_EMAIL}?subject=${subject}`;
     try {
       const can = await Linking.canOpenURL(url);
@@ -1428,9 +1428,9 @@ const styles = StyleSheet.create({
     paddingRight: 4,
   },
   logoHud: {
-    width: 117,
-    height: 78,
-    marginLeft: -6,
+    width: 128,
+    height: 82,
+    marginLeft: -4,
   },
   menuBtn: {
     position: "absolute",

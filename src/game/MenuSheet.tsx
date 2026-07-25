@@ -598,7 +598,7 @@ export function MenuSheet({
               ) : null}
             </View>
 
-            <Text style={styles.version}>Zone Meter · v{version}</Text>
+            <Text style={styles.version}>MeterZone · v{version}</Text>
             </Animated.View>
           </GestureDetector>
         </Animated.View>
@@ -772,8 +772,8 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   hsLogo: {
-    width: 108,
-    height: 72,
+    width: 118,
+    height: 76,
   },
   hsShell: {
     alignSelf: 'stretch',

@@ -1,4 +1,4 @@
-# Zone Meter
+# MeterZone
 
 Hyper-casual timing game — tap the zone, chase the combo.
 
@@ -11,6 +11,10 @@ cd website && bun install && bun run dev
 ```
 
 See [`website/README.md`](website/README.md) for build and Cloudflare Pages deploy steps.
+
+```bash
+bun run deploy:website
+```
 
 ## Mobile app
 

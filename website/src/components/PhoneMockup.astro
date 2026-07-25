@@ -17,11 +17,20 @@ const { type, src, poster, alt } = HERO_MEDIA;
             muted
             loop
             playsinline
-            preload="auto"
+            preload="metadata"
             aria-label={alt}
+            title={alt}
           />
         ) : (
-          <img src={src} alt={alt} width="472" height="1024" loading="eager" />
+          <img
+            src={src}
+            alt={alt}
+            width="472"
+            height="1024"
+            loading="eager"
+            decoding="async"
+            fetchpriority="high"
+          />
         )
       }
     </div>

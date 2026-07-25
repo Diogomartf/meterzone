@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Zone Meter",
+    "name": "MeterZone",
     "slug": "zone-meter",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -39,19 +39,19 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#0290FC",
+          "backgroundColor": "#000BB2",
           "image": "./assets/images/splash.png",
           "resizeMode": "cover",
           "enableFullScreenImage_legacy": true,
           "ios": {
             "image": "./assets/images/splash.png",
-            "backgroundColor": "#0290FC"
+            "backgroundColor": "#000BB2"
           },
           "android": {
             "image": "./assets/images/splash-android.png",
-            "imageWidth": 240,
+            "imageWidth": 200,
             "resizeMode": "contain",
-            "backgroundColor": "#0290FC"
+            "backgroundColor": "#000000"
           }
         }
       ],
