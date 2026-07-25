@@ -18,7 +18,8 @@ export const OG_IMAGE = {
   alt: `${APP_NAME} — Tap, beat the score, stack x2 combos. Download now.`,
 } as const;
 
-export const THEME_COLOR = '#4ec0ca';
+/** Matches top of hero `web-bg.png` — tints mobile browser chrome / status bar. */
+export const THEME_COLOR = '#0009C1';
 
 /** Set real store URLs when available; null shows "Coming soon" CTAs. */
 export const APP_STORE_URL: string | null = null;
