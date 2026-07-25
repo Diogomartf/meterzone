@@ -2,6 +2,9 @@
 
 Hyper-casual timing game — tap the zone, chase the combo.
 
+<img width="1904" height="935" alt="image" src="https://github.com/user-attachments/assets/98175584-4678-493f-91b9-15817cf25531" />
+
+
 ## Website
 
 The marketing site lives in [`website/`](website/). To run it locally:
