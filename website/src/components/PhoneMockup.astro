@@ -1,0 +1,109 @@
+---
+import { HERO_MEDIA } from '../site';
+
+const { type, src, poster, alt } = HERO_MEDIA;
+---
+
+<div class="phone">
+  <div class="phone-bezel">
+    <div class="phone-notch" aria-hidden="true"></div>
+    <div class="phone-screen">
+      {
+        type === 'video' ? (
+          <video
+            src={src}
+            poster={poster}
+            autoplay
+            muted
+            loop
+            playsinline
+            preload="auto"
+            aria-label={alt}
+          />
+        ) : (
+          <img src={src} alt={alt} width="472" height="1024" loading="eager" />
+        )
+      }
+    </div>
+    <div class="phone-home" aria-hidden="true"></div>
+  </div>
+</div>
+
+<style>
+  .phone {
+    width: min(17rem, 46vw);
+    filter: drop-shadow(0 1.25rem 2.5rem rgba(26, 28, 44, 0.45));
+    animation: phone-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
+  }
+
+  @keyframes phone-rise {
+    from {
+      opacity: 0;
+      transform: translateY(2rem) scale(0.94);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .phone-bezel {
+    position: relative;
+    padding: 0.55rem;
+    border-radius: 2.25rem;
+    background: linear-gradient(145deg, #2a2d3a 0%, #12131a 100%);
+    border: 3px solid var(--ink);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+      0 6px 0 var(--ink);
+  }
+
+  .phone-notch {
+    position: absolute;
+    top: 0.85rem;
+    left: 50%;
+    z-index: 2;
+    width: 28%;
+    height: 0.95rem;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background: #0a0b10;
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.08);
+  }
+
+  .phone-screen {
+    overflow: hidden;
+    border-radius: 1.65rem;
+    background: #000;
+    aspect-ratio: 472 / 1024;
+  }
+
+  .phone-screen img,
+  .phone-screen video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+  }
+
+  .phone-home {
+    width: 32%;
+    height: 0.22rem;
+    margin: 0.45rem auto 0.15rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.35);
+  }
+
+  @media (min-width: 768px) {
+    .phone {
+      width: min(19rem, 28vw);
+    }
+  }
+
+  @media (min-width: 900px) {
+    .phone {
+      width: min(21rem, 24vw);
+    }
+  }
+</style>

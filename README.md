@@ -1,4 +1,18 @@
-# Welcome to your Expo app 👋
+# Zone Meter
+
+Hyper-casual timing game — tap the zone, chase the combo.
+
+## Website
+
+The marketing site lives in [`website/`](website/). To run it locally:
+
+```bash
+cd website && bun install && bun run dev
+```
+
+See [`website/README.md`](website/README.md) for build and Cloudflare Pages deploy steps.
+
+## Mobile app
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 

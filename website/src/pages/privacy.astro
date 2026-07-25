@@ -1,0 +1,148 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { APP_NAME, CONTACT_EMAIL } from '../site';
+
+const lastUpdated = 'July 25, 2026';
+---
+
+<BaseLayout title="Privacy" description={`Privacy policy for ${APP_NAME}.`}>
+  <main class="privacy">
+    <a class="back" href="/">← Back to {APP_NAME}</a>
+
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: {lastUpdated}</p>
+
+    <section>
+      <h2>Overview</h2>
+      <p>
+        {APP_NAME} is a casual mobile game. We designed it to work without accounts
+        and to keep data collection to a minimum.
+      </p>
+    </section>
+
+    <section>
+      <h2>Data stored on your device</h2>
+      <p>
+        The app saves game progress locally on your phone — high scores, daily
+        challenge results, settings (such as sound and haptics), and unlocked skins.
+        This information stays on your device using local storage (AsyncStorage) and
+        is not sent to our servers.
+      </p>
+    </section>
+
+    <section>
+      <h2>Data we do not collect</h2>
+      <ul>
+        <li>No account registration or login</li>
+        <li>No personal profile data</li>
+        <li>No location tracking</li>
+        <li>No advertising identifiers managed by us</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Sharing scores</h2>
+      <p>
+        If you choose to share a score image, your device’s standard share sheet
+        is used. We do not receive the shared content.
+      </p>
+    </section>
+
+    <section>
+      <h2>Third-party services</h2>
+      <p>
+        When distributed through the Apple App Store or Google Play, those
+        platforms may collect data according to their own policies. Please refer to
+        Apple and Google privacy documentation for details about store-level
+        analytics and crash reporting they may provide.
+      </p>
+    </section>
+
+    <section>
+      <h2>Children</h2>
+      <p>
+        {APP_NAME} is suitable for general audiences. We do not knowingly collect
+        personal information from children.
+      </p>
+    </section>
+
+    <section>
+      <h2>Changes</h2>
+      <p>
+        We may update this policy from time to time. The “Last updated” date at the
+        top of this page will reflect any changes.
+      </p>
+    </section>
+
+    <section>
+      <h2>Contact</h2>
+      <p>
+        Questions about privacy? Email us at
+        <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+      </p>
+    </section>
+  </main>
+</BaseLayout>
+
+<style>
+  .privacy {
+    max-width: 42rem;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+    line-height: 1.6;
+  }
+
+  .back {
+    display: inline-block;
+    margin-bottom: 2rem;
+    font-weight: 500;
+    text-decoration: none;
+    color: var(--ink);
+  }
+
+  .back:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  h1 {
+    margin: 0 0 0.5rem;
+    font-size: clamp(2rem, 5vw, 2.75rem);
+    font-weight: 700;
+  }
+
+  .updated {
+    margin: 0 0 2rem;
+    color: var(--panel-ink);
+    font-size: 0.95rem;
+  }
+
+  section {
+    margin-bottom: 1.75rem;
+  }
+
+  h2 {
+    margin: 0 0 0.5rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+  }
+
+  p,
+  ul {
+    margin: 0;
+    color: var(--panel-ink);
+  }
+
+  ul {
+    padding-left: 1.25rem;
+  }
+
+  li + li {
+    margin-top: 0.35rem;
+  }
+
+  a {
+    color: var(--ink);
+    font-weight: 500;
+  }
+</style>

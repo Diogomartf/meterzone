@@ -1428,7 +1428,7 @@ const styles = StyleSheet.create({
     paddingRight: 4,
   },
   logoHud: {
-    width: 148,
+    width: 117,
     height: 78,
     marginLeft: -6,
   },

@@ -772,7 +772,7 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   hsLogo: {
-    width: 160,
+    width: 108,
     height: 72,
   },
   hsShell: {

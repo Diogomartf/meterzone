@@ -1,0 +1,37 @@
+---
+import { APP_NAME, SITE_URL } from '../site';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = APP_NAME,
+  description = 'Tap the zone. Chase the combo. Can you top that?',
+} = Astro.props;
+
+const pageTitle = title === APP_NAME ? title : `${title} · ${APP_NAME}`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="canonical" href={new URL(Astro.url.pathname, SITE_URL).href} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <title>{pageTitle}</title>
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

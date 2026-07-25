@@ -1,0 +1,53 @@
+:root {
+  --sky-top: #4ec0ca;
+  --sky-mid: #70d5de;
+  --sky-bottom: #8fe8f0;
+  --play-green: #8cff2a;
+  --play-green-deep: #6fe012;
+  --bubble: #58cc02;
+  --bubble-dark: #46a302;
+  --lemon: #ffe14a;
+  --ink: #1a1c2c;
+  --white: #ffffff;
+  --panel-ink: #3c3c3c;
+  --play-blue: #1cb0f6;
+  --play-blue-dark: #1899d6;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: 'Fredoka', system-ui, sans-serif;
+  color: var(--ink);
+  background: linear-gradient(
+    180deg,
+    var(--sky-top) 0%,
+    var(--sky-mid) 55%,
+    var(--sky-bottom) 100%
+  );
+  -webkit-font-smoothing: antialiased;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font: inherit;
+}
