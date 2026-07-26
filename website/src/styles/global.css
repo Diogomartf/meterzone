@@ -22,7 +22,6 @@
 
 html {
   scroll-behavior: smooth;
-  background: #0009c1;
 }
 
 body {
@@ -31,8 +30,12 @@ body {
   min-height: 100dvh;
   font-family: 'Fredoka', system-ui, sans-serif;
   color: var(--ink);
-  /* Match hero / theme-color so iOS Safari status-bar chrome blends in */
-  background: #0009c1;
+  background: linear-gradient(
+    180deg,
+    var(--sky-top) 0%,
+    var(--sky-mid) 55%,
+    var(--sky-bottom) 100%
+  );
   -webkit-font-smoothing: antialiased;
 }
 
