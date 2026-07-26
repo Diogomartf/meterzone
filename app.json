@@ -9,13 +9,13 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.diogomartf.zonemeter",
+      "bundleIdentifier": "com.diogomartf.meterzone",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.diogomartf.zonemeter",
+      "package": "com.diogomartf.meterzone",
       "adaptiveIcon": {
         "backgroundColor": "#0053ED",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
