@@ -78,8 +78,8 @@ type PauseResume =
   | { kind: "startFill" }
   | { kind: "advance" };
 
-/** Callouts sit beside / near the meter top — never dead-center above it */
-type FeedbackSlot = "left" | "right" | "topLeft" | "topRight";
+/** Side chips — fixed per label so Nice / Great don't jump around */
+type FeedbackSlot = "left" | "right";
 
 type Feedback = {
   label: RoundLabel;
@@ -90,11 +90,10 @@ type Feedback = {
   slot: FeedbackSlot;
 };
 
-const FEEDBACK_SLOTS: FeedbackSlot[] = ["left", "right", "topLeft", "topRight"];
-
-function nextFeedbackSlot(prev: FeedbackSlot | null): FeedbackSlot {
-  const pool = prev ? FEEDBACK_SLOTS.filter((s) => s !== prev) : FEEDBACK_SLOTS;
-  return pool[Math.floor(Math.random() * pool.length)]!;
+function feedbackSlotFor(label: RoundLabel): FeedbackSlot {
+  // Great = right, Nice = left — same spot every time
+  if (label === "Great") return "right";
+  return "left";
 }
 
 const FEEDBACK_SLOT_STYLE: Record<
@@ -108,8 +107,6 @@ const FEEDBACK_SLOT_STYLE: Record<
 > = {
   left: { top: "44%", left: 10, alignItems: "flex-start" },
   right: { top: "44%", right: 10, alignItems: "flex-end" },
-  topLeft: { top: "30%", left: 10, alignItems: "flex-start" },
-  topRight: { top: "30%", right: 10, alignItems: "flex-end" },
 };
 
 const emptyStats = (): SessionStats => ({
@@ -187,7 +184,6 @@ export function GameScreen() {
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [perfectBurstKey, setPerfectBurstKey] = useState(0);
   const [missBurstKey, setMissBurstKey] = useState(0);
-  const feedbackSlotRef = useRef<FeedbackSlot | null>(null);
   const shareRef = useRef<View>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [capturingShare, setCapturingShare] = useState(false);
@@ -327,9 +323,7 @@ export function GameScreen() {
   const showFeedback = (next: Omit<Feedback, "slot">) => {
     const isPerfect = next.label === "Perfect";
     const isMiss = next.label === "Miss";
-    const slot = nextFeedbackSlot(feedbackSlotRef.current);
-    feedbackSlotRef.current = slot;
-    setFeedback({ ...next, slot });
+    setFeedback({ ...next, slot: feedbackSlotFor(next.label) });
 
     const pulseCombo = (showIntro: boolean) => {
       comboPulse.value = withSequence(
@@ -1194,10 +1188,8 @@ export function GameScreen() {
                   styles.feedbackLabel,
                   feedback.label === "Great" && styles.feedbackLabelGreat,
                   { color: LABEL_COLORS[feedback.label] },
-                  (feedback.slot === "left" || feedback.slot === "topLeft") &&
-                    styles.feedbackAlignStart,
-                  (feedback.slot === "right" || feedback.slot === "topRight") &&
-                    styles.feedbackAlignEnd,
+                  feedback.slot === "left" && styles.feedbackAlignStart,
+                  feedback.slot === "right" && styles.feedbackAlignEnd,
                 ]}
                 numberOfLines={1}
               >
@@ -1207,11 +1199,8 @@ export function GameScreen() {
                 <Text
                   style={[
                     styles.feedbackPoints,
-                    (feedback.slot === "left" || feedback.slot === "topLeft") &&
-                      styles.feedbackAlignStart,
-                    (feedback.slot === "right" ||
-                      feedback.slot === "topRight") &&
-                      styles.feedbackAlignEnd,
+                    feedback.slot === "left" && styles.feedbackAlignStart,
+                    feedback.slot === "right" && styles.feedbackAlignEnd,
                   ]}
                 >
                   +{feedback.points}
@@ -1221,11 +1210,8 @@ export function GameScreen() {
                 <Text
                   style={[
                     styles.feedbackMilestone,
-                    (feedback.slot === "left" || feedback.slot === "topLeft") &&
-                      styles.feedbackAlignStart,
-                    (feedback.slot === "right" ||
-                      feedback.slot === "topRight") &&
-                      styles.feedbackAlignEnd,
+                    feedback.slot === "left" && styles.feedbackAlignStart,
+                    feedback.slot === "right" && styles.feedbackAlignEnd,
                   ]}
                 >
                   LVL {round.level} +{feedback.milestone}
@@ -1235,11 +1221,8 @@ export function GameScreen() {
                 <Text
                   style={[
                     styles.feedbackCombo,
-                    (feedback.slot === "left" || feedback.slot === "topLeft") &&
-                      styles.feedbackAlignStart,
-                    (feedback.slot === "right" ||
-                      feedback.slot === "topRight") &&
-                      styles.feedbackAlignEnd,
+                    feedback.slot === "left" && styles.feedbackAlignStart,
+                    feedback.slot === "right" && styles.feedbackAlignEnd,
                   ]}
                 >
                   COMBO x{feedback.combo}
