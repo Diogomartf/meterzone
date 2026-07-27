@@ -1274,21 +1274,21 @@ export function GameScreen() {
             {!capturingShare ? (
               <View style={styles.gameOverActions} pointerEvents="box-none">
                 <GameCta
-                  label="SHARE"
-                  face={GameColors.bubble}
-                  depth={GameColors.bubbleDark}
-                  onPress={() => {
-                    void gameHaptics.next();
-                    void shareScoreImage();
-                  }}
-                />
-                <GameCta
                   label="RETRY"
                   face={GameColors.xpGold}
                   depth="#D97706"
                   onPress={() => {
                     void gameHaptics.next();
                     startRun(dailyMode);
+                  }}
+                />
+                <GameCta
+                  label="SHARE"
+                  face={GameColors.bubble}
+                  depth={GameColors.bubbleDark}
+                  onPress={() => {
+                    void gameHaptics.next();
+                    void shareScoreImage();
                   }}
                 />
               </View>

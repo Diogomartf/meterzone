@@ -187,7 +187,9 @@ function VerticalMeterComponent({
         <View style={styles.shellLip} />
         <View style={[styles.glass, { borderRadius: 18 * scale }]}>
           {/* Glossy toy bullseye — single gradient (depth/sheen baked into colors) */}
-          <Animated.View style={[styles.zoneWrap, { height: innerH }, zoneStyle]}>
+          <Animated.View
+            style={[styles.zoneWrap, { height: innerH }, zoneStyle]}
+          >
             <LinearGradient
               colors={eyeGradient.colors}
               locations={eyeGradient.locations}
@@ -220,8 +222,8 @@ function VerticalMeterComponent({
             <LinearGradient
               colors={[
                 "rgba(255,176,32,0)",
-                "rgba(255,176,32,0.55)",
-                "rgba(255,240,120,0.9)",
+                "rgba(255,176,32,0.28)",
+                "rgba(255,240,120,0.5)",
               ]}
               locations={[0, 0.55, 1]}
               style={styles.surfaceGlow}
@@ -373,8 +375,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: -2,
     right: -2,
-    top: -20,
-    height: 25,
+    top: -14,
+    height: 26,
   },
   surface: {
     position: "absolute",
@@ -385,10 +387,10 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     overflow: "hidden",
     shadowColor: "#FFB020",
-    shadowOpacity: 0.95,
-    shadowRadius: 10,
+    shadowOpacity: 0.45,
+    shadowRadius: 4,
     shadowOffset: { width: 0, height: 0 },
-    elevation: 6,
+    elevation: 3,
   },
   ticks: {
     position: "absolute",
