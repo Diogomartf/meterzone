@@ -34,7 +34,6 @@ import { gameHaptics, setGameHapticsEnabled } from "@/game/haptics";
 import { createRng, makeRound } from "@/game/levels";
 import {
   comboMultiplier,
-  milestoneClearBonus,
   scoreFill,
   STARTING_LIVES,
 } from "@/game/scoring";
@@ -86,7 +85,6 @@ type Feedback = {
   points: number;
   combo: number;
   comboGrew: boolean;
-  milestone: number;
   slot: FeedbackSlot;
 };
 
@@ -428,7 +426,6 @@ export function GameScreen() {
         points: result.points,
         combo: result.combo,
         comboGrew: result.combo > prevCombo,
-        milestone: result.costsLife ? 0 : milestoneClearBonus(current.level),
       });
 
       setStats((s) => {
@@ -1206,17 +1203,6 @@ export function GameScreen() {
                   +{feedback.points}
                 </Text>
               ) : null}
-              {feedback.milestone > 0 ? (
-                <Text
-                  style={[
-                    styles.feedbackMilestone,
-                    feedback.slot === "left" && styles.feedbackAlignStart,
-                    feedback.slot === "right" && styles.feedbackAlignEnd,
-                  ]}
-                >
-                  LVL {round.level} +{feedback.milestone}
-                </Text>
-              ) : null}
               {feedback.comboGrew && feedback.combo > 1 ? (
                 <Text
                   style={[
@@ -1641,16 +1627,6 @@ const styles = StyleSheet.create({
     fontFamily: GameFonts.body,
     fontSize: 18,
     color: GameColors.white,
-    textShadowColor: GameColors.ink,
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 0,
-  },
-  feedbackMilestone: {
-    marginTop: 3,
-    fontFamily: GameFonts.display,
-    fontSize: 16,
-    lineHeight: 20,
-    color: GameColors.bubble,
     textShadowColor: GameColors.ink,
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 0,

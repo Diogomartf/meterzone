@@ -61,7 +61,7 @@ function VerticalMeterComponent({
   const wobble = useSharedValue(0.5);
 
   const pRatio = Math.min(Math.max(perfectRatio, 0.06), 0.28);
-  const gRatio = Math.min(Math.max(greatRatio, pRatio * 1.8), 0.5);
+  const gRatio = Math.min(Math.max(greatRatio, pRatio * 1.8), 0.58);
 
   // Symmetric Nice / Great / Nice — Perfect is the yellow strike line at center
   const eyeGradient = useMemo(() => {

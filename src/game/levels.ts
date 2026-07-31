@@ -75,7 +75,7 @@ export function makeRound(
     0.0045,
     easy ? 0.015 : 0.013,
   );
-  let greatHalf = Math.max(perfectHalf * 1.6, perfectHalf + 0.0025);
+  let greatHalf = Math.max(perfectHalf * 2.2, perfectHalf + 0.0045);
 
   // Nice margin outside Great — eaten before the core shrinks
   const niceMargin = easy
