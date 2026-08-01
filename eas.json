@@ -34,7 +34,8 @@
   "submit": {
     "production": {
       "android": {
-        "serviceAccountKeyPath": "./credentials/zone-meter-0eaa5551b1b2.json"
+        "track": "internal",
+        "releaseStatus": "draft"
       }
     }
   }
