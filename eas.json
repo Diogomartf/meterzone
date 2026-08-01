@@ -35,8 +35,7 @@
     "production": {
       "android": {
         "track": "internal",
-        "releaseStatus": "draft",
-        "serviceAccountKeyPath": "./credentials/zone-meter-0eaa5551b1b2.json"
+        "releaseStatus": "draft"
       }
     }
   }
