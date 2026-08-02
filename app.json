@@ -16,10 +16,10 @@
     },
     "android": {
       "package": "com.diogomartf.meterzone",
+      "icon": "./assets/images/icon.png",
       "adaptiveIcon": {
-        "backgroundColor": "#0053ED",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png"
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#0053ED"
       },
       "predictiveBackGestureEnabled": false,
       "blockedPermissions": [
