@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import {
   Alert,
   Linking,
@@ -36,6 +36,15 @@ import { gameHaptics, setGameHapticsEnabled } from '@/game/haptics';
 import { createRng, makeRound } from '@/game/levels';
 import { shouldShowReviewPrompt } from '@/game/review';
 import { comboMultiplier, scoreFill, STARTING_LIVES } from '@/game/scoring';
+import {
+  feedbackSlotFor,
+  initialRunState,
+  INITIAL_COUNTDOWN,
+  runReducer,
+  type Feedback,
+  type FeedbackSlot,
+  type RunAction,
+} from '@/game/runState';
 import { captureAndShare, SHARE_SCORE_CAPTION } from '@/game/share';
 import { DEFAULT_SKIN, SKINS } from '@/game/skins';
 import {
@@ -53,7 +62,6 @@ import type {
   PersistState,
   RoundConfig,
   RoundLabel,
-  RoundOutcome,
   SessionStats,
 } from '@/game/types';
 import { useSounds } from '@/game/useSounds';
@@ -97,31 +105,6 @@ const TIMING = {
 const METER_ENTER_X = 340;
 const METER_EXIT_X = -360;
 
-type Phase = 'ready' | 'countdown' | 'filling' | 'result' | 'gameover';
-
-type PauseResume =
-  | { kind: 'fill'; fillAt: number }
-  | { kind: 'countdown'; countAt: number }
-  | { kind: 'startFill' }
-  | { kind: 'advance' };
-
-/** Side chips — fixed per label so Nice / Great don't jump around */
-type FeedbackSlot = 'left' | 'right';
-
-type Feedback = {
-  label: RoundLabel;
-  points: number;
-  combo: number;
-  comboGrew: boolean;
-  slot: FeedbackSlot;
-};
-
-function feedbackSlotFor(label: RoundLabel): FeedbackSlot {
-  // Great = right, Nice = left — same spot every time
-  if (label === 'Great') return 'right';
-  return 'left';
-}
-
 const FEEDBACK_SLOT_STYLE: Record<
   FeedbackSlot,
   {
@@ -134,27 +117,6 @@ const FEEDBACK_SLOT_STYLE: Record<
   left: { top: '44%', left: 10, alignItems: 'flex-start' },
   right: { top: '44%', right: 10, alignItems: 'flex-end' },
 };
-
-const emptyStats = (): SessionStats => ({
-  attempts: 0,
-  hits: 0,
-  perfects: 0,
-  misses: 0,
-  bestCombo: 0,
-  coinsEarned: 0,
-});
-
-/** Fold one round's outcome into the running session tally. */
-function tallyRound(prev: SessionStats, result: RoundOutcome): SessionStats {
-  return {
-    attempts: prev.attempts + 1,
-    hits: result.result === 'miss' ? prev.hits : prev.hits + 1,
-    perfects: result.result === 'perfect' ? prev.perfects + 1 : prev.perfects,
-    misses: result.costsLife ? prev.misses + 1 : prev.misses,
-    bestCombo: Math.max(prev.bestCombo, result.combo),
-    coinsEarned: prev.coinsEarned + result.coins,
-  };
-}
 
 const LABEL_COLORS: Record<RoundLabel, string> = {
   Perfect: '#FFE14A',
@@ -281,6 +243,29 @@ function ScoreModule({
   );
 }
 
+/**
+ * Run state plus a ref that always holds the latest value.
+ *
+ * Timers and Reanimated callbacks fire outside render and would otherwise read
+ * a stale closure, which is why this component used to carry a hand-written
+ * `useRef` mirror beside every piece of state. Here the ref is advanced by the
+ * same pure reducer React uses, so the two cannot drift: both are
+ * `actions.reduce(runReducer, initial)`.
+ */
+function useRunState() {
+  const [state, baseDispatch] = useReducer(runReducer, undefined, () =>
+    initialRunState(),
+  );
+  const stateRef = useRef(state);
+
+  const dispatch = useCallback((action: RunAction) => {
+    stateRef.current = runReducer(stateRef.current, action);
+    baseDispatch(action);
+  }, []);
+
+  return [state, dispatch, stateRef] as const;
+}
+
 export function GameScreen() {
   const insets = useSafeAreaInsets();
   const { height: windowH, width: windowW } = useWindowDimensions();
@@ -288,22 +273,26 @@ export function GameScreen() {
   const muted = Boolean(persist?.soundMuted);
   const { play } = useSounds(muted);
 
-  const [phase, setPhase] = useState<Phase>('ready');
-  const [round, setRound] = useState<RoundConfig>(() => makeRound(1));
-  const [score, setScore] = useState(0);
-  const [lives, setLives] = useState(STARTING_LIVES);
-  const [combo, setCombo] = useState(0);
-  const [isNewBest, setIsNewBest] = useState(false);
+  const [state, dispatch, stateRef] = useRunState();
+  const {
+    phase,
+    round,
+    score,
+    lives,
+    combo,
+    countdown,
+    stats,
+    dailyMode,
+    isNewBest,
+    feedback,
+    paused: menuOpen,
+  } = state;
+
   /** Best (for the played mode) at the moment a finished run is committed. */
   const [previousBest, setPreviousBest] = useState(0);
-  const [countdown, setCountdown] = useState(3);
-  const [dailyMode, setDailyMode] = useState(false);
-  const [stats, setStats] = useState<SessionStats>(emptyStats);
-  const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [perfectBurstKey, setPerfectBurstKey] = useState(0);
   const [missBurstKey, setMissBurstKey] = useState(0);
   const shareRef = useRef<View>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [menuInitialView, setMenuInitialView] = useState<'menu' | 'highscores'>(
     'menu',
   );
@@ -347,16 +336,8 @@ export function GameScreen() {
     [],
   );
 
-  const phaseRef = useRef<Phase>('ready');
-  const roundRef = useRef(round);
-  const scoreRef = useRef(0);
-  const livesRef = useRef(STARTING_LIVES);
-  const comboRef = useRef(0);
-  const statsRef = useRef<SessionStats>(emptyStats());
   /** Best score at run start — used to detect a live / final new high. */
   const runBestBaselineRef = useRef(0);
-  /** Fire the mid-run "NEW BEST" cue only once per run. */
-  const newBestAnnouncedRef = useRef(false);
   /** "COMBO" label only once per streak, then multiplier alone */
   const comboIntroShownRef = useRef(false);
   const lockingTap = useRef(false);
@@ -364,23 +345,12 @@ export function GameScreen() {
   const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const advanceRef = useRef<() => void>(() => {});
-  /** True while menu sheet is open — game must not progress. */
-  const menuPausedRef = useRef(false);
-  const countdownRef = useRef(3);
-  const pendingTimerRef = useRef<'countdown' | 'startFill' | 'advance' | null>(
-    null,
-  );
-  const pauseResumeRef = useRef<PauseResume | null>(null);
   const startFillRef = useRef<() => void>(() => {});
   const runCountdownFromRef = useRef<(at: number) => void>(() => {});
 
   const skin = SKINS[persist?.equippedSkin ?? DEFAULT_SKIN];
 
   useEffect(() => {
-    phaseRef.current = phase;
-  }, [phase]);
-  useEffect(() => {
-    roundRef.current = round;
     syncZoneMotion(round);
   }, [round, syncZoneMotion]);
 
@@ -402,20 +372,6 @@ export function GameScreen() {
     [],
   );
   useEffect(() => {
-    scoreRef.current = score;
-  }, [score]);
-  useEffect(() => {
-    livesRef.current = lives;
-  }, [lives]);
-  useEffect(() => {
-    comboRef.current = combo;
-  }, [combo]);
-
-  useEffect(() => {
-    countdownRef.current = countdown;
-  }, [countdown]);
-
-  useEffect(() => {
     void loadPersist().then((state) => {
       setPersist(state);
       setGameHapticsEnabled(state.hapticsEnabled !== false);
@@ -426,10 +382,10 @@ export function GameScreen() {
     };
   }, []);
 
+  /** Animation side of a judged round — the chip itself lives in run state. */
   const showFeedback = useCallback((next: Omit<Feedback, 'slot'>) => {
     const isPerfect = next.label === 'Perfect';
     const isMiss = next.label === 'Miss';
-    setFeedback({ ...next, slot: feedbackSlotFor(next.label) });
 
     const pulseCombo = (showIntro: boolean) => {
       comboPulse.set(
@@ -498,9 +454,10 @@ export function GameScreen() {
   }, []);
 
   const announceNewBest = useCallback(() => {
-    if (newBestAnnouncedRef.current) return;
-    newBestAnnouncedRef.current = true;
-    setIsNewBest(true);
+    // `isNewBest` doubles as the "already announced" latch — the reducer makes
+    // the action a no-op once it is set, so the cue fires once per run.
+    if (stateRef.current.isNewBest) return;
+    dispatch({ type: 'announceNewBest' });
     newBestPulse.set(
       withSequence(
         withTiming(1.22, { duration: 140, easing: Easing.out(Easing.cubic) }),
@@ -508,7 +465,7 @@ export function GameScreen() {
       ),
     );
     void gameHaptics.result('Great');
-  }, [newBestPulse]);
+  }, [dispatch, newBestPulse, stateRef]);
 
   const endRun = useCallback(
     async (finalScore: number, session: SessionStats) => {
@@ -519,16 +476,13 @@ export function GameScreen() {
         score: finalScore,
         coinsEarned: session.coinsEarned,
         bestCombo: session.bestCombo,
-        bestLevel: roundRef.current.level,
-        isDaily: dailyMode,
+        bestLevel: stateRef.current.round.level,
+        isDaily: stateRef.current.dailyMode,
       });
       setPersist(next);
       const beatBest =
         finalScore > 0 && finalScore >= runBestBaselineRef.current;
-      setIsNewBest(beatBest);
-      if (beatBest) newBestAnnouncedRef.current = true;
-      setPhase('gameover');
-      phaseRef.current = 'gameover';
+      dispatch({ type: 'gameOver', isNewBest: beatBest });
 
       // Soft prompt only — native Store Review waits for a positive tap.
       if (shouldShowReviewPrompt(next, { isNewHighScore: beatBest })) {
@@ -539,7 +493,7 @@ export function GameScreen() {
         }, TIMING.reviewPromptDelay);
       }
     },
-    [dailyMode],
+    [dispatch, stateRef],
   );
 
   useEffect(() => {
@@ -561,56 +515,59 @@ export function GameScreen() {
 
   /**
    * Queue the move to the next meter. If the menu opens before it fires, the
-   * advance is parked on pauseResumeRef and replayed when the sheet closes.
+   * advance is parked on the run state and replayed when the sheet closes.
    */
-  const scheduleAdvance = useCallback((delayMs: number) => {
-    if (autoTimer.current) clearTimeout(autoTimer.current);
-    pendingTimerRef.current = 'advance';
-    autoTimer.current = setTimeout(() => {
-      pendingTimerRef.current = null;
-      if (menuPausedRef.current) {
-        pauseResumeRef.current = { kind: 'advance' };
-        return;
-      }
-      advanceRef.current();
-    }, delayMs);
-  }, []);
+  const scheduleAdvance = useCallback(
+    (delayMs: number) => {
+      if (autoTimer.current) clearTimeout(autoTimer.current);
+      dispatch({ type: 'pendingTimer', pending: 'advance' });
+      autoTimer.current = setTimeout(() => {
+        dispatch({ type: 'pendingTimer', pending: null });
+        if (stateRef.current.paused) {
+          dispatch({ type: 'park', resume: { kind: 'advance' } });
+          return;
+        }
+        advanceRef.current();
+      }, delayMs);
+    },
+    [dispatch, stateRef],
+  );
 
   const finishRound = useCallback(
     (value: number) => {
-      const current = roundRef.current;
-      const prevCombo = comboRef.current;
-      const result = scoreFill(value, current, prevCombo);
-      setCombo(result.combo);
-      comboRef.current = result.combo;
+      const before = stateRef.current;
+      const result = scoreFill(value, before.round, before.combo);
+      const comboGrew = result.combo > before.combo;
       isFilling.set(0);
       void gameHaptics.result(result.label === 'Close' ? 'Nice' : result.label);
+
+      // One dispatch folds combo, score, lives, stats, phase and the callout
+      // together, so they can never be left half-applied. Everything below is a
+      // side effect and stays out of it.
+      dispatch({
+        type: 'scored',
+        result,
+        feedback: {
+          label: result.label,
+          points: result.points,
+          combo: result.combo,
+          comboGrew,
+          slot: feedbackSlotFor(result.label),
+        },
+      });
+      const after = stateRef.current;
 
       showFeedback({
         label: result.label,
         points: result.points,
         combo: result.combo,
-        comboGrew: result.combo > prevCombo,
+        comboGrew,
       });
-
-      // Tallied up front: a state updater must be pure, and everything below
-      // (sound, timers, endRun's storage write) is a side effect. React may
-      // invoke an updater more than once — doing this inside one risked a
-      // double sound, two queued advances, and committing the run twice.
-      const session = tallyRound(statsRef.current, result);
-      statsRef.current = session;
-      setStats(session);
-
-      setPhase('result');
-      phaseRef.current = 'result';
 
       if (result.costsLife) {
         play('miss');
-        const livesLeft = livesRef.current - 1;
-        setLives(livesLeft);
-        livesRef.current = livesLeft;
-        if (livesLeft <= 0) {
-          void endRun(scoreRef.current, session);
+        if (after.lives <= 0) {
+          void endRun(after.score, after.stats);
         } else {
           scheduleAdvance(TIMING.advanceAfterMiss);
         }
@@ -618,9 +575,7 @@ export function GameScreen() {
       }
 
       play(result.result === 'perfect' ? 'perfect' : 'zone');
-      setScore((sc) => sc + result.points);
-      scoreRef.current += result.points;
-      if (scoreRef.current > runBestBaselineRef.current) {
+      if (after.score > runBestBaselineRef.current) {
         announceNewBest();
       }
       scheduleAdvance(
@@ -629,19 +584,27 @@ export function GameScreen() {
           : TIMING.advanceAfterHit,
       );
     },
-    [announceNewBest, endRun, isFilling, play, scheduleAdvance, showFeedback],
+    [
+      announceNewBest,
+      dispatch,
+      endRun,
+      isFilling,
+      play,
+      scheduleAdvance,
+      showFeedback,
+      stateRef,
+    ],
   );
 
   const startFill = useCallback(() => {
-    if (menuPausedRef.current) {
-      pauseResumeRef.current = { kind: 'startFill' };
+    if (stateRef.current.paused) {
+      dispatch({ type: 'park', resume: { kind: 'startFill' } });
       return;
     }
-    const current = roundRef.current;
-    setFeedback(null);
+    const current = stateRef.current.round;
+    dispatch({ type: 'clearFeedback' });
     feedbackOpacity.set(0);
-    setPhase('filling');
-    phaseRef.current = 'filling';
+    dispatch({ type: 'phase', phase: 'filling' });
     isFilling.set(1);
     syncZoneMotion(current);
     fill.set(0);
@@ -658,7 +621,16 @@ export function GameScreen() {
         },
       ),
     );
-  }, [fill, feedbackOpacity, finishRound, isFilling, play, syncZoneMotion]);
+  }, [
+    dispatch,
+    fill,
+    feedbackOpacity,
+    finishRound,
+    isFilling,
+    play,
+    stateRef,
+    syncZoneMotion,
+  ]);
 
   useEffect(() => {
     startFillRef.current = startFill;
@@ -669,11 +641,11 @@ export function GameScreen() {
       if (countTimer.current) clearTimeout(countTimer.current);
 
       if (current <= 0) {
-        pendingTimerRef.current = 'startFill';
+        dispatch({ type: 'pendingTimer', pending: 'startFill' });
         countTimer.current = setTimeout(() => {
-          pendingTimerRef.current = null;
-          if (menuPausedRef.current) {
-            pauseResumeRef.current = { kind: 'startFill' };
+          dispatch({ type: 'pendingTimer', pending: null });
+          if (stateRef.current.paused) {
+            dispatch({ type: 'park', resume: { kind: 'startFill' } });
             return;
           }
           startFillRef.current();
@@ -681,16 +653,18 @@ export function GameScreen() {
         return;
       }
 
-      pendingTimerRef.current = 'countdown';
+      dispatch({ type: 'pendingTimer', pending: 'countdown' });
       countTimer.current = setTimeout(() => {
-        pendingTimerRef.current = null;
-        if (menuPausedRef.current) {
-          pauseResumeRef.current = { kind: 'countdown', countAt: current };
+        dispatch({ type: 'pendingTimer', pending: null });
+        if (stateRef.current.paused) {
+          dispatch({
+            type: 'park',
+            resume: { kind: 'countdown', countAt: current },
+          });
           return;
         }
         const next = current - 1;
-        setCountdown(next);
-        countdownRef.current = next;
+        dispatch({ type: 'countdown', value: next });
         if (next > 0) {
           play('tick');
           void gameHaptics.countdownTick(next);
@@ -702,7 +676,7 @@ export function GameScreen() {
         }
       }, TIMING.countdownTick);
     },
-    [play],
+    [dispatch, play, stateRef],
   );
 
   useEffect(() => {
@@ -711,36 +685,33 @@ export function GameScreen() {
 
   const beginRound = useCallback(
     (next: RoundConfig, animateIn: boolean) => {
-      setRound(next);
-      roundRef.current = next;
+      dispatch({ type: 'beginRound', round: next });
       fill.set(0);
       syncZoneMotion(next);
 
       // Only countdown on the very first meter of a run
       if (next.level === 1) {
         meterX.set(0);
-        setPhase('countdown');
-        phaseRef.current = 'countdown';
-        setCountdown(3);
-        countdownRef.current = 3;
+        dispatch({ type: 'phase', phase: 'countdown' });
+        dispatch({ type: 'countdown', value: INITIAL_COUNTDOWN });
         play('tick');
-        void gameHaptics.countdownTick(3);
-        runCountdownFromRef.current(3);
+        void gameHaptics.countdownTick(INITIAL_COUNTDOWN);
+        runCountdownFromRef.current(INITIAL_COUNTDOWN);
         return;
       }
 
       // Later levels: land the meter, pause so the zone is readable, then fill
       const startAfterReadPause = () => {
-        if (menuPausedRef.current) {
-          pauseResumeRef.current = { kind: 'startFill' };
+        if (stateRef.current.paused) {
+          dispatch({ type: 'park', resume: { kind: 'startFill' } });
           return;
         }
         if (countTimer.current) clearTimeout(countTimer.current);
-        pendingTimerRef.current = 'startFill';
+        dispatch({ type: 'pendingTimer', pending: 'startFill' });
         countTimer.current = setTimeout(() => {
-          pendingTimerRef.current = null;
-          if (menuPausedRef.current) {
-            pauseResumeRef.current = { kind: 'startFill' };
+          dispatch({ type: 'pendingTimer', pending: null });
+          if (stateRef.current.paused) {
+            dispatch({ type: 'park', resume: { kind: 'startFill' } });
             return;
           }
           startFillRef.current();
@@ -763,28 +734,29 @@ export function GameScreen() {
         startAfterReadPause();
       }
     },
-    [fill, meterX, play, syncZoneMotion],
+    [dispatch, fill, meterX, play, stateRef, syncZoneMotion],
   );
 
   const spawnNextLevel = useCallback(() => {
-    const next = makeRound(roundRef.current.level + 1, {
-      previousTarget: roundRef.current.target,
+    const current = stateRef.current.round;
+    const next = makeRound(current.level + 1, {
+      previousTarget: current.target,
       rng: rngRef.current,
     });
     beginRound(next, true);
-  }, [beginRound]);
+  }, [beginRound, stateRef]);
 
   const onMeterSlidOut = useCallback(() => {
-    if (menuPausedRef.current) {
-      pauseResumeRef.current = { kind: 'advance' };
+    if (stateRef.current.paused) {
+      dispatch({ type: 'park', resume: { kind: 'advance' } });
       return;
     }
     spawnNextLevel();
-  }, [spawnNextLevel]);
+  }, [dispatch, spawnNextLevel, stateRef]);
 
   const advanceLevel = useCallback(() => {
     if (autoTimer.current) clearTimeout(autoTimer.current);
-    pendingTimerRef.current = null;
+    dispatch({ type: 'pendingTimer', pending: null });
     // Slide current meter out, then bring next in
     meterX.set(
       withTiming(
@@ -795,7 +767,7 @@ export function GameScreen() {
         },
       ),
     );
-  }, [meterX, onMeterSlidOut]);
+  }, [dispatch, meterX, onMeterSlidOut]);
 
   useEffect(() => {
     advanceRef.current = advanceLevel;
@@ -824,30 +796,18 @@ export function GameScreen() {
     if (autoTimer.current) clearTimeout(autoTimer.current);
     countTimer.current = null;
     autoTimer.current = null;
-    menuPausedRef.current = false;
-    pauseResumeRef.current = null;
-    pendingTimerRef.current = null;
-    setMenuOpen(false);
+    // Drops the pause, the parked resume and the pending timer in one step.
+    dispatch({ type: 'resume' });
+    dispatch({ type: 'pendingTimer', pending: null });
     cancelAnimation(meterX);
     cancelAnimation(fill);
-  }, [fill, meterX]);
+  }, [dispatch, fill, meterX]);
 
-  /** Zero the per-run state, keeping each ref mirror in step with its state. */
-  const resetRunState = useCallback(() => {
-    setScore(0);
-    scoreRef.current = 0;
-    setLives(STARTING_LIVES);
-    livesRef.current = STARTING_LIVES;
-    setCombo(0);
-    comboRef.current = 0;
+  /** Reset the animation layer that sits alongside run state. */
+  const resetRunVisuals = useCallback(() => {
     comboIntroShownRef.current = false;
     comboLabelOpacity.set(0);
-    newBestAnnouncedRef.current = false;
     newBestPulse.set(1);
-    statsRef.current = emptyStats();
-    setStats(statsRef.current);
-    setIsNewBest(false);
-    setFeedback(null);
     feedbackOpacity.set(0);
     isFilling.set(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -856,22 +816,18 @@ export function GameScreen() {
   /** Back to the home screen with a fresh idle meter. */
   const resetToIdle = useCallback(() => {
     haltRun();
-    resetRunState();
+    resetRunVisuals();
     fill.set(0);
-    setDailyMode(false);
     rngRef.current = Math.random;
     const idle = makeRound(1);
-    setRound(idle);
-    roundRef.current = idle;
+    dispatch({ type: 'idle', round: idle });
     syncZoneMotion(idle);
-    setPhase('ready');
-    phaseRef.current = 'ready';
-  }, [fill, haltRun, resetRunState, syncZoneMotion]);
+  }, [dispatch, fill, haltRun, resetRunVisuals, syncZoneMotion]);
 
   const startRun = (daily: boolean) => {
     haltRun();
-    resetRunState();
-    setDailyMode(daily);
+    resetRunVisuals();
+    dispatch({ type: 'startRun', daily });
     rngRef.current = daily ? createRng(dailySeed()) : Math.random;
     runBestBaselineRef.current = daily
       ? persist?.dailyBest.date === todayKey()
@@ -883,10 +839,9 @@ export function GameScreen() {
 
   const resumeFillFrom = useCallback(
     (from: number) => {
-      const current = roundRef.current;
+      const current = stateRef.current.round;
       const remaining = Math.max(90, Math.round(current.fillMs * (1 - from)));
-      setPhase('filling');
-      phaseRef.current = 'filling';
+      dispatch({ type: 'phase', phase: 'filling' });
       isFilling.set(1);
       fill.set(from);
       fill.set(
@@ -899,38 +854,23 @@ export function GameScreen() {
         ),
       );
     },
-    [fill, finishRound, isFilling],
+    [dispatch, fill, finishRound, isFilling, stateRef],
   );
 
   const openMenu = useCallback(() => {
     void gameHaptics.next();
-    menuPausedRef.current = true;
 
-    const p = phaseRef.current;
-    if (p === 'filling') {
-      const at = fill.value;
+    // Freeze the meter before dispatching so the parked position is the exact
+    // one the player last saw.
+    let fillAt = 0;
+    if (stateRef.current.phase === 'filling') {
+      fillAt = fill.value;
       cancelAnimation(fill);
-      fill.set(at);
+      fill.set(fillAt);
       isFilling.set(0);
-      pauseResumeRef.current = { kind: 'fill', fillAt: at };
-    } else if (p === 'countdown') {
-      pauseResumeRef.current = {
-        kind: 'countdown',
-        countAt: countdownRef.current,
-      };
-    } else if (pendingTimerRef.current === 'startFill') {
-      pauseResumeRef.current = { kind: 'startFill' };
-    } else if (pendingTimerRef.current === 'advance' || p === 'result') {
-      // Result auto-advance, or mid level-transition
-      if (
-        pendingTimerRef.current === 'advance' ||
-        pauseResumeRef.current == null
-      ) {
-        if (livesRef.current > 0 && p === 'result') {
-          pauseResumeRef.current = { kind: 'advance' };
-        }
-      }
     }
+    // The reducer decides what to park from the current phase / pending timer.
+    dispatch({ type: 'pause', fillAt });
 
     if (countTimer.current) {
       clearTimeout(countTimer.current);
@@ -940,18 +880,15 @@ export function GameScreen() {
       clearTimeout(autoTimer.current);
       autoTimer.current = null;
     }
-    pendingTimerRef.current = null;
 
     // Freeze any in-flight meter slide. cancelAnimation already pins meterX at
     // its current value, which is what an `advance` resume wants — only a
     // pending startFill needs the meter snapped back to centre.
     cancelAnimation(meterX);
-    if (pauseResumeRef.current?.kind === 'startFill') {
+    if (stateRef.current.pauseResume?.kind === 'startFill') {
       meterX.set(0);
     }
-
-    setMenuOpen(true);
-  }, [fill, isFilling, meterX]);
+  }, [dispatch, fill, isFilling, meterX, stateRef]);
 
   const openScores = useCallback(() => {
     setMenuInitialView('highscores');
@@ -959,10 +896,9 @@ export function GameScreen() {
   }, [openMenu]);
 
   const closeMenu = useCallback(() => {
-    setMenuOpen(false);
-    menuPausedRef.current = false;
-    const resume = pauseResumeRef.current;
-    pauseResumeRef.current = null;
+    // Read the parked resume before dispatching — `resume` clears it.
+    const resume = stateRef.current.pauseResume;
+    dispatch({ type: 'resume' });
     if (!resume) return;
 
     if (resume.kind === 'fill') {
@@ -984,7 +920,7 @@ export function GameScreen() {
         TIMING.advanceAfterResume,
       );
     }
-  }, [meterX, resumeFillFrom]);
+  }, [dispatch, meterX, resumeFillFrom, stateRef]);
 
   const toggleSound = async () => {
     const next = await setSoundMuted(!(persist?.soundMuted ?? false));
@@ -1032,35 +968,33 @@ export function GameScreen() {
   };
 
   const onTap = () => {
-    if (menuOpen || lockingTap.current) return;
-    const p = phaseRef.current;
-    if (p === 'countdown' || p === 'ready' || p === 'result') return;
+    if (lockingTap.current) return;
+    const { phase: p, paused } = stateRef.current;
+    if (paused || p !== 'filling') return;
 
-    if (p === 'filling') {
-      lockingTap.current = true;
-      // Freeze fill exactly where it is — zone is derived from fill, so it matches
-      const stoppedAt = fill.value;
-      cancelAnimation(fill);
-      fill.set(stoppedAt);
-      // Snap zone to the scored position (same as zoneAt)
-      if (zoneMoves.value) {
-        zoneTarget.set(
-          zoneFrom.value + (zoneTo.value - zoneFrom.value) * stoppedAt,
-        );
-      }
-      if (zoneShrinks.value) {
-        zoneHalf.set(
-          halfFrom.value + (halfTo.value - halfFrom.value) * stoppedAt,
-        );
-      }
-      isFilling.set(0);
-      play('tap');
-      void gameHaptics.stop();
-      finishRound(stoppedAt);
-      requestAnimationFrame(() => {
-        lockingTap.current = false;
-      });
+    lockingTap.current = true;
+    // Freeze fill exactly where it is — zone is derived from fill, so it matches
+    const stoppedAt = fill.value;
+    cancelAnimation(fill);
+    fill.set(stoppedAt);
+    // Snap zone to the scored position (same as zoneAt)
+    if (zoneMoves.value) {
+      zoneTarget.set(
+        zoneFrom.value + (zoneTo.value - zoneFrom.value) * stoppedAt,
+      );
     }
+    if (zoneShrinks.value) {
+      zoneHalf.set(
+        halfFrom.value + (halfTo.value - halfFrom.value) * stoppedAt,
+      );
+    }
+    isFilling.set(0);
+    play('tap');
+    void gameHaptics.stop();
+    finishRound(stoppedAt);
+    requestAnimationFrame(() => {
+      lockingTap.current = false;
+    });
   };
 
   const meterStyle = useAnimatedStyle(() => ({
