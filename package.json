@@ -52,6 +52,7 @@
     "lint": "bunx expo lint",
     "build:android": "bunx eas-cli build --profile development --platform android",
     "build:ios": "bunx eas-cli build --profile development --platform ios",
+    "build:ios:simulator": "bunx eas-cli build --profile development-simulator --platform ios",
     "deploy:ios": "bunx eas-cli build --profile production --platform ios --auto-submit",
     "deploy:android": "bunx eas-cli build --profile production --platform android --auto-submit",
     "deploy:all": "bunx eas-cli build --profile production --platform all --auto-submit",

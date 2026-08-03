@@ -1,2 +1,75 @@
+# .easignore replaces .gitignore entirely — keep both in sync.
+# https://docs.expo.dev/build-reference/easignore/
+
+# --- from .gitignore ---
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# package managers — this repo uses Bun
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# Local credentials (never upload)
+credentials/
+
+# typescript
+*.tsbuildinfo
+
+example
+
+# generated native folders
+/ios
+/android
+tmp/
+
+# --- EAS-only: not needed to build the app ---
+
+# Shallow clone otherwise packs committed screenshots/previews (~100MB+)
+.git
+
+# Marketing site (Astro) — separate deploy
 website/
-website/dist/
+
+# App Store screenshots / preview videos
+screenshots/
+
+# Local tooling / docs
+.claude/
+.vscode/
+AGENTS.md
+CLAUDE.md
+README.md
+LICENSE
+scripts/
