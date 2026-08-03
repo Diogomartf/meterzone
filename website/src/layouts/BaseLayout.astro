@@ -23,6 +23,8 @@ interface Props {
   index?: boolean;
   /** Open Graph type — use "article" for long-form if needed. */
   ogType?: 'website' | 'article';
+  /** Extra schema.org nodes merged into @graph (FAQPage, VideoObject, etc.). */
+  jsonLd?: Record<string, unknown>[];
 }
 
 const {
@@ -32,6 +34,7 @@ const {
   image = OG_IMAGE.path,
   index = true,
   ogType = 'website',
+  jsonLd = [],
 } = Astro.props;
 
 const pageTitle = title
@@ -42,23 +45,44 @@ const pageTitle = title
 
 const canonical = new URL(canonicalPath, SITE_URL).href;
 const imageUrl = new URL(image, SITE_URL).href;
-const robots = index ? 'index, follow' : 'noindex, nofollow';
+const robots = index
+  ? 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'
+  : 'noindex, nofollow';
 
 const sameAs = [APP_STORE_URL, PLAY_STORE_URL].filter(
   (url): url is string => typeof url === 'string' && url.length > 0,
 );
 
+const organization = {
+  '@type': 'Organization',
+  '@id': `${SITE_URL}/#organization`,
+  name: APP_NAME,
+  url: SITE_URL,
+  email: CONTACT_EMAIL,
+  logo: {
+    '@type': 'ImageObject',
+    url: new URL('/images/zone-meter-logo.png', SITE_URL).href,
+  },
+  contactPoint: {
+    '@type': 'ContactPoint',
+    email: CONTACT_EMAIL,
+    contactType: 'customer support',
+    url: `${SITE_URL}/support/`,
+  },
+};
+
 const structuredData = {
   '@context': 'https://schema.org',
   '@graph': [
+    organization,
     {
       '@type': 'WebSite',
       '@id': `${SITE_URL}/#website`,
       url: SITE_URL,
       name: APP_NAME,
       description: SITE_DESCRIPTION,
-      publisher: { '@id': `${SITE_URL}/#app` },
-      inLanguage: 'en',
+      publisher: { '@id': `${SITE_URL}/#organization` },
+      inLanguage: 'en-US',
     },
     {
       '@type': 'WebPage',
@@ -68,29 +92,42 @@ const structuredData = {
       description,
       isPartOf: { '@id': `${SITE_URL}/#website` },
       about: { '@id': `${SITE_URL}/#app` },
-      inLanguage: 'en',
+      primaryImageOfPage: {
+        '@type': 'ImageObject',
+        url: imageUrl,
+        width: OG_IMAGE.width,
+        height: OG_IMAGE.height,
+      },
+      inLanguage: 'en-US',
     },
     {
-      '@type': 'MobileApplication',
+      '@type': ['MobileApplication', 'VideoGame'],
       '@id': `${SITE_URL}/#app`,
       name: APP_NAME,
+      alternateName: ['Meter Zone', 'MeterZone game'],
       description: SITE_DESCRIPTION,
       url: SITE_URL,
       applicationCategory: 'GameApplication',
-      operatingSystem: 'iOS, Android',
+      applicationSubCategory: 'Casual',
+      genre: ['Casual', 'Arcade', 'Timing', 'Hypercasual'],
+      operatingSystem: 'iOS',
+      gamePlatform: 'iOS',
       offers: {
         '@type': 'Offer',
         price: '0',
         priceCurrency: 'USD',
+        availability:
+          sameAs.length > 0
+            ? 'https://schema.org/InStock'
+            : 'https://schema.org/PreOrder',
       },
       ...(sameAs.length > 0 ? { downloadUrl: sameAs, sameAs } : {}),
-      author: {
-        '@type': 'Organization',
-        name: APP_NAME,
-        email: CONTACT_EMAIL,
-        url: SITE_URL,
-      },
+      author: { '@id': `${SITE_URL}/#organization` },
+      publisher: { '@id': `${SITE_URL}/#organization` },
+      image: imageUrl,
+      screenshot: new URL('/images/game-preview.png', SITE_URL).href,
     },
+    ...jsonLd,
   ],
 };
 ---
@@ -103,12 +140,14 @@ const structuredData = {
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
     <meta name="robots" content={robots} />
+    <meta name="googlebot" content={robots} />
     <meta name="author" content={APP_NAME} />
     <meta name="theme-color" content={THEME_COLOR} />
     <meta name="color-scheme" content="light" />
     <meta name="application-name" content={APP_NAME} />
     <meta name="apple-mobile-web-app-title" content={APP_NAME} />
     <meta name="format-detection" content="telephone=no" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
 
     <link rel="canonical" href={canonical} />
     <link rel="sitemap" type="application/xml" href="/sitemap-index.xml" />

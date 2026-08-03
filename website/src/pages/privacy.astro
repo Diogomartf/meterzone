@@ -1,13 +1,37 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { APP_NAME, CONTACT_EMAIL } from '../site';
+import { APP_NAME, CONTACT_EMAIL, SITE_URL } from '../site';
 
 const lastUpdated = 'July 25, 2026';
+
+const privacyDescription = `${APP_NAME} privacy policy — a free one-tap timing game that keeps scores on your device. No accounts, no tracking ads. Contact ${CONTACT_EMAIL} with questions.`;
+
+const jsonLd = [
+  {
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: `${SITE_URL}/`,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Privacy Policy',
+        item: `${SITE_URL}/privacy/`,
+      },
+    ],
+  },
+];
 ---
 
 <BaseLayout
   title="Privacy Policy"
-  description={`Privacy policy for ${APP_NAME}. Learn what data the game stores on your device and what we do not collect.`}
+  description={privacyDescription}
+  canonicalPath="/privacy/"
+  jsonLd={jsonLd}
 >
   <main class="privacy">
     <a class="back" href="/">← Back to {APP_NAME}</a>

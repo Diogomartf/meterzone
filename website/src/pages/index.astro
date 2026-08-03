@@ -6,9 +6,11 @@ import {
   PLAY_STORE_URL,
   HERO_HEADLINE,
   HERO_KICKER,
+  HERO_MEDIA,
   CONTACT_EMAIL,
   APP_NAME,
   SITE_DESCRIPTION,
+  SITE_URL,
 } from '../site';
 
 const hasStoreLinks = APP_STORE_URL !== null || PLAY_STORE_URL !== null;
@@ -27,9 +29,76 @@ const steps = [
     body: 'Build combos, chase high scores, and take on the same daily sequence as everyone else.',
   },
 ];
+
+const features = [
+  {
+    title: 'One-tap gameplay',
+    body: 'No complex controls. Tap once to stop the meter — pick up and play in seconds.',
+  },
+  {
+    title: 'Combos & high scores',
+    body: 'Hit Perfect and Great stops to stack multipliers and push your best score.',
+  },
+  {
+    title: 'Daily challenge',
+    body: 'The same sequence for everyone each day — race friends on a level playing field.',
+  },
+  {
+    title: 'Play offline',
+    body: 'No account required. Progress stays on your device, with optional sound and haptics.',
+  },
+];
+
+const faqs = [
+  {
+    question: `What is ${APP_NAME}?`,
+    answer: `${APP_NAME} is a free casual one-tap timing game. Watch the meter rise, tap when it hits the zone, stack combos, and chase high scores.`,
+  },
+  {
+    question: 'Is MeterZone free?',
+    answer:
+      'Yes. MeterZone is free to download and play. Store availability will open when the app ships on the App Store.',
+  },
+  {
+    question: 'Do I need an account?',
+    answer:
+      'No. There is no sign-in. Scores, settings, and unlocks are stored on your device.',
+  },
+  {
+    question: 'What devices does it support?',
+    answer:
+      'MeterZone is built for iPhone. Google Play availability may follow later.',
+  },
+];
+
+const jsonLd = [
+  {
+    '@type': 'VideoObject',
+    '@id': `${SITE_URL}/#gameplay-video`,
+    name: `${APP_NAME} gameplay preview`,
+    description: HERO_MEDIA.alt,
+    thumbnailUrl: new URL(HERO_MEDIA.poster, SITE_URL).href,
+    contentUrl: new URL(HERO_MEDIA.src, SITE_URL).href,
+    uploadDate: '2026-08-03',
+    inLanguage: 'en-US',
+    isFamilyFriendly: true,
+  },
+  {
+    '@type': 'FAQPage',
+    '@id': `${SITE_URL}/#faq`,
+    mainEntity: faqs.map((faq) => ({
+      '@type': 'Question',
+      name: faq.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: faq.answer,
+      },
+    })),
+  },
+];
 ---
 
-<BaseLayout title={APP_NAME} description={SITE_DESCRIPTION}>
+<BaseLayout title={APP_NAME} description={SITE_DESCRIPTION} jsonLd={jsonLd}>
   <main class="page">
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-bg" aria-hidden="true">
@@ -53,7 +122,8 @@ const steps = [
                 <span class="hero-q">?</span>
               </span>
               <span class="sr-only"
-                >{APP_NAME}. {HERO_HEADLINE.lead} {HERO_HEADLINE.zone}?</span
+                >{APP_NAME} — free one-tap timing game. {HERO_HEADLINE.lead}{' '}
+                {HERO_HEADLINE.zone}?</span
               >
             </h1>
             <p class="hero-kicker">{HERO_KICKER}</p>
@@ -106,8 +176,9 @@ const steps = [
     <section class="how" aria-labelledby="how-title">
       <h2 id="how-title">How {APP_NAME} works</h2>
       <p class="how-intro">
-        {APP_NAME} is a fast casual timing game: read the rising meter, tap in the
-        sweet spot, and see how long you can stay in the zone.
+        {APP_NAME} is a free casual one-tap timing game: read the rising meter,
+        tap in the sweet spot, stack combos, and see how long you can stay in the
+        zone.
       </p>
       <ol class="steps">
         {steps.map((step) => (
@@ -117,6 +188,34 @@ const steps = [
           </li>
         ))}
       </ol>
+    </section>
+
+    <section class="features" aria-labelledby="features-title">
+      <h2 id="features-title">Why players love {APP_NAME}</h2>
+      <p class="features-intro">
+        A simple arcade-style timing challenge with daily competition, offline
+        play, and just enough pressure for one more try.
+      </p>
+      <ul class="feature-grid">
+        {features.map((feature) => (
+          <li>
+            <h3>{feature.title}</h3>
+            <p>{feature.body}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <section class="faq" aria-labelledby="faq-title">
+      <h2 id="faq-title">Frequently asked questions</h2>
+      <div class="faq-list">
+        {faqs.map((faq) => (
+          <details class="faq-item">
+            <summary>{faq.question}</summary>
+            <p>{faq.answer}</p>
+          </details>
+        ))}
+      </div>
     </section>
 
     <footer class="footer">
@@ -529,6 +628,113 @@ const steps = [
     color: var(--panel-ink);
   }
 
+  .features {
+    padding: 1rem 1.5rem 3.5rem;
+    max-width: 48rem;
+    margin: 0 auto;
+  }
+
+  .features h2 {
+    margin: 0 0 0.75rem;
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    font-weight: 700;
+    text-align: center;
+    color: var(--ink);
+  }
+
+  .features-intro {
+    margin: 0 auto 2rem;
+    max-width: 34rem;
+    text-align: center;
+    line-height: 1.55;
+    color: var(--panel-ink);
+  }
+
+  .feature-grid {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr;
+  }
+
+  .feature-grid li {
+    padding: 1.15rem 1.25rem;
+    border-radius: 1rem;
+    border: 2px solid rgba(26, 28, 44, 0.1);
+    background: rgba(255, 255, 255, 0.45);
+  }
+
+  .feature-grid h3 {
+    margin: 0 0 0.4rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+  }
+
+  .feature-grid p {
+    margin: 0;
+    line-height: 1.5;
+    color: var(--panel-ink);
+    font-size: 0.95rem;
+  }
+
+  .faq {
+    padding: 0 1.5rem 3.5rem;
+    max-width: 40rem;
+    margin: 0 auto;
+  }
+
+  .faq h2 {
+    margin: 0 0 1.25rem;
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    font-weight: 700;
+    text-align: center;
+    color: var(--ink);
+  }
+
+  .faq-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .faq-item {
+    border-radius: 0.85rem;
+    border: 2px solid rgba(26, 28, 44, 0.1);
+    background: rgba(255, 255, 255, 0.45);
+    padding: 0.15rem 1rem;
+  }
+
+  .faq-item summary {
+    cursor: pointer;
+    list-style: none;
+    padding: 0.9rem 0;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .faq-item summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .faq-item summary::after {
+    content: '+';
+    float: right;
+    font-weight: 700;
+    color: var(--panel-ink);
+  }
+
+  .faq-item[open] summary::after {
+    content: '−';
+  }
+
+  .faq-item p {
+    margin: 0 0 1rem;
+    line-height: 1.55;
+    color: var(--panel-ink);
+  }
+
   .footer {
     margin-top: auto;
     padding: 2rem 1.5rem 2.5rem;
@@ -563,6 +769,12 @@ const steps = [
     margin: 0;
     font-size: 0.875rem;
     color: var(--panel-ink);
+  }
+
+  @media (min-width: 640px) {
+    .feature-grid {
+      grid-template-columns: 1fr 1fr;
+    }
   }
 
   @media (min-width: 900px) {
