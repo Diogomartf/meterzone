@@ -10,7 +10,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { GameColors, GameFonts } from '@/constants/gameTheme';
+import { GameColors, GameFonts, fillParent } from '@/constants/gameTheme';
 
 const HEART = require('../../assets/images/heart-filled.png');
 
@@ -144,7 +144,7 @@ export function MissBreak({ visible, burstKey = 0, livesLeft = 0 }: Props) {
 
 const styles = StyleSheet.create({
   anchor: {
-    ...StyleSheet.absoluteFillObject,
+    ...fillParent,
     zIndex: 48,
     alignItems: 'center',
     justifyContent: 'center',

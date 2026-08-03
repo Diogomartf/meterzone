@@ -67,7 +67,7 @@ export function CountdownBurst({ value, visible }: Props) {
     <View style={styles.wrap} pointerEvents="none">
       <Animated.View style={[styles.burst, style]}>
         <Text style={[styles.text, value === 0 && styles.goText, { color }]}>{label}</Text>
-        {value === 0 ? <Text style={styles.sub}>LET'S GO</Text> : null}
+        {value === 0 ? <Text style={styles.sub}>LET&apos;S GO</Text> : null}
       </Animated.View>
     </View>
   );

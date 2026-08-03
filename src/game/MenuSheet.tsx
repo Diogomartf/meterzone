@@ -321,25 +321,33 @@ export function MenuSheet({
   const version =
     Constants.expoConfig?.version ?? Constants.nativeAppVersion ?? '1.0.0';
 
+  // Reset to the requested view when the sheet opens. Done during render rather than
+  // in an effect so the first painted frame already shows the right view.
+  // https://react.dev/learn/you-might-not-need-an-effect
+  const [wasVisible, setWasVisible] = useState(visible);
+  if (visible !== wasVisible) {
+    setWasVisible(visible);
+    if (visible) setView(initialView);
+  }
+
   useEffect(() => {
     if (visible) {
-      setView(initialView);
       // Park off-screen + invisible before springing in so Modal mount can't flash.
-      translateY.value = sheetH;
-      overlayOpacity.value = 0;
-      overlayOpacity.value = withTiming(1, { duration: 180 });
-      translateY.value = withSpring(0, { damping: 22, stiffness: 220, mass: 0.9 });
+      translateY.set(sheetH);
+      overlayOpacity.set(0);
+      overlayOpacity.set(withTiming(1, { duration: 180 }));
+      translateY.set(withSpring(0, { damping: 22, stiffness: 220, mass: 0.9 }));
     } else {
-      translateY.value = sheetH;
-      overlayOpacity.value = 0;
+      translateY.set(sheetH);
+      overlayOpacity.set(0);
     }
-  }, [visible, initialView, sheetH, translateY, overlayOpacity]);
+  }, [visible, sheetH, translateY, overlayOpacity]);
 
   const dismiss = () => {
-    overlayOpacity.value = withTiming(0, { duration: 180 });
-    translateY.value = withTiming(sheetH, { duration: 220 }, (finished) => {
+    overlayOpacity.set(withTiming(0, { duration: 180 }));
+    translateY.set(withTiming(sheetH, { duration: 220 }, (finished) => {
       if (finished) runOnJS(onClose)();
-    });
+    }));
   };
 
   const confirmDeleteData = () => {
@@ -432,19 +440,19 @@ export function MenuSheet({
 
   const pan = Gesture.Pan()
     .onUpdate((e) => {
-      translateY.value = Math.max(0, e.translationY);
-      overlayOpacity.value = Math.max(0, 1 - e.translationY / sheetH);
+      translateY.set(Math.max(0, e.translationY));
+      overlayOpacity.set(Math.max(0, 1 - e.translationY / sheetH));
     })
     .onEnd((e) => {
       const shouldClose = e.translationY > 110 || e.velocityY > 900;
       if (shouldClose) {
-        overlayOpacity.value = withTiming(0, { duration: 160 });
-        translateY.value = withTiming(sheetH, { duration: 200 }, (finished) => {
+        overlayOpacity.set(withTiming(0, { duration: 160 }));
+        translateY.set(withTiming(sheetH, { duration: 200 }, (finished) => {
           if (finished) runOnJS(onClose)();
-        });
+        }));
       } else {
-        overlayOpacity.value = withTiming(1, { duration: 160 });
-        translateY.value = withSpring(0, { damping: 22, stiffness: 240 });
+        overlayOpacity.set(withTiming(1, { duration: 160 }));
+        translateY.set(withSpring(0, { damping: 22, stiffness: 240 }));
       }
     });
 

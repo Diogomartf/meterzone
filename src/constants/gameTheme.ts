@@ -60,3 +60,16 @@ export const GameFonts = {
   body: 'Fredoka_600SemiBold',
   soft: 'Fredoka_500Medium',
 } as const;
+
+/**
+ * Absolute overlay covering its parent.
+ * Spelled out rather than using `StyleSheet.absoluteFillObject`, which react-native
+ * dropped in 0.86 — spreading the now-undefined value silently produced in-flow views.
+ */
+export const fillParent = {
+  position: 'absolute' as const,
+  left: 0,
+  right: 0,
+  top: 0,
+  bottom: 0,
+};

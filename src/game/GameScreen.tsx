@@ -25,7 +25,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 
-import { GameColors, GameFonts } from "@/constants/gameTheme";
+import { GameColors, GameFonts, fillParent } from "@/constants/gameTheme";
 import { CountdownBurst } from "@/game/CountdownBurst";
 import { Hearts } from "@/game/Hearts";
 import { MenuSheet } from "@/game/MenuSheet";
@@ -54,7 +54,6 @@ import type {
   PersistState,
   RoundConfig,
   RoundLabel,
-  RoundOutcome,
   SessionStats,
 } from "@/game/types";
 import { useSounds } from "@/game/useSounds";
@@ -255,7 +254,6 @@ export function GameScreen() {
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(STARTING_LIVES);
   const [combo, setCombo] = useState(0);
-  const [outcome, setOutcome] = useState<RoundOutcome | null>(null);
   const [isNewBest, setIsNewBest] = useState(false);
   /** Best (for the played mode) at the moment a finished run is committed. */
   const [previousBest, setPreviousBest] = useState(0);
@@ -294,26 +292,20 @@ export function GameScreen() {
 
   const syncZoneMotion = useCallback(
     (config: RoundConfig) => {
-      zoneFrom.value = config.target;
-      zoneTo.value = config.targetEnd ?? config.target;
-      zoneMoves.value = config.moving && config.targetEnd != null ? 1 : 0;
-      halfFrom.value = config.zoneHalf;
-      halfTo.value = config.zoneHalfEnd ?? config.zoneHalf;
+      zoneFrom.set(config.target);
+      zoneTo.set(config.targetEnd ?? config.target);
+      zoneMoves.set(config.moving && config.targetEnd != null ? 1 : 0);
+      halfFrom.set(config.zoneHalf);
+      halfTo.set(config.zoneHalfEnd ?? config.zoneHalf);
       zoneShrinks.value =
         config.shrinking && config.zoneHalfEnd != null ? 1 : 0;
-      zoneTarget.value = config.target;
-      zoneHalf.value = config.zoneHalf;
+      zoneTarget.set(config.target);
+      zoneHalf.set(config.zoneHalf);
     },
-    [
-      halfFrom,
-      halfTo,
-      zoneFrom,
-      zoneHalf,
-      zoneMoves,
-      zoneShrinks,
-      zoneTarget,
-      zoneTo,
-    ],
+    // Shared values are stable refs — listing them as deps makes the React Compiler
+    // treat the `.value` writes above as forbidden mutation and bail out of the file.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
   );
 
   const phaseRef = useRef<Phase>("ready");
@@ -361,23 +353,13 @@ export function GameScreen() {
       const shrinks = zoneShrinks.value;
       if (!moves && !shrinks) return;
       if (moves) {
-        zoneTarget.value = zoneFrom.value + (zoneTo.value - zoneFrom.value) * t;
+        zoneTarget.set(zoneFrom.value + (zoneTo.value - zoneFrom.value) * t);
       }
       if (shrinks) {
-        zoneHalf.value = halfFrom.value + (halfTo.value - halfFrom.value) * t;
+        zoneHalf.set(halfFrom.value + (halfTo.value - halfFrom.value) * t);
       }
     },
-    [
-      fill,
-      halfFrom,
-      halfTo,
-      zoneFrom,
-      zoneHalf,
-      zoneMoves,
-      zoneShrinks,
-      zoneTarget,
-      zoneTo,
-    ],
+    [],
   );
   useEffect(() => {
     scoreRef.current = score;
@@ -404,37 +386,37 @@ export function GameScreen() {
     };
   }, []);
 
-  const showFeedback = (next: Omit<Feedback, "slot">) => {
+  const showFeedback = useCallback((next: Omit<Feedback, "slot">) => {
     const isPerfect = next.label === "Perfect";
     const isMiss = next.label === "Miss";
     setFeedback({ ...next, slot: feedbackSlotFor(next.label) });
 
     const pulseCombo = (showIntro: boolean) => {
-      comboPulse.value = withSequence(
+      comboPulse.set(withSequence(
         withTiming(1.28, { duration: 120, easing: Easing.out(Easing.cubic) }),
         withTiming(1, { duration: 200, easing: Easing.inOut(Easing.quad) }),
-      );
+      ));
       if (!showIntro) return;
       // First streak only — then just the multiplier
-      comboLabelOpacity.value = 0;
-      comboLabelOpacity.value = withSequence(
+      comboLabelOpacity.set(0);
+      comboLabelOpacity.set(withSequence(
         withTiming(1, { duration: 90 }),
         withDelay(
           650,
           withTiming(0, { duration: 320, easing: Easing.in(Easing.quad) }),
         ),
-      );
+      ));
       comboIntroShownRef.current = true;
     };
 
     if (next.combo <= 1) {
       comboIntroShownRef.current = false;
-      comboLabelOpacity.value = 0;
+      comboLabelOpacity.set(0);
     }
 
     // Perfect / Miss get dedicated center callouts; others keep side chips
     if (isPerfect) {
-      feedbackOpacity.value = 0;
+      feedbackOpacity.set(0);
       setPerfectBurstKey((k) => k + 1);
       if (next.comboGrew && next.combo > 1) {
         pulseCombo(!comboIntroShownRef.current);
@@ -443,35 +425,39 @@ export function GameScreen() {
     }
 
     if (isMiss) {
-      feedbackOpacity.value = 0;
+      feedbackOpacity.set(0);
       setMissBurstKey((k) => k + 1);
-      comboLabelOpacity.value = 0;
+      comboLabelOpacity.set(0);
       comboIntroShownRef.current = false;
       return;
     }
 
-    feedbackOpacity.value = 0;
-    feedbackScale.value = 0.55;
-    feedbackOpacity.value = withSequence(
+    feedbackOpacity.set(0);
+    feedbackScale.set(0.55);
+    feedbackOpacity.set(withSequence(
       withTiming(1, { duration: 90 }),
       withDelay(520, withTiming(0, { duration: 260 })),
-    );
-    feedbackScale.value = withSequence(
+    ));
+    feedbackScale.set(withSequence(
       withTiming(1.18, { duration: 140, easing: Easing.out(Easing.cubic) }),
       withTiming(1, { duration: 160, easing: Easing.inOut(Easing.quad) }),
-    );
+    ));
     if (next.comboGrew && next.combo > 1) {
       pulseCombo(!comboIntroShownRef.current);
     }
-  };
+    // Shared values only — all stable refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const announceNewBest = useCallback(() => {
     if (newBestAnnouncedRef.current) return;
     newBestAnnouncedRef.current = true;
     setIsNewBest(true);
-    newBestPulse.value = withSequence(
-      withTiming(1.22, { duration: 140, easing: Easing.out(Easing.cubic) }),
-      withTiming(1, { duration: 220, easing: Easing.inOut(Easing.quad) }),
+    newBestPulse.set(
+      withSequence(
+        withTiming(1.22, { duration: 140, easing: Easing.out(Easing.cubic) }),
+        withTiming(1, { duration: 220, easing: Easing.inOut(Easing.quad) }),
+      ),
     );
     void gameHaptics.result("Great");
   }, [newBestPulse]);
@@ -530,10 +516,9 @@ export function GameScreen() {
       const current = roundRef.current;
       const prevCombo = comboRef.current;
       const result = scoreFill(value, current, prevCombo);
-      setOutcome(result);
       setCombo(result.combo);
       comboRef.current = result.combo;
-      isFilling.value = 0;
+      isFilling.set(0);
       void gameHaptics.result(result.label === "Close" ? "Nice" : result.label);
 
       showFeedback({
@@ -604,7 +589,7 @@ export function GameScreen() {
         return next;
       });
     },
-    [announceNewBest, endRun, isFilling, play],
+    [announceNewBest, endRun, isFilling, play, showFeedback],
   );
 
   const startFill = useCallback(() => {
@@ -613,26 +598,25 @@ export function GameScreen() {
       return;
     }
     const current = roundRef.current;
-    setOutcome(null);
     setFeedback(null);
-    feedbackOpacity.value = 0;
+    feedbackOpacity.set(0);
     setPhase("filling");
     phaseRef.current = "filling";
-    isFilling.value = 1;
+    isFilling.set(1);
     syncZoneMotion(current);
-    fill.value = 0;
+    fill.set(0);
     play("start");
     void gameHaptics.start();
 
     // Zone position/size follow fill via useAnimatedReaction (matches scoreFill)
-    fill.value = withTiming(
+    fill.set(withTiming(
       1,
       { duration: current.fillMs, easing: Easing.bezier(0.2, 0.05, 0.35, 1) },
       (finished) => {
         if (finished) runOnJS(finishRound)(1);
       },
-    );
-  }, [fill, finishRound, isFilling, play, syncZoneMotion]);
+    ));
+  }, [fill, feedbackOpacity, finishRound, isFilling, play, syncZoneMotion]);
 
   useEffect(() => {
     startFillRef.current = startFill;
@@ -687,13 +671,12 @@ export function GameScreen() {
     (next: RoundConfig, animateIn: boolean) => {
       setRound(next);
       roundRef.current = next;
-      fill.value = 0;
+      fill.set(0);
       syncZoneMotion(next);
-      setOutcome(null);
 
       // Only countdown on the very first meter of a run
       if (next.level === 1) {
-        meterX.value = 0;
+        meterX.set(0);
         setPhase("countdown");
         phaseRef.current = "countdown";
         setCountdown(3);
@@ -723,16 +706,16 @@ export function GameScreen() {
       };
 
       if (animateIn) {
-        meterX.value = 340;
-        meterX.value = withTiming(
+        meterX.set(340);
+        meterX.set(withTiming(
           0,
           { duration: 340, easing: Easing.out(Easing.cubic) },
           (done) => {
             if (done) runOnJS(startAfterReadPause)();
           },
-        );
+        ));
       } else {
-        meterX.value = 0;
+        meterX.set(0);
         startAfterReadPause();
       }
     },
@@ -759,13 +742,13 @@ export function GameScreen() {
     if (autoTimer.current) clearTimeout(autoTimer.current);
     pendingTimerRef.current = null;
     // Slide current meter out, then bring next in
-    meterX.value = withTiming(
+    meterX.set(withTiming(
       -360,
       { duration: 220, easing: Easing.in(Easing.cubic) },
       (done) => {
         if (done) runOnJS(onMeterSlidOut)();
       },
-    );
+    ));
   }, [meterX, onMeterSlidOut]);
 
   useEffect(() => {
@@ -804,19 +787,19 @@ export function GameScreen() {
     setCombo(0);
     comboRef.current = 0;
     comboIntroShownRef.current = false;
-    comboLabelOpacity.value = 0;
+    comboLabelOpacity.set(0);
     runBestBaselineRef.current = daily
       ? persist?.dailyBest.date === todayKey()
         ? persist.dailyBest.score
         : 0
       : (persist?.highScore ?? 0);
     newBestAnnouncedRef.current = false;
-    newBestPulse.value = 1;
+    newBestPulse.set(1);
     setStats(emptyStats());
     setIsNewBest(false);
     setFeedback(null);
-    feedbackOpacity.value = 0;
-    isFilling.value = 0;
+    feedbackOpacity.set(0);
+    isFilling.set(0);
     beginRound(makeRound(1, { rng: rngRef.current }), false);
   };
 
@@ -826,15 +809,15 @@ export function GameScreen() {
       const remaining = Math.max(90, Math.round(current.fillMs * (1 - from)));
       setPhase("filling");
       phaseRef.current = "filling";
-      isFilling.value = 1;
-      fill.value = from;
-      fill.value = withTiming(
+      isFilling.set(1);
+      fill.set(from);
+      fill.set(withTiming(
         1,
         { duration: remaining, easing: Easing.bezier(0.2, 0.05, 0.35, 1) },
         (finished) => {
           if (finished) runOnJS(finishRound)(1);
         },
-      );
+      ));
     },
     [fill, finishRound, isFilling],
   );
@@ -847,8 +830,8 @@ export function GameScreen() {
     if (p === "filling") {
       const at = fill.value;
       cancelAnimation(fill);
-      fill.value = at;
-      isFilling.value = 0;
+      fill.set(at);
+      isFilling.set(0);
       pauseResumeRef.current = { kind: "fill", fillAt: at };
     } else if (p === "countdown") {
       pauseResumeRef.current = {
@@ -882,10 +865,10 @@ export function GameScreen() {
     // Freeze any in-flight meter slide
     cancelAnimation(meterX);
     if (pauseResumeRef.current?.kind === "startFill") {
-      meterX.value = 0;
+      meterX.set(0);
     } else if (pauseResumeRef.current?.kind === "advance") {
       // Keep meter put until resume spawns the next level
-      meterX.value = meterX.value;
+      meterX.set(meterX.value);
     }
 
     setMenuOpen(true);
@@ -912,7 +895,7 @@ export function GameScreen() {
       return;
     }
     if (resume.kind === "startFill") {
-      meterX.value = 0;
+      meterX.set(0);
       startFillRef.current();
       return;
     }
@@ -945,8 +928,8 @@ export function GameScreen() {
     setMenuOpen(false);
     cancelAnimation(meterX);
     cancelAnimation(fill);
-    isFilling.value = 0;
-    fill.value = 0;
+    isFilling.set(0);
+    fill.set(0);
     setDailyMode(false);
     rngRef.current = Math.random;
     setScore(0);
@@ -956,12 +939,11 @@ export function GameScreen() {
     setCombo(0);
     comboRef.current = 0;
     comboIntroShownRef.current = false;
-    comboLabelOpacity.value = 0;
+    comboLabelOpacity.set(0);
     setStats(emptyStats());
     setIsNewBest(false);
     setFeedback(null);
-    feedbackOpacity.value = 0;
-    setOutcome(null);
+    feedbackOpacity.set(0);
     const idle = makeRound(1);
     setRound(idle);
     roundRef.current = idle;
@@ -1002,8 +984,8 @@ export function GameScreen() {
     setMenuOpen(false);
     cancelAnimation(meterX);
     cancelAnimation(fill);
-    isFilling.value = 0;
-    fill.value = 0;
+    isFilling.set(0);
+    fill.set(0);
     setDailyMode(false);
     rngRef.current = Math.random;
     setScore(0);
@@ -1013,12 +995,11 @@ export function GameScreen() {
     setCombo(0);
     comboRef.current = 0;
     comboIntroShownRef.current = false;
-    comboLabelOpacity.value = 0;
+    comboLabelOpacity.set(0);
     setStats(emptyStats());
     setIsNewBest(false);
     setFeedback(null);
-    feedbackOpacity.value = 0;
-    setOutcome(null);
+    feedbackOpacity.set(0);
     const idle = makeRound(1);
     setRound(idle);
     roundRef.current = idle;
@@ -1037,17 +1018,19 @@ export function GameScreen() {
       // Freeze fill exactly where it is — zone is derived from fill, so it matches
       const stoppedAt = fill.value;
       cancelAnimation(fill);
-      fill.value = stoppedAt;
+      fill.set(stoppedAt);
       // Snap zone to the scored position (same as zoneAt)
       if (zoneMoves.value) {
-        zoneTarget.value =
-          zoneFrom.value + (zoneTo.value - zoneFrom.value) * stoppedAt;
+        zoneTarget.set(
+          zoneFrom.value + (zoneTo.value - zoneFrom.value) * stoppedAt,
+        );
       }
       if (zoneShrinks.value) {
-        zoneHalf.value =
-          halfFrom.value + (halfTo.value - halfFrom.value) * stoppedAt;
+        zoneHalf.set(
+          halfFrom.value + (halfTo.value - halfFrom.value) * stoppedAt,
+        );
       }
-      isFilling.value = 0;
+      isFilling.set(0);
       play("tap");
       void gameHaptics.stop();
       finishRound(stoppedAt);
@@ -1536,14 +1519,6 @@ export function GameScreen() {
     </View>
   );
 }
-
-const fillParent = {
-  position: "absolute" as const,
-  left: 0,
-  right: 0,
-  top: 0,
-  bottom: 0,
-};
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#1E8CFF" },

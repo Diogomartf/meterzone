@@ -9,7 +9,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { GameColors, GameFonts } from '@/constants/gameTheme';
+import { GameColors, GameFonts, fillParent } from '@/constants/gameTheme';
 
 type Props = {
   visible: boolean;
@@ -120,7 +120,7 @@ export function PerfectSwoosh({ visible, burstKey = 0, points = 0, combo = 0 }: 
 
 const styles = StyleSheet.create({
   wrap: {
-    ...StyleSheet.absoluteFillObject,
+    ...fillParent,
     zIndex: 50,
     alignItems: 'center',
     justifyContent: 'center',
