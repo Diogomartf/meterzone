@@ -894,11 +894,8 @@ export function GameScreen() {
     const subject = encodeURIComponent("MeterZone feedback");
     const url = `mailto:${FEEDBACK_EMAIL}?subject=${subject}`;
     try {
-      const can = await Linking.canOpenURL(url);
-      if (!can) {
-        Alert.alert("Feedback", `Email us at ${FEEDBACK_EMAIL}`);
-        return;
-      }
+      // Don't gate on canOpenURL — iOS returns false for mailto: unless the
+      // scheme is listed in LSApplicationQueriesSchemes.
       await Linking.openURL(url);
     } catch {
       Alert.alert("Feedback", `Email us at ${FEEDBACK_EMAIL}`);

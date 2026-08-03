@@ -35,7 +35,7 @@ type HighscoreKind = 'normal' | 'today' | 'record';
 
 const LOGO = require('../../assets/images/zone-meter-logo.png');
 
-type MenuView = 'menu' | 'mode' | 'highscores' | 'settings';
+type MenuView = 'menu' | 'mode' | 'highscores' | 'howto' | 'settings';
 
 type MenuSheetProps = {
   visible: boolean;
@@ -368,7 +368,9 @@ export function MenuSheet({
         ? 'PLAY MODE'
         : view === 'highscores'
           ? 'HALL OF FAME'
-          : 'SETTINGS';
+          : view === 'howto'
+            ? 'HOW TO PLAY'
+            : 'SETTINGS';
 
   const formatDay = (iso: string) =>
     new Date(iso + 'T12:00:00').toLocaleDateString(undefined, {
@@ -532,6 +534,12 @@ export function MenuSheet({
                     />
                     <View style={styles.divider} />
                     <ActionRow
+                      label="How to play"
+                      subtitle="Goal, Normal & Daily"
+                      onPress={() => setView('howto')}
+                    />
+                    <View style={styles.divider} />
+                    <ActionRow
                       label="Send feedback"
                       subtitle="Ideas, bugs, or love notes"
                       onPress={onSendFeedback}
@@ -638,6 +646,41 @@ export function MenuSheet({
                       hideShare={sharingKind === 'record'}
                       onShare={() => void shareHighscore('record')}
                     />
+                  </View>
+                </ScrollView>
+              ) : null}
+
+              {view === 'howto' ? (
+                <ScrollView
+                  style={styles.menuScroll}
+                  contentContainerStyle={styles.menuScrollContent}
+                  showsVerticalScrollIndicator={false}
+                  bounces={false}>
+                  <View style={styles.card}>
+                    <View style={styles.infoBlock}>
+                      <Text style={styles.rowLabel}>The goal</Text>
+                      <Text style={styles.rowSub}>
+                        Watch the meter rise, then tap once to stop it inside
+                        the zone. Perfect, Great, and Nice keep you going and
+                        stack combos. Miss and you lose a heart.
+                      </Text>
+                    </View>
+                    <View style={styles.divider} />
+                    <View style={styles.infoBlock}>
+                      <Text style={styles.rowLabel}>Normal</Text>
+                      <Text style={styles.rowSub}>
+                        A classic endless run. Levels get tougher as you climb —
+                        chase your all-time high score.
+                      </Text>
+                    </View>
+                    <View style={styles.divider} />
+                    <View style={styles.infoBlock}>
+                      <Text style={styles.rowLabel}>Daily</Text>
+                      <Text style={styles.rowSub}>
+                        The same sequence for everyone that day, so scores are
+                        fair to compare. A fresh challenge every day.
+                      </Text>
+                    </View>
                   </View>
                 </ScrollView>
               ) : null}
@@ -858,6 +901,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 18,
     gap: 12,
+  },
+  infoBlock: {
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    gap: 6,
   },
   rowSelected: {
     backgroundColor: 'rgba(28,176,246,0.14)',
