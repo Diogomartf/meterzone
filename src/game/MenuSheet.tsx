@@ -28,6 +28,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { captureRef } from 'react-native-view-shot';
 
 import { GameColors, GameFonts } from '@/constants/gameTheme';
+import { formatScore } from '@/game/format';
 import { requestNativeReview, shareApp } from '@/game/review';
 import { markReviewAccepted } from '@/game/storage';
 
@@ -44,6 +45,8 @@ type MenuSheetProps = {
   /** Show go-back when a run is in progress or finished */
   canGoBack: boolean;
   dailyMode: boolean;
+  /** View to show when the sheet opens (defaults to the menu root). */
+  initialView?: MenuView;
   highScore: number;
   bestLevel: number;
   dailyTodayScore: number;
@@ -238,7 +241,7 @@ function HighscoreCard({
           </View>
         ) : (
           <>
-            <Text style={styles.hsScore}>{score}</Text>
+            <Text style={styles.hsScore}>{formatScore(score)}</Text>
             <View style={styles.hsFooter}>
               <View style={styles.hsLevelPill}>
                 <Text style={styles.hsLevelLabel}>LVL</Text>
@@ -289,6 +292,7 @@ export function MenuSheet({
   hapticsOn,
   canGoBack,
   dailyMode,
+  initialView = 'menu',
   highScore,
   bestLevel,
   dailyTodayScore,
@@ -319,7 +323,7 @@ export function MenuSheet({
 
   useEffect(() => {
     if (visible) {
-      setView('menu');
+      setView(initialView);
       // Park off-screen + invisible before springing in so Modal mount can't flash.
       translateY.value = sheetH;
       overlayOpacity.value = 0;
@@ -329,7 +333,7 @@ export function MenuSheet({
       translateY.value = sheetH;
       overlayOpacity.value = 0;
     }
-  }, [visible, sheetH, translateY, overlayOpacity]);
+  }, [visible, initialView, sheetH, translateY, overlayOpacity]);
 
   const dismiss = () => {
     overlayOpacity.value = withTiming(0, { duration: 180 });

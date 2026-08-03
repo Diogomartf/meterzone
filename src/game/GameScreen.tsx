@@ -28,27 +28,25 @@ import { captureRef } from "react-native-view-shot";
 import { GameColors, GameFonts } from "@/constants/gameTheme";
 import { CountdownBurst } from "@/game/CountdownBurst";
 import { Hearts } from "@/game/Hearts";
+import { MenuSheet } from "@/game/MenuSheet";
 import { MissBreak } from "@/game/MissBreak";
 import { PerfectSwoosh } from "@/game/PerfectSwoosh";
+import { ReviewPromptModal } from "@/game/ReviewPromptModal";
+import { VerticalMeter } from "@/game/VerticalMeter";
+import { formatScore } from "@/game/format";
 import { gameHaptics, setGameHapticsEnabled } from "@/game/haptics";
 import { createRng, makeRound } from "@/game/levels";
-import {
-  comboMultiplier,
-  scoreFill,
-  STARTING_LIVES,
-} from "@/game/scoring";
-import { MenuSheet } from "@/game/MenuSheet";
-import { ReviewPromptModal } from "@/game/ReviewPromptModal";
 import { shouldShowReviewPrompt } from "@/game/review";
+import { comboMultiplier, scoreFill, STARTING_LIVES } from "@/game/scoring";
 import { DEFAULT_SKIN, SKINS } from "@/game/skins";
 import {
   clearPersist,
   commitRunResult,
   dailySeed,
   loadPersist,
+  markReviewAccepted,
   recordReviewPromptDecline,
   setHapticsEnabled,
-  markReviewAccepted,
   setSoundMuted,
   todayKey,
 } from "@/game/storage";
@@ -60,10 +58,10 @@ import type {
   SessionStats,
 } from "@/game/types";
 import { useSounds } from "@/game/useSounds";
-import { VerticalMeter } from "@/game/VerticalMeter";
 
 const LOGO = require("../../assets/images/zone-meter-logo.png");
 const GAME_BG = require("../../assets/images/game-bg.png");
+const TROPHY = require("../../assets/images/trophy.png");
 const FEEDBACK_EMAIL = "hello@meterzone.net";
 
 /** Yellow pad surface in game-bg.png (fraction of image height from top). */
@@ -166,6 +164,85 @@ function GameCta({ label, subtitle, face, depth, onPress }: GameCtaProps) {
   );
 }
 
+type ScoreModuleProps = {
+  best: number;
+  bestLevel: number;
+  dailyScore: number;
+  dailyLevel: number;
+  dailyPlayed: boolean;
+  onOpen: () => void;
+};
+
+/** Home-screen score module: dominant all-time BEST over a shorter Daily Best. */
+function ScoreModule({
+  best,
+  bestLevel,
+  dailyScore,
+  dailyLevel,
+  dailyPlayed,
+  onOpen,
+}: ScoreModuleProps) {
+  return (
+    <View style={styles.scoreModule}>
+      <Pressable
+        onPress={onOpen}
+        style={({ pressed }) => [
+          styles.scoreMain,
+          pressed && styles.scoreSectionPressed,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel={`All-time best ${best}, level ${bestLevel}. Open scores.`}
+      >
+        <View style={styles.scoreMainHead}>
+          <Image
+            source={TROPHY}
+            style={styles.trophyIcon}
+            contentFit="contain"
+          />
+          <Text style={styles.scoreBestLabel}>BEST</Text>
+        </View>
+        <Text
+          style={styles.scoreBestValue}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.6}
+        >
+          {formatScore(best)}
+        </Text>
+        <View style={styles.scoreLevelPill}>
+          <Text style={styles.scoreLevelText}>Level {bestLevel}</Text>
+        </View>
+      </Pressable>
+      <View style={styles.scoreDivider} />
+      <Pressable
+        onPress={onOpen}
+        style={({ pressed }) => [
+          styles.scoreDaily,
+          pressed && styles.scoreSectionPressed,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel={
+          dailyPlayed
+            ? `Daily best ${dailyScore}, level ${dailyLevel}. Open scores.`
+            : "Daily best not set yet. Play today."
+        }
+      >
+        <Text style={styles.scoreDailyLabel}>DAILY</Text>
+        {dailyPlayed ? (
+          <Text style={styles.scoreDailyValue} numberOfLines={1}>
+            {formatScore(dailyScore)}
+          </Text>
+        ) : (
+          <View style={styles.scoreDailyRow}>
+            <Text style={styles.scoreDailyValue}>—</Text>
+            <Text style={styles.scoreDailyEmpty}>Play today</Text>
+          </View>
+        )}
+      </Pressable>
+    </View>
+  );
+}
+
 export function GameScreen() {
   const insets = useSafeAreaInsets();
   const { height: windowH, width: windowW } = useWindowDimensions();
@@ -180,6 +257,8 @@ export function GameScreen() {
   const [combo, setCombo] = useState(0);
   const [outcome, setOutcome] = useState<RoundOutcome | null>(null);
   const [isNewBest, setIsNewBest] = useState(false);
+  /** Best (for the played mode) at the moment a finished run is committed. */
+  const [previousBest, setPreviousBest] = useState(0);
   const [countdown, setCountdown] = useState(3);
   const [dailyMode, setDailyMode] = useState(false);
   const [stats, setStats] = useState<SessionStats>(emptyStats);
@@ -188,6 +267,9 @@ export function GameScreen() {
   const [missBurstKey, setMissBurstKey] = useState(0);
   const shareRef = useRef<View>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuInitialView, setMenuInitialView] = useState<"menu" | "highscores">(
+    "menu",
+  );
   const [capturingShare, setCapturingShare] = useState(false);
   const [reviewPromptVisible, setReviewPromptVisible] = useState(false);
   const reviewPromptTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -279,12 +361,10 @@ export function GameScreen() {
       const shrinks = zoneShrinks.value;
       if (!moves && !shrinks) return;
       if (moves) {
-        zoneTarget.value =
-          zoneFrom.value + (zoneTo.value - zoneFrom.value) * t;
+        zoneTarget.value = zoneFrom.value + (zoneTo.value - zoneFrom.value) * t;
       }
       if (shrinks) {
-        zoneHalf.value =
-          halfFrom.value + (halfTo.value - halfFrom.value) * t;
+        zoneHalf.value = halfFrom.value + (halfTo.value - halfFrom.value) * t;
       }
     },
     [
@@ -398,6 +478,9 @@ export function GameScreen() {
 
   const endRun = useCallback(
     async (finalScore: number, session: SessionStats) => {
+      // Snapshot the pre-run best so the results screen can show the record
+      // that was standing (previous score / difference from it).
+      setPreviousBest(runBestBaselineRef.current);
       const next = await commitRunResult({
         score: finalScore,
         coinsEarned: session.coinsEarned,
@@ -414,9 +497,7 @@ export function GameScreen() {
       phaseRef.current = "gameover";
 
       // Soft prompt only — native Store Review waits for a positive tap.
-      if (
-        shouldShowReviewPrompt(next, { isNewHighScore: beatBest })
-      ) {
+      if (shouldShowReviewPrompt(next, { isNewHighScore: beatBest })) {
         if (reviewPromptTimer.current) clearTimeout(reviewPromptTimer.current);
         reviewPromptTimer.current = setTimeout(() => {
           reviewPromptTimer.current = null;
@@ -810,6 +891,11 @@ export function GameScreen() {
     setMenuOpen(true);
   }, [fill, isFilling, meterX]);
 
+  const openScores = useCallback(() => {
+    setMenuInitialView("highscores");
+    openMenu();
+  }, [openMenu]);
+
   const closeMenu = useCallback(() => {
     setMenuOpen(false);
     menuPausedRef.current = false;
@@ -1000,7 +1086,15 @@ export function GameScreen() {
       : 0
     : (persist?.highScore ?? 0);
   const displayedBest =
-    isNewBest && phase !== "ready" ? Math.max(score, persistedBest) : persistedBest;
+    isNewBest && phase !== "ready"
+      ? Math.max(score, persistedBest)
+      : persistedBest;
+
+  const dailyPlayedToday = persist?.dailyBest.date === todayKey();
+  const homeDailyScore = dailyPlayedToday ? (persist?.dailyBest.score ?? 0) : 0;
+  const homeDailyLevel = dailyPlayedToday ? (persist?.dailyBest.level ?? 0) : 0;
+  // Results-screen best summary (for the mode that was just played).
+  const scoreGap = persistedBest - score;
 
   const shareScoreImage = useCallback(async () => {
     if (capturingShare || !shareRef.current) return;
@@ -1099,31 +1193,44 @@ export function GameScreen() {
               />
             </View>
 
-            <View
-              style={[styles.bestPill, isNewBest && styles.bestPillHot]}
-              pointerEvents="none"
-            >
-              <Text
-                style={[styles.bestLabel, isNewBest && styles.bestLabelHot]}
+            {phase === "ready" ? (
+              <ScoreModule
+                best={persist?.highScore ?? 0}
+                bestLevel={persist?.bestLevel ?? 0}
+                dailyScore={homeDailyScore}
+                dailyLevel={homeDailyLevel}
+                dailyPlayed={Boolean(dailyPlayedToday)}
+                onOpen={openScores}
+              />
+            ) : phase === "gameover" ? null : (
+              <View
+                style={[styles.bestPill, isNewBest && styles.bestPillHot]}
+                pointerEvents="none"
               >
-                {isNewBest ? "NEW BEST" : dailyMode ? "DAILY" : "BEST"}
-              </Text>
-              <Text
-                style={[styles.bestValue, isNewBest && styles.bestValueHot]}
-              >
-                {displayedBest}
-              </Text>
-              {!isNewBest ? (
-                <Text style={styles.bestSub}>
-                  LVL{" "}
-                  {dailyMode
-                    ? persist?.dailyBest.date === todayKey()
-                      ? (persist.dailyBest.level ?? 0)
-                      : 0
-                    : (persist?.bestLevel ?? 0)}
+                <Text
+                  style={[styles.bestLabel, isNewBest && styles.bestLabelHot]}
+                >
+                  {isNewBest ? "NEW BEST" : dailyMode ? "DAILY" : "BEST"}
                 </Text>
-              ) : null}
-            </View>
+                <Text
+                  style={[styles.bestValue, isNewBest && styles.bestValueHot]}
+                >
+                  {formatScore(displayedBest)}
+                </Text>
+                {!isNewBest ? (
+                  <View style={styles.scoreLevelPill}>
+                    <Text style={styles.scoreLevelText}>
+                      Level{" "}
+                      {dailyMode
+                        ? persist?.dailyBest.date === todayKey()
+                          ? (persist.dailyBest.level ?? 0)
+                          : 0
+                        : (persist?.bestLevel ?? 0)}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            )}
           </View>
         </View>
 
@@ -1135,7 +1242,7 @@ export function GameScreen() {
               </View>
             ) : null}
             <Text style={[styles.bigScore, isNewBest && styles.bigScoreHot]}>
-              {score}
+              {formatScore(score)}
             </Text>
             {phase === "gameover" ? (
               <View style={styles.runStats}>
@@ -1252,7 +1359,10 @@ export function GameScreen() {
         <CountdownBurst value={countdown} visible={phase === "countdown"} />
 
         {phase === "gameover" ? (
-          <View style={styles.gameOverPanel} pointerEvents="box-none">
+          <View
+            style={[styles.gameOverPanel, { paddingTop: insets.top + 176 }]}
+            pointerEvents="box-none"
+          >
             {dailyMode ? (
               <Text style={styles.dailyShareDate} pointerEvents="none">
                 DAILY ·{" "}
@@ -1261,6 +1371,13 @@ export function GameScreen() {
                   { month: "short", day: "numeric", year: "numeric" },
                 )}
               </Text>
+            ) : null}
+            {isNewBest ? (
+              <Image
+                source={TROPHY}
+                style={styles.resultTrophy}
+                contentFit="contain"
+              />
             ) : null}
             <Text
               style={[
@@ -1271,6 +1388,36 @@ export function GameScreen() {
             >
               {isNewBest ? "NEW BEST!" : "GAME OVER"}
             </Text>
+            <View style={styles.resultSummary} pointerEvents="none">
+              {isNewBest ? (
+                previousBest > 0 ? (
+                  <>
+                    <Text style={styles.resultSummaryLabel}>PREVIOUS BEST</Text>
+                    <Text style={styles.resultSummaryValue}>
+                      {formatScore(previousBest)}
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={styles.resultSummaryValue}>
+                    Your first record!
+                  </Text>
+                )
+              ) : (
+                <>
+                  <View style={styles.resultBestRow}>
+                    <Text style={styles.resultSummaryLabel}>BEST</Text>
+                    <Text style={styles.resultSummaryValue}>
+                      {formatScore(persistedBest)}
+                    </Text>
+                  </View>
+                  {scoreGap > 0 ? (
+                    <Text style={styles.resultGap}>
+                      −{formatScore(scoreGap)} from your best
+                    </Text>
+                  ) : null}
+                </>
+              )}
+            </View>
             {!capturingShare ? (
               <View style={styles.gameOverActions} pointerEvents="box-none">
                 <GameCta
@@ -1324,7 +1471,10 @@ export function GameScreen() {
             { bottom: insets.bottom + 16 },
             capturingShare && styles.hidden,
           ]}
-          onPress={openMenu}
+          onPress={() => {
+            setMenuInitialView("menu");
+            openMenu();
+          }}
           hitSlop={10}
           pointerEvents={capturingShare ? "none" : "auto"}
           accessibilityLabel="Menu"
@@ -1357,6 +1507,7 @@ export function GameScreen() {
         hapticsOn={persist?.hapticsEnabled !== false}
         canGoBack={phase !== "ready"}
         dailyMode={dailyMode}
+        initialView={menuInitialView}
         highScore={persist?.highScore ?? 0}
         bestLevel={persist?.bestLevel ?? 0}
         dailyTodayScore={
@@ -1421,7 +1572,7 @@ const styles = StyleSheet.create({
   topRow: {
     width: "100%",
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
     gap: 10,
     minHeight: 40,
@@ -1434,8 +1585,8 @@ const styles = StyleSheet.create({
     paddingRight: 4,
   },
   logoHud: {
-    width: 128,
-    height: 82,
+    width: 104,
+    height: 66,
     marginLeft: -4,
   },
   menuBtn: {
@@ -1484,11 +1635,134 @@ const styles = StyleSheet.create({
   bestValueHot: {
     fontFamily: GameFonts.display,
   },
-  bestSub: {
-    fontFamily: GameFonts.soft,
-    fontSize: 11,
-    color: GameColors.panelInk,
+  // Home-screen score module — dominant BEST over a shorter tinted Daily.
+  scoreModule: {
+    width: 122,
+    flexShrink: 0,
+    borderRadius: 15,
+    borderWidth: 2.5,
+    borderColor: GameColors.ink,
+    backgroundColor: "#FBEFBE",
+    overflow: "hidden",
+  },
+  scoreMain: {
+    paddingHorizontal: 10,
+    paddingTop: 7,
+    paddingBottom: 8,
+    gap: 3,
+    alignItems: "stretch",
+  },
+  scoreSectionPressed: {
+    backgroundColor: "rgba(26,28,44,0.06)",
+  },
+  scoreMainHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  trophyIcon: {
+    width: 24,
+    height: 24,
+  },
+  scoreBestLabel: {
+    fontFamily: GameFonts.display,
+    fontSize: 13,
+    lineHeight: 16,
+    color: GameColors.ink,
+    letterSpacing: 0.4,
+  },
+  scoreBestValue: {
+    fontFamily: GameFonts.display,
+    fontSize: 24,
+    color: GameColors.ink,
+    letterSpacing: -0.5,
+  },
+  scoreLevelPill: {
     marginTop: 1,
+    borderRadius: 10,
+    paddingVertical: 3.5,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    backgroundColor: GameColors.lemon,
+  },
+  scoreLevelText: {
+    fontFamily: GameFonts.body,
+    fontSize: 12,
+    lineHeight: 15,
+    color: GameColors.ink,
+  },
+  scoreDivider: {
+    height: 2.5,
+    backgroundColor: GameColors.ink,
+  },
+  scoreDaily: {
+    paddingHorizontal: 10,
+    paddingTop: 5,
+    paddingBottom: 6,
+    gap: 1,
+    alignItems: "flex-start",
+    backgroundColor: "rgba(88,204,2,0.18)",
+  },
+  scoreDailyLabel: {
+    fontFamily: GameFonts.body,
+    fontSize: 10,
+    letterSpacing: 0.5,
+    color: GameColors.bubbleDark,
+  },
+  scoreDailyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  scoreDailyValue: {
+    fontFamily: GameFonts.display,
+    fontSize: 16,
+    lineHeight: 19,
+    color: GameColors.ink,
+  },
+  scoreDailyEmpty: {
+    fontFamily: GameFonts.body,
+    fontSize: 12,
+    color: GameColors.bubbleDark,
+  },
+  // Results screen — best/difference summary + NEW BEST trophy.
+  resultTrophy: {
+    width: 64,
+    height: 64,
+  },
+  resultSummary: {
+    backgroundColor: "rgba(255,255,255,0.94)",
+    borderRadius: 16,
+    borderWidth: 2.5,
+    borderColor: GameColors.ink,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    alignItems: "center",
+    gap: 2,
+    minWidth: 168,
+  },
+  resultSummaryLabel: {
+    fontFamily: GameFonts.soft,
+    fontSize: 12,
+    letterSpacing: 0.6,
+    color: GameColors.panelInk,
+  },
+  resultSummaryValue: {
+    fontFamily: GameFonts.display,
+    fontSize: 24,
+    lineHeight: 28,
+    color: GameColors.ink,
+  },
+  resultBestRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  resultGap: {
+    fontFamily: GameFonts.body,
+    fontSize: 14,
+    color: GameColors.scoreBad,
+    marginTop: 2,
   },
   statsBlock: { marginTop: 2, alignItems: "center" },
   heartsAboveScore: {

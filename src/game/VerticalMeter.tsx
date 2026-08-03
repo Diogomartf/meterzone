@@ -184,6 +184,23 @@ function VerticalMeterComponent({
           },
         ]}
       >
+        {/* Glossy cylinder shading — light hitting the right side */}
+        <LinearGradient
+          colors={[
+            "rgba(0,0,0,0.06)",
+            "rgba(0,0,0,0)",
+            "rgba(255,255,255,0)",
+            "rgba(255,255,255,0.22)",
+          ]}
+          locations={[0, 0.5, 0.86, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={[
+            StyleSheet.absoluteFill,
+            { borderRadius: 20 * scale },
+          ]}
+          pointerEvents="none"
+        />
         <View style={styles.shellLip} />
         <View style={[styles.glass, { borderRadius: 18 * scale }]}>
           {/* Glossy toy bullseye — single gradient (depth/sheen baked into colors) */}
@@ -307,7 +324,8 @@ const styles = StyleSheet.create({
     bottom: 16,
     width: 12,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.22)",
+    backgroundColor: "rgba(255,255,255,0.14)",
+    zIndex: 1,
   },
   glass: {
     flex: 1,
@@ -405,7 +423,7 @@ const styles = StyleSheet.create({
     right: 5,
     marginBottom: -1,
     borderRadius: 1,
-    backgroundColor: "rgba(255,255,255,0.85)",
+    backgroundColor: "rgba(255,255,255,0.4)",
   },
   glassShine: {
     position: "absolute",
