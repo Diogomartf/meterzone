@@ -1,5 +1,4 @@
 import { Image } from 'expo-image';
-import * as Sharing from 'expo-sharing';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -23,7 +22,6 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { captureRef } from 'react-native-view-shot';
 
 import { GameColors, GameFonts, fillParent } from '@/constants/gameTheme';
 import { CountdownBurst } from '@/game/CountdownBurst';
@@ -38,6 +36,7 @@ import { gameHaptics, setGameHapticsEnabled } from '@/game/haptics';
 import { createRng, makeRound } from '@/game/levels';
 import { shouldShowReviewPrompt } from '@/game/review';
 import { comboMultiplier, scoreFill, STARTING_LIVES } from '@/game/scoring';
+import { captureAndShare, SHARE_SCORE_CAPTION } from '@/game/share';
 import { DEFAULT_SKIN, SKINS } from '@/game/skins';
 import {
   clearPersist,
@@ -54,6 +53,7 @@ import type {
   PersistState,
   RoundConfig,
   RoundLabel,
+  RoundOutcome,
   SessionStats,
 } from '@/game/types';
 import { useSounds } from '@/game/useSounds';
@@ -67,8 +67,35 @@ const FEEDBACK_EMAIL = 'hello@meterzone.net';
 const PAD_SURFACE_Y = 0.905;
 const METER_BASE_H = 340;
 const METER_WRAP_EXTRA = 28;
-/** Brief freeze after the meter lands so short zones can be read before fill. */
-const LEVEL_READ_PAUSE_MS = 139;
+
+/**
+ * Run pacing, in ms. These are the knobs that decide how the game *feels*
+ * between taps — kept together so pacing can be tuned in one place rather than
+ * hunted through the flow. Per-animation easing curves stay at their call sites.
+ */
+const TIMING = {
+  /** Brief freeze after the meter lands so short zones can be read before fill. */
+  levelReadPause: 139,
+  /** Gap between countdown numbers. */
+  countdownTick: 560,
+  /** Beat after "GO!" before the fill starts. */
+  countdownToFill: 520,
+  /** Hold on the result before the next meter — a Perfect gets to breathe. */
+  advanceAfterHit: 480,
+  advanceAfterPerfect: 900,
+  advanceAfterMiss: 620,
+  /** Settle time after closing the menu before the queued advance resumes. */
+  advanceAfterResume: 200,
+  /** Meter slide-out, then the next one slides in. */
+  meterSlideOut: 220,
+  meterSlideIn: 340,
+  /** Let the results screen land before asking for a review. */
+  reviewPromptDelay: 900,
+} as const;
+
+/** Off-screen X the meter slides between. */
+const METER_ENTER_X = 340;
+const METER_EXIT_X = -360;
 
 type Phase = 'ready' | 'countdown' | 'filling' | 'result' | 'gameover';
 
@@ -116,6 +143,18 @@ const emptyStats = (): SessionStats => ({
   bestCombo: 0,
   coinsEarned: 0,
 });
+
+/** Fold one round's outcome into the running session tally. */
+function tallyRound(prev: SessionStats, result: RoundOutcome): SessionStats {
+  return {
+    attempts: prev.attempts + 1,
+    hits: result.result === 'miss' ? prev.hits : prev.hits + 1,
+    perfects: result.result === 'perfect' ? prev.perfects + 1 : prev.perfects,
+    misses: result.costsLife ? prev.misses + 1 : prev.misses,
+    bestCombo: Math.max(prev.bestCombo, result.combo),
+    coinsEarned: prev.coinsEarned + result.coins,
+  };
+}
 
 const LABEL_COLORS: Record<RoundLabel, string> = {
   Perfect: '#FFE14A',
@@ -313,6 +352,7 @@ export function GameScreen() {
   const scoreRef = useRef(0);
   const livesRef = useRef(STARTING_LIVES);
   const comboRef = useRef(0);
+  const statsRef = useRef<SessionStats>(emptyStats());
   /** Best score at run start — used to detect a live / final new high. */
   const runBestBaselineRef = useRef(0);
   /** Fire the mid-run "NEW BEST" cue only once per run. */
@@ -496,7 +536,7 @@ export function GameScreen() {
         reviewPromptTimer.current = setTimeout(() => {
           reviewPromptTimer.current = null;
           setReviewPromptVisible(true);
-        }, 900);
+        }, TIMING.reviewPromptDelay);
       }
     },
     [dailyMode],
@@ -519,6 +559,23 @@ export function GameScreen() {
     void recordReviewPromptDecline().then(setPersist);
   }, []);
 
+  /**
+   * Queue the move to the next meter. If the menu opens before it fires, the
+   * advance is parked on pauseResumeRef and replayed when the sheet closes.
+   */
+  const scheduleAdvance = useCallback((delayMs: number) => {
+    if (autoTimer.current) clearTimeout(autoTimer.current);
+    pendingTimerRef.current = 'advance';
+    autoTimer.current = setTimeout(() => {
+      pendingTimerRef.current = null;
+      if (menuPausedRef.current) {
+        pauseResumeRef.current = { kind: 'advance' };
+        return;
+      }
+      advanceRef.current();
+    }, delayMs);
+  }, []);
+
   const finishRound = useCallback(
     (value: number) => {
       const current = roundRef.current;
@@ -536,68 +593,43 @@ export function GameScreen() {
         comboGrew: result.combo > prevCombo,
       });
 
-      setStats((s) => {
-        const next: SessionStats = {
-          ...s,
-          attempts: s.attempts + 1,
-          hits: result.result === 'miss' ? s.hits : s.hits + 1,
-          perfects: result.result === 'perfect' ? s.perfects + 1 : s.perfects,
-          misses: result.costsLife ? s.misses + 1 : s.misses,
-          bestCombo: Math.max(s.bestCombo, result.combo),
-          coinsEarned: s.coinsEarned + result.coins,
-        };
+      // Tallied up front: a state updater must be pure, and everything below
+      // (sound, timers, endRun's storage write) is a side effect. React may
+      // invoke an updater more than once — doing this inside one risked a
+      // double sound, two queued advances, and committing the run twice.
+      const session = tallyRound(statsRef.current, result);
+      statsRef.current = session;
+      setStats(session);
 
-        if (result.costsLife) {
-          play('miss');
-          const livesLeft = livesRef.current - 1;
-          setLives(livesLeft);
-          livesRef.current = livesLeft;
-          setPhase('result');
-          phaseRef.current = 'result';
-          if (livesLeft <= 0) {
-            void endRun(scoreRef.current, next);
-          } else {
-            // Continue run — next meter
-            if (autoTimer.current) clearTimeout(autoTimer.current);
-            pendingTimerRef.current = 'advance';
-            autoTimer.current = setTimeout(() => {
-              pendingTimerRef.current = null;
-              if (menuPausedRef.current) {
-                pauseResumeRef.current = { kind: 'advance' };
-                return;
-              }
-              advanceRef.current();
-            }, 620);
-          }
-          return next;
+      setPhase('result');
+      phaseRef.current = 'result';
+
+      if (result.costsLife) {
+        play('miss');
+        const livesLeft = livesRef.current - 1;
+        setLives(livesLeft);
+        livesRef.current = livesLeft;
+        if (livesLeft <= 0) {
+          void endRun(scoreRef.current, session);
+        } else {
+          scheduleAdvance(TIMING.advanceAfterMiss);
         }
+        return;
+      }
 
-        play(result.result === 'perfect' ? 'perfect' : 'zone');
-        setScore((sc) => sc + result.points);
-        scoreRef.current += result.points;
-        if (scoreRef.current > runBestBaselineRef.current) {
-          announceNewBest();
-        }
-        setPhase('result');
-        phaseRef.current = 'result';
-
-        if (autoTimer.current) clearTimeout(autoTimer.current);
-        pendingTimerRef.current = 'advance';
-        autoTimer.current = setTimeout(
-          () => {
-            pendingTimerRef.current = null;
-            if (menuPausedRef.current) {
-              pauseResumeRef.current = { kind: 'advance' };
-              return;
-            }
-            advanceRef.current();
-          },
-          result.result === 'perfect' ? 900 : 480,
-        );
-        return next;
-      });
+      play(result.result === 'perfect' ? 'perfect' : 'zone');
+      setScore((sc) => sc + result.points);
+      scoreRef.current += result.points;
+      if (scoreRef.current > runBestBaselineRef.current) {
+        announceNewBest();
+      }
+      scheduleAdvance(
+        result.result === 'perfect'
+          ? TIMING.advanceAfterPerfect
+          : TIMING.advanceAfterHit,
+      );
     },
-    [announceNewBest, endRun, isFilling, play, showFeedback],
+    [announceNewBest, endRun, isFilling, play, scheduleAdvance, showFeedback],
   );
 
   const startFill = useCallback(() => {
@@ -645,7 +677,7 @@ export function GameScreen() {
             return;
           }
           startFillRef.current();
-        }, 520);
+        }, TIMING.countdownToFill);
         return;
       }
 
@@ -668,7 +700,7 @@ export function GameScreen() {
           void gameHaptics.countdownTick(0);
           runCountdownFromRef.current(0);
         }
-      }, 560);
+      }, TIMING.countdownTick);
     },
     [play],
   );
@@ -712,15 +744,15 @@ export function GameScreen() {
             return;
           }
           startFillRef.current();
-        }, LEVEL_READ_PAUSE_MS);
+        }, TIMING.levelReadPause);
       };
 
       if (animateIn) {
-        meterX.set(340);
+        meterX.set(METER_ENTER_X);
         meterX.set(
           withTiming(
             0,
-            { duration: 340, easing: Easing.out(Easing.cubic) },
+            { duration: TIMING.meterSlideIn, easing: Easing.out(Easing.cubic) },
             (done) => {
               if (done) runOnJS(startAfterReadPause)();
             },
@@ -756,8 +788,8 @@ export function GameScreen() {
     // Slide current meter out, then bring next in
     meterX.set(
       withTiming(
-        -360,
-        { duration: 220, easing: Easing.in(Easing.cubic) },
+        METER_EXIT_X,
+        { duration: TIMING.meterSlideOut, easing: Easing.in(Easing.cubic) },
         (done) => {
           if (done) runOnJS(onMeterSlidOut)();
         },
@@ -783,17 +815,25 @@ export function GameScreen() {
     [onZoneEnter],
   );
 
-  const startRun = (daily: boolean) => {
+  /**
+   * Stop every pending timer and in-flight animation and drop the pause state,
+   * so nothing queued from the previous run can fire into the next one.
+   */
+  const haltRun = useCallback(() => {
     if (countTimer.current) clearTimeout(countTimer.current);
     if (autoTimer.current) clearTimeout(autoTimer.current);
+    countTimer.current = null;
+    autoTimer.current = null;
     menuPausedRef.current = false;
     pauseResumeRef.current = null;
     pendingTimerRef.current = null;
     setMenuOpen(false);
     cancelAnimation(meterX);
     cancelAnimation(fill);
-    setDailyMode(daily);
-    rngRef.current = daily ? createRng(dailySeed()) : Math.random;
+  }, [fill, meterX]);
+
+  /** Zero the per-run state, keeping each ref mirror in step with its state. */
+  const resetRunState = useCallback(() => {
     setScore(0);
     scoreRef.current = 0;
     setLives(STARTING_LIVES);
@@ -802,18 +842,42 @@ export function GameScreen() {
     comboRef.current = 0;
     comboIntroShownRef.current = false;
     comboLabelOpacity.set(0);
+    newBestAnnouncedRef.current = false;
+    newBestPulse.set(1);
+    statsRef.current = emptyStats();
+    setStats(statsRef.current);
+    setIsNewBest(false);
+    setFeedback(null);
+    feedbackOpacity.set(0);
+    isFilling.set(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Back to the home screen with a fresh idle meter. */
+  const resetToIdle = useCallback(() => {
+    haltRun();
+    resetRunState();
+    fill.set(0);
+    setDailyMode(false);
+    rngRef.current = Math.random;
+    const idle = makeRound(1);
+    setRound(idle);
+    roundRef.current = idle;
+    syncZoneMotion(idle);
+    setPhase('ready');
+    phaseRef.current = 'ready';
+  }, [fill, haltRun, resetRunState, syncZoneMotion]);
+
+  const startRun = (daily: boolean) => {
+    haltRun();
+    resetRunState();
+    setDailyMode(daily);
+    rngRef.current = daily ? createRng(dailySeed()) : Math.random;
     runBestBaselineRef.current = daily
       ? persist?.dailyBest.date === todayKey()
         ? persist.dailyBest.score
         : 0
       : (persist?.highScore ?? 0);
-    newBestAnnouncedRef.current = false;
-    newBestPulse.set(1);
-    setStats(emptyStats());
-    setIsNewBest(false);
-    setFeedback(null);
-    feedbackOpacity.set(0);
-    isFilling.set(0);
     beginRound(makeRound(1, { rng: rngRef.current }), false);
   };
 
@@ -878,13 +942,12 @@ export function GameScreen() {
     }
     pendingTimerRef.current = null;
 
-    // Freeze any in-flight meter slide
+    // Freeze any in-flight meter slide. cancelAnimation already pins meterX at
+    // its current value, which is what an `advance` resume wants — only a
+    // pending startFill needs the meter snapped back to centre.
     cancelAnimation(meterX);
     if (pauseResumeRef.current?.kind === 'startFill') {
       meterX.set(0);
-    } else if (pauseResumeRef.current?.kind === 'advance') {
-      // Keep meter put until resume spawns the next level
-      meterX.set(meterX.value);
     }
 
     setMenuOpen(true);
@@ -916,7 +979,10 @@ export function GameScreen() {
       return;
     }
     if (resume.kind === 'advance') {
-      autoTimer.current = setTimeout(() => advanceRef.current(), 200);
+      autoTimer.current = setTimeout(
+        () => advanceRef.current(),
+        TIMING.advanceAfterResume,
+      );
     }
   }, [meterX, resumeFillFrom]);
 
@@ -936,36 +1002,7 @@ export function GameScreen() {
 
   const goBackFromMenu = () => {
     void gameHaptics.next();
-    if (countTimer.current) clearTimeout(countTimer.current);
-    if (autoTimer.current) clearTimeout(autoTimer.current);
-    menuPausedRef.current = false;
-    pauseResumeRef.current = null;
-    pendingTimerRef.current = null;
-    setMenuOpen(false);
-    cancelAnimation(meterX);
-    cancelAnimation(fill);
-    isFilling.set(0);
-    fill.set(0);
-    setDailyMode(false);
-    rngRef.current = Math.random;
-    setScore(0);
-    scoreRef.current = 0;
-    setLives(STARTING_LIVES);
-    livesRef.current = STARTING_LIVES;
-    setCombo(0);
-    comboRef.current = 0;
-    comboIntroShownRef.current = false;
-    comboLabelOpacity.set(0);
-    setStats(emptyStats());
-    setIsNewBest(false);
-    setFeedback(null);
-    feedbackOpacity.set(0);
-    const idle = makeRound(1);
-    setRound(idle);
-    roundRef.current = idle;
-    syncZoneMotion(idle);
-    setPhase('ready');
-    phaseRef.current = 'ready';
+    resetToIdle();
   };
 
   const startModeFromMenu = (daily: boolean) => {
@@ -991,37 +1028,7 @@ export function GameScreen() {
     const next = await clearPersist();
     setPersist(next);
     setGameHapticsEnabled(next.hapticsEnabled !== false);
-
-    if (countTimer.current) clearTimeout(countTimer.current);
-    if (autoTimer.current) clearTimeout(autoTimer.current);
-    menuPausedRef.current = false;
-    pauseResumeRef.current = null;
-    pendingTimerRef.current = null;
-    setMenuOpen(false);
-    cancelAnimation(meterX);
-    cancelAnimation(fill);
-    isFilling.set(0);
-    fill.set(0);
-    setDailyMode(false);
-    rngRef.current = Math.random;
-    setScore(0);
-    scoreRef.current = 0;
-    setLives(STARTING_LIVES);
-    livesRef.current = STARTING_LIVES;
-    setCombo(0);
-    comboRef.current = 0;
-    comboIntroShownRef.current = false;
-    comboLabelOpacity.set(0);
-    setStats(emptyStats());
-    setIsNewBest(false);
-    setFeedback(null);
-    feedbackOpacity.set(0);
-    const idle = makeRound(1);
-    setRound(idle);
-    roundRef.current = idle;
-    syncZoneMotion(idle);
-    setPhase('ready');
-    phaseRef.current = 'ready';
+    resetToIdle();
   };
 
   const onTap = () => {
@@ -1097,26 +1104,12 @@ export function GameScreen() {
 
   const shareScoreImage = useCallback(async () => {
     if (capturingShare || !shareRef.current) return;
+    // Re-renders without the Share/Retry/settings chrome before the capture.
     setCapturingShare(true);
     try {
-      // Wait for React to commit + paint without Share/Retry/settings chrome.
-      await new Promise<void>((resolve) => setTimeout(resolve, 50));
-      const uri = await captureRef(shareRef, {
-        format: 'png',
-        quality: 1,
-        result: 'tmpfile',
-      });
-      if (!(await Sharing.isAvailableAsync())) {
-        Alert.alert(
-          'Sharing unavailable',
-          'Sharing is not available on this device.',
-        );
-        return;
-      }
-      await Sharing.shareAsync(uri, {
-        mimeType: 'image/png',
+      await captureAndShare(shareRef.current, {
+        message: SHARE_SCORE_CAPTION,
         dialogTitle: 'Share your score',
-        UTI: 'public.png',
       });
     } catch {
       Alert.alert('Share failed', 'Could not create the score image.');

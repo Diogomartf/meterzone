@@ -1,16 +1,13 @@
 import Constants from 'expo-constants';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Sharing from 'expo-sharing';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
-  Share,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -29,11 +26,11 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { captureRef } from 'react-native-view-shot';
 
 import { GameColors, GameFonts } from '@/constants/gameTheme';
 import { formatScore } from '@/game/format';
 import { requestNativeReview, shareApp } from '@/game/review';
+import { captureAndShare } from '@/game/share';
 import { markReviewAccepted } from '@/game/storage';
 
 type HighscoreKind = 'normal' | 'today' | 'record';
@@ -416,7 +413,6 @@ export function MenuSheet({
 
   const shareHighscore = async (kind: HighscoreKind) => {
     if (sharingKind) return;
-    const message = shareCaption;
     const target =
       kind === 'normal'
         ? normalShareRef.current
@@ -424,31 +420,11 @@ export function MenuSheet({
           ? todayShareRef.current
           : recordShareRef.current;
 
+    // Re-renders the card with its logo and without the share button, so the
+    // capture below picks up the shareable framing.
     setSharingKind(kind);
     try {
-      await new Promise<void>((resolve) => setTimeout(resolve, 60));
-      if (!target) {
-        await Share.share({ message });
-        return;
-      }
-      const uri = await captureRef(target, {
-        format: 'png',
-        quality: 1,
-        result: 'tmpfile',
-      });
-      if (Platform.OS === 'ios') {
-        await Share.share({ message, url: uri });
-        return;
-      }
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri, {
-          mimeType: 'image/png',
-          dialogTitle: message,
-          UTI: 'public.png',
-        });
-        return;
-      }
-      await Share.share({ message });
+      await captureAndShare(target, { message: shareCaption });
     } catch {
       Alert.alert('Share failed', 'Could not create the share image.');
     } finally {
