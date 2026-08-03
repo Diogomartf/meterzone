@@ -55,7 +55,10 @@ const FIRST_SCREEN_IMAGES: number[] = [
 
 /** Decodes an image up front so it paints on its very first frame. */
 function useDecodedImage(source: number) {
-  const [state, setState] = useState<{ image: ImageRef | null; settled: boolean }>({
+  const [state, setState] = useState<{
+    image: ImageRef | null;
+    settled: boolean;
+  }>({
     image: null,
     settled: false,
   });
@@ -81,7 +84,9 @@ function useWarmedImages(sources: number[]) {
 
   useEffect(() => {
     let cancelled = false;
-    void Promise.allSettled(sources.map((source) => Image.loadAsync(source))).then(() => {
+    void Promise.allSettled(
+      sources.map((source) => Image.loadAsync(source)),
+    ).then(() => {
       if (!cancelled) setWarmed(true);
     });
     return () => {
@@ -134,9 +139,13 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!holdElapsed || !firstScreenWarmed) return;
-    overlayOpacity.value = withTiming(0, { duration: SPLASH_FADE_MS }, (finished) => {
-      if (finished) runOnJS(setOverlayMounted)(false);
-    });
+    overlayOpacity.value = withTiming(
+      0,
+      { duration: SPLASH_FADE_MS },
+      (finished) => {
+        if (finished) runOnJS(setOverlayMounted)(false);
+      },
+    );
   }, [firstScreenWarmed, holdElapsed, overlayOpacity]);
 
   const overlayStyle = useAnimatedStyle(() => ({
@@ -153,9 +162,13 @@ export default function RootLayout() {
         };
 
   return (
-    <View style={[styles.root, { backgroundColor: NATIVE_SPLASH.backgroundColor }]}>
+    <View
+      style={[styles.root, { backgroundColor: NATIVE_SPLASH.backgroundColor }]}
+    >
       <StatusBar style="dark" />
-      {fontsReady ? <Stack screenOptions={{ headerShown: false, animation: 'fade' }} /> : null}
+      {fontsReady ? (
+        <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
+      ) : null}
       {overlayMounted ? (
         <Animated.View
           style={[
@@ -169,7 +182,9 @@ export default function RootLayout() {
             <Image
               source={art}
               style={artStyle}
-              contentFit={NATIVE_SPLASH.imageWidth == null ? 'cover' : 'contain'}
+              contentFit={
+                NATIVE_SPLASH.imageWidth == null ? 'cover' : 'contain'
+              }
             />
           ) : null}
         </Animated.View>

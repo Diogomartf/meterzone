@@ -1,7 +1,7 @@
-import { Image } from "expo-image";
-import * as Sharing from "expo-sharing";
-import { SymbolView } from "expo-symbols";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Image } from 'expo-image';
+import * as Sharing from 'expo-sharing';
+import { SymbolView } from 'expo-symbols';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Linking,
@@ -10,7 +10,7 @@ import {
   Text,
   useWindowDimensions,
   View,
-} from "react-native";
+} from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -21,24 +21,24 @@ import Animated, {
   withDelay,
   withSequence,
   withTiming,
-} from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { captureRef } from "react-native-view-shot";
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { captureRef } from 'react-native-view-shot';
 
-import { GameColors, GameFonts, fillParent } from "@/constants/gameTheme";
-import { CountdownBurst } from "@/game/CountdownBurst";
-import { Hearts } from "@/game/Hearts";
-import { MenuSheet } from "@/game/MenuSheet";
-import { MissBreak } from "@/game/MissBreak";
-import { PerfectSwoosh } from "@/game/PerfectSwoosh";
-import { ReviewPromptModal } from "@/game/ReviewPromptModal";
-import { VerticalMeter } from "@/game/VerticalMeter";
-import { formatScore } from "@/game/format";
-import { gameHaptics, setGameHapticsEnabled } from "@/game/haptics";
-import { createRng, makeRound } from "@/game/levels";
-import { shouldShowReviewPrompt } from "@/game/review";
-import { comboMultiplier, scoreFill, STARTING_LIVES } from "@/game/scoring";
-import { DEFAULT_SKIN, SKINS } from "@/game/skins";
+import { GameColors, GameFonts, fillParent } from '@/constants/gameTheme';
+import { CountdownBurst } from '@/game/CountdownBurst';
+import { Hearts } from '@/game/Hearts';
+import { MenuSheet } from '@/game/MenuSheet';
+import { MissBreak } from '@/game/MissBreak';
+import { PerfectSwoosh } from '@/game/PerfectSwoosh';
+import { ReviewPromptModal } from '@/game/ReviewPromptModal';
+import { VerticalMeter } from '@/game/VerticalMeter';
+import { formatScore } from '@/game/format';
+import { gameHaptics, setGameHapticsEnabled } from '@/game/haptics';
+import { createRng, makeRound } from '@/game/levels';
+import { shouldShowReviewPrompt } from '@/game/review';
+import { comboMultiplier, scoreFill, STARTING_LIVES } from '@/game/scoring';
+import { DEFAULT_SKIN, SKINS } from '@/game/skins';
 import {
   clearPersist,
   commitRunResult,
@@ -49,19 +49,19 @@ import {
   setHapticsEnabled,
   setSoundMuted,
   todayKey,
-} from "@/game/storage";
+} from '@/game/storage';
 import type {
   PersistState,
   RoundConfig,
   RoundLabel,
   SessionStats,
-} from "@/game/types";
-import { useSounds } from "@/game/useSounds";
+} from '@/game/types';
+import { useSounds } from '@/game/useSounds';
 
-const LOGO = require("../../assets/images/zone-meter-logo.png");
-const GAME_BG = require("../../assets/images/game-bg.png");
-const TROPHY = require("../../assets/images/trophy.png");
-const FEEDBACK_EMAIL = "hello@meterzone.net";
+const LOGO = require('../../assets/images/zone-meter-logo.png');
+const GAME_BG = require('../../assets/images/game-bg.png');
+const TROPHY = require('../../assets/images/trophy.png');
+const FEEDBACK_EMAIL = 'hello@meterzone.net';
 
 /** Yellow pad surface in game-bg.png (fraction of image height from top). */
 const PAD_SURFACE_Y = 0.905;
@@ -70,16 +70,16 @@ const METER_WRAP_EXTRA = 28;
 /** Brief freeze after the meter lands so short zones can be read before fill. */
 const LEVEL_READ_PAUSE_MS = 139;
 
-type Phase = "ready" | "countdown" | "filling" | "result" | "gameover";
+type Phase = 'ready' | 'countdown' | 'filling' | 'result' | 'gameover';
 
 type PauseResume =
-  | { kind: "fill"; fillAt: number }
-  | { kind: "countdown"; countAt: number }
-  | { kind: "startFill" }
-  | { kind: "advance" };
+  | { kind: 'fill'; fillAt: number }
+  | { kind: 'countdown'; countAt: number }
+  | { kind: 'startFill' }
+  | { kind: 'advance' };
 
 /** Side chips — fixed per label so Nice / Great don't jump around */
-type FeedbackSlot = "left" | "right";
+type FeedbackSlot = 'left' | 'right';
 
 type Feedback = {
   label: RoundLabel;
@@ -91,8 +91,8 @@ type Feedback = {
 
 function feedbackSlotFor(label: RoundLabel): FeedbackSlot {
   // Great = right, Nice = left — same spot every time
-  if (label === "Great") return "right";
-  return "left";
+  if (label === 'Great') return 'right';
+  return 'left';
 }
 
 const FEEDBACK_SLOT_STYLE: Record<
@@ -101,11 +101,11 @@ const FEEDBACK_SLOT_STYLE: Record<
     top: `${number}%`;
     left?: number;
     right?: number;
-    alignItems: "flex-start" | "flex-end";
+    alignItems: 'flex-start' | 'flex-end';
   }
 > = {
-  left: { top: "44%", left: 10, alignItems: "flex-start" },
-  right: { top: "44%", right: 10, alignItems: "flex-end" },
+  left: { top: '44%', left: 10, alignItems: 'flex-start' },
+  right: { top: '44%', right: 10, alignItems: 'flex-end' },
 };
 
 const emptyStats = (): SessionStats => ({
@@ -118,12 +118,12 @@ const emptyStats = (): SessionStats => ({
 });
 
 const LABEL_COLORS: Record<RoundLabel, string> = {
-  Perfect: "#FFE14A",
-  Great: "#E24B2D",
-  Good: "#58CC02",
-  Nice: "#1B3A8C",
-  Close: "#FFC800",
-  Miss: "#6B7280",
+  Perfect: '#FFE14A',
+  Great: '#E24B2D',
+  Good: '#58CC02',
+  Nice: '#1B3A8C',
+  Close: '#FFC800',
+  Miss: '#6B7280',
 };
 
 type GameCtaProps = {
@@ -223,7 +223,7 @@ function ScoreModule({
         accessibilityLabel={
           dailyPlayed
             ? `Daily best ${dailyScore}, level ${dailyLevel}. Open scores.`
-            : "Daily best not set yet. Play today."
+            : 'Daily best not set yet. Play today.'
         }
       >
         <Text style={styles.scoreDailyLabel}>DAILY</Text>
@@ -249,7 +249,7 @@ export function GameScreen() {
   const muted = Boolean(persist?.soundMuted);
   const { play } = useSounds(muted);
 
-  const [phase, setPhase] = useState<Phase>("ready");
+  const [phase, setPhase] = useState<Phase>('ready');
   const [round, setRound] = useState<RoundConfig>(() => makeRound(1));
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(STARTING_LIVES);
@@ -265,8 +265,8 @@ export function GameScreen() {
   const [missBurstKey, setMissBurstKey] = useState(0);
   const shareRef = useRef<View>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [menuInitialView, setMenuInitialView] = useState<"menu" | "highscores">(
-    "menu",
+  const [menuInitialView, setMenuInitialView] = useState<'menu' | 'highscores'>(
+    'menu',
   );
   const [capturingShare, setCapturingShare] = useState(false);
   const [reviewPromptVisible, setReviewPromptVisible] = useState(false);
@@ -308,7 +308,7 @@ export function GameScreen() {
     [],
   );
 
-  const phaseRef = useRef<Phase>("ready");
+  const phaseRef = useRef<Phase>('ready');
   const roundRef = useRef(round);
   const scoreRef = useRef(0);
   const livesRef = useRef(STARTING_LIVES);
@@ -327,7 +327,7 @@ export function GameScreen() {
   /** True while menu sheet is open — game must not progress. */
   const menuPausedRef = useRef(false);
   const countdownRef = useRef(3);
-  const pendingTimerRef = useRef<"countdown" | "startFill" | "advance" | null>(
+  const pendingTimerRef = useRef<'countdown' | 'startFill' | 'advance' | null>(
     null,
   );
   const pauseResumeRef = useRef<PauseResume | null>(null);
@@ -386,26 +386,30 @@ export function GameScreen() {
     };
   }, []);
 
-  const showFeedback = useCallback((next: Omit<Feedback, "slot">) => {
-    const isPerfect = next.label === "Perfect";
-    const isMiss = next.label === "Miss";
+  const showFeedback = useCallback((next: Omit<Feedback, 'slot'>) => {
+    const isPerfect = next.label === 'Perfect';
+    const isMiss = next.label === 'Miss';
     setFeedback({ ...next, slot: feedbackSlotFor(next.label) });
 
     const pulseCombo = (showIntro: boolean) => {
-      comboPulse.set(withSequence(
-        withTiming(1.28, { duration: 120, easing: Easing.out(Easing.cubic) }),
-        withTiming(1, { duration: 200, easing: Easing.inOut(Easing.quad) }),
-      ));
+      comboPulse.set(
+        withSequence(
+          withTiming(1.28, { duration: 120, easing: Easing.out(Easing.cubic) }),
+          withTiming(1, { duration: 200, easing: Easing.inOut(Easing.quad) }),
+        ),
+      );
       if (!showIntro) return;
       // First streak only — then just the multiplier
       comboLabelOpacity.set(0);
-      comboLabelOpacity.set(withSequence(
-        withTiming(1, { duration: 90 }),
-        withDelay(
-          650,
-          withTiming(0, { duration: 320, easing: Easing.in(Easing.quad) }),
+      comboLabelOpacity.set(
+        withSequence(
+          withTiming(1, { duration: 90 }),
+          withDelay(
+            650,
+            withTiming(0, { duration: 320, easing: Easing.in(Easing.quad) }),
+          ),
         ),
-      ));
+      );
       comboIntroShownRef.current = true;
     };
 
@@ -434,14 +438,18 @@ export function GameScreen() {
 
     feedbackOpacity.set(0);
     feedbackScale.set(0.55);
-    feedbackOpacity.set(withSequence(
-      withTiming(1, { duration: 90 }),
-      withDelay(520, withTiming(0, { duration: 260 })),
-    ));
-    feedbackScale.set(withSequence(
-      withTiming(1.18, { duration: 140, easing: Easing.out(Easing.cubic) }),
-      withTiming(1, { duration: 160, easing: Easing.inOut(Easing.quad) }),
-    ));
+    feedbackOpacity.set(
+      withSequence(
+        withTiming(1, { duration: 90 }),
+        withDelay(520, withTiming(0, { duration: 260 })),
+      ),
+    );
+    feedbackScale.set(
+      withSequence(
+        withTiming(1.18, { duration: 140, easing: Easing.out(Easing.cubic) }),
+        withTiming(1, { duration: 160, easing: Easing.inOut(Easing.quad) }),
+      ),
+    );
     if (next.comboGrew && next.combo > 1) {
       pulseCombo(!comboIntroShownRef.current);
     }
@@ -459,7 +467,7 @@ export function GameScreen() {
         withTiming(1, { duration: 220, easing: Easing.inOut(Easing.quad) }),
       ),
     );
-    void gameHaptics.result("Great");
+    void gameHaptics.result('Great');
   }, [newBestPulse]);
 
   const endRun = useCallback(
@@ -479,8 +487,8 @@ export function GameScreen() {
         finalScore > 0 && finalScore >= runBestBaselineRef.current;
       setIsNewBest(beatBest);
       if (beatBest) newBestAnnouncedRef.current = true;
-      setPhase("gameover");
-      phaseRef.current = "gameover";
+      setPhase('gameover');
+      phaseRef.current = 'gameover';
 
       // Soft prompt only — native Store Review waits for a positive tap.
       if (shouldShowReviewPrompt(next, { isNewHighScore: beatBest })) {
@@ -519,7 +527,7 @@ export function GameScreen() {
       setCombo(result.combo);
       comboRef.current = result.combo;
       isFilling.set(0);
-      void gameHaptics.result(result.label === "Close" ? "Nice" : result.label);
+      void gameHaptics.result(result.label === 'Close' ? 'Nice' : result.label);
 
       showFeedback({
         label: result.label,
@@ -532,30 +540,30 @@ export function GameScreen() {
         const next: SessionStats = {
           ...s,
           attempts: s.attempts + 1,
-          hits: result.result === "miss" ? s.hits : s.hits + 1,
-          perfects: result.result === "perfect" ? s.perfects + 1 : s.perfects,
+          hits: result.result === 'miss' ? s.hits : s.hits + 1,
+          perfects: result.result === 'perfect' ? s.perfects + 1 : s.perfects,
           misses: result.costsLife ? s.misses + 1 : s.misses,
           bestCombo: Math.max(s.bestCombo, result.combo),
           coinsEarned: s.coinsEarned + result.coins,
         };
 
         if (result.costsLife) {
-          play("miss");
+          play('miss');
           const livesLeft = livesRef.current - 1;
           setLives(livesLeft);
           livesRef.current = livesLeft;
-          setPhase("result");
-          phaseRef.current = "result";
+          setPhase('result');
+          phaseRef.current = 'result';
           if (livesLeft <= 0) {
             void endRun(scoreRef.current, next);
           } else {
             // Continue run — next meter
             if (autoTimer.current) clearTimeout(autoTimer.current);
-            pendingTimerRef.current = "advance";
+            pendingTimerRef.current = 'advance';
             autoTimer.current = setTimeout(() => {
               pendingTimerRef.current = null;
               if (menuPausedRef.current) {
-                pauseResumeRef.current = { kind: "advance" };
+                pauseResumeRef.current = { kind: 'advance' };
                 return;
               }
               advanceRef.current();
@@ -564,27 +572,27 @@ export function GameScreen() {
           return next;
         }
 
-        play(result.result === "perfect" ? "perfect" : "zone");
+        play(result.result === 'perfect' ? 'perfect' : 'zone');
         setScore((sc) => sc + result.points);
         scoreRef.current += result.points;
         if (scoreRef.current > runBestBaselineRef.current) {
           announceNewBest();
         }
-        setPhase("result");
-        phaseRef.current = "result";
+        setPhase('result');
+        phaseRef.current = 'result';
 
         if (autoTimer.current) clearTimeout(autoTimer.current);
-        pendingTimerRef.current = "advance";
+        pendingTimerRef.current = 'advance';
         autoTimer.current = setTimeout(
           () => {
             pendingTimerRef.current = null;
             if (menuPausedRef.current) {
-              pauseResumeRef.current = { kind: "advance" };
+              pauseResumeRef.current = { kind: 'advance' };
               return;
             }
             advanceRef.current();
           },
-          result.result === "perfect" ? 900 : 480,
+          result.result === 'perfect' ? 900 : 480,
         );
         return next;
       });
@@ -594,28 +602,30 @@ export function GameScreen() {
 
   const startFill = useCallback(() => {
     if (menuPausedRef.current) {
-      pauseResumeRef.current = { kind: "startFill" };
+      pauseResumeRef.current = { kind: 'startFill' };
       return;
     }
     const current = roundRef.current;
     setFeedback(null);
     feedbackOpacity.set(0);
-    setPhase("filling");
-    phaseRef.current = "filling";
+    setPhase('filling');
+    phaseRef.current = 'filling';
     isFilling.set(1);
     syncZoneMotion(current);
     fill.set(0);
-    play("start");
+    play('start');
     void gameHaptics.start();
 
     // Zone position/size follow fill via useAnimatedReaction (matches scoreFill)
-    fill.set(withTiming(
-      1,
-      { duration: current.fillMs, easing: Easing.bezier(0.2, 0.05, 0.35, 1) },
-      (finished) => {
-        if (finished) runOnJS(finishRound)(1);
-      },
-    ));
+    fill.set(
+      withTiming(
+        1,
+        { duration: current.fillMs, easing: Easing.bezier(0.2, 0.05, 0.35, 1) },
+        (finished) => {
+          if (finished) runOnJS(finishRound)(1);
+        },
+      ),
+    );
   }, [fill, feedbackOpacity, finishRound, isFilling, play, syncZoneMotion]);
 
   useEffect(() => {
@@ -627,11 +637,11 @@ export function GameScreen() {
       if (countTimer.current) clearTimeout(countTimer.current);
 
       if (current <= 0) {
-        pendingTimerRef.current = "startFill";
+        pendingTimerRef.current = 'startFill';
         countTimer.current = setTimeout(() => {
           pendingTimerRef.current = null;
           if (menuPausedRef.current) {
-            pauseResumeRef.current = { kind: "startFill" };
+            pauseResumeRef.current = { kind: 'startFill' };
             return;
           }
           startFillRef.current();
@@ -639,22 +649,22 @@ export function GameScreen() {
         return;
       }
 
-      pendingTimerRef.current = "countdown";
+      pendingTimerRef.current = 'countdown';
       countTimer.current = setTimeout(() => {
         pendingTimerRef.current = null;
         if (menuPausedRef.current) {
-          pauseResumeRef.current = { kind: "countdown", countAt: current };
+          pauseResumeRef.current = { kind: 'countdown', countAt: current };
           return;
         }
         const next = current - 1;
         setCountdown(next);
         countdownRef.current = next;
         if (next > 0) {
-          play("tick");
+          play('tick');
           void gameHaptics.countdownTick(next);
           runCountdownFromRef.current(next);
         } else {
-          play("start");
+          play('start');
           void gameHaptics.countdownTick(0);
           runCountdownFromRef.current(0);
         }
@@ -677,11 +687,11 @@ export function GameScreen() {
       // Only countdown on the very first meter of a run
       if (next.level === 1) {
         meterX.set(0);
-        setPhase("countdown");
-        phaseRef.current = "countdown";
+        setPhase('countdown');
+        phaseRef.current = 'countdown';
         setCountdown(3);
         countdownRef.current = 3;
-        play("tick");
+        play('tick');
         void gameHaptics.countdownTick(3);
         runCountdownFromRef.current(3);
         return;
@@ -690,15 +700,15 @@ export function GameScreen() {
       // Later levels: land the meter, pause so the zone is readable, then fill
       const startAfterReadPause = () => {
         if (menuPausedRef.current) {
-          pauseResumeRef.current = { kind: "startFill" };
+          pauseResumeRef.current = { kind: 'startFill' };
           return;
         }
         if (countTimer.current) clearTimeout(countTimer.current);
-        pendingTimerRef.current = "startFill";
+        pendingTimerRef.current = 'startFill';
         countTimer.current = setTimeout(() => {
           pendingTimerRef.current = null;
           if (menuPausedRef.current) {
-            pauseResumeRef.current = { kind: "startFill" };
+            pauseResumeRef.current = { kind: 'startFill' };
             return;
           }
           startFillRef.current();
@@ -707,13 +717,15 @@ export function GameScreen() {
 
       if (animateIn) {
         meterX.set(340);
-        meterX.set(withTiming(
-          0,
-          { duration: 340, easing: Easing.out(Easing.cubic) },
-          (done) => {
-            if (done) runOnJS(startAfterReadPause)();
-          },
-        ));
+        meterX.set(
+          withTiming(
+            0,
+            { duration: 340, easing: Easing.out(Easing.cubic) },
+            (done) => {
+              if (done) runOnJS(startAfterReadPause)();
+            },
+          ),
+        );
       } else {
         meterX.set(0);
         startAfterReadPause();
@@ -732,7 +744,7 @@ export function GameScreen() {
 
   const onMeterSlidOut = useCallback(() => {
     if (menuPausedRef.current) {
-      pauseResumeRef.current = { kind: "advance" };
+      pauseResumeRef.current = { kind: 'advance' };
       return;
     }
     spawnNextLevel();
@@ -742,13 +754,15 @@ export function GameScreen() {
     if (autoTimer.current) clearTimeout(autoTimer.current);
     pendingTimerRef.current = null;
     // Slide current meter out, then bring next in
-    meterX.set(withTiming(
-      -360,
-      { duration: 220, easing: Easing.in(Easing.cubic) },
-      (done) => {
-        if (done) runOnJS(onMeterSlidOut)();
-      },
-    ));
+    meterX.set(
+      withTiming(
+        -360,
+        { duration: 220, easing: Easing.in(Easing.cubic) },
+        (done) => {
+          if (done) runOnJS(onMeterSlidOut)();
+        },
+      ),
+    );
   }, [meterX, onMeterSlidOut]);
 
   useEffect(() => {
@@ -807,17 +821,19 @@ export function GameScreen() {
     (from: number) => {
       const current = roundRef.current;
       const remaining = Math.max(90, Math.round(current.fillMs * (1 - from)));
-      setPhase("filling");
-      phaseRef.current = "filling";
+      setPhase('filling');
+      phaseRef.current = 'filling';
       isFilling.set(1);
       fill.set(from);
-      fill.set(withTiming(
-        1,
-        { duration: remaining, easing: Easing.bezier(0.2, 0.05, 0.35, 1) },
-        (finished) => {
-          if (finished) runOnJS(finishRound)(1);
-        },
-      ));
+      fill.set(
+        withTiming(
+          1,
+          { duration: remaining, easing: Easing.bezier(0.2, 0.05, 0.35, 1) },
+          (finished) => {
+            if (finished) runOnJS(finishRound)(1);
+          },
+        ),
+      );
     },
     [fill, finishRound, isFilling],
   );
@@ -827,27 +843,27 @@ export function GameScreen() {
     menuPausedRef.current = true;
 
     const p = phaseRef.current;
-    if (p === "filling") {
+    if (p === 'filling') {
       const at = fill.value;
       cancelAnimation(fill);
       fill.set(at);
       isFilling.set(0);
-      pauseResumeRef.current = { kind: "fill", fillAt: at };
-    } else if (p === "countdown") {
+      pauseResumeRef.current = { kind: 'fill', fillAt: at };
+    } else if (p === 'countdown') {
       pauseResumeRef.current = {
-        kind: "countdown",
+        kind: 'countdown',
         countAt: countdownRef.current,
       };
-    } else if (pendingTimerRef.current === "startFill") {
-      pauseResumeRef.current = { kind: "startFill" };
-    } else if (pendingTimerRef.current === "advance" || p === "result") {
+    } else if (pendingTimerRef.current === 'startFill') {
+      pauseResumeRef.current = { kind: 'startFill' };
+    } else if (pendingTimerRef.current === 'advance' || p === 'result') {
       // Result auto-advance, or mid level-transition
       if (
-        pendingTimerRef.current === "advance" ||
+        pendingTimerRef.current === 'advance' ||
         pauseResumeRef.current == null
       ) {
-        if (livesRef.current > 0 && p === "result") {
-          pauseResumeRef.current = { kind: "advance" };
+        if (livesRef.current > 0 && p === 'result') {
+          pauseResumeRef.current = { kind: 'advance' };
         }
       }
     }
@@ -864,9 +880,9 @@ export function GameScreen() {
 
     // Freeze any in-flight meter slide
     cancelAnimation(meterX);
-    if (pauseResumeRef.current?.kind === "startFill") {
+    if (pauseResumeRef.current?.kind === 'startFill') {
       meterX.set(0);
-    } else if (pauseResumeRef.current?.kind === "advance") {
+    } else if (pauseResumeRef.current?.kind === 'advance') {
       // Keep meter put until resume spawns the next level
       meterX.set(meterX.value);
     }
@@ -875,7 +891,7 @@ export function GameScreen() {
   }, [fill, isFilling, meterX]);
 
   const openScores = useCallback(() => {
-    setMenuInitialView("highscores");
+    setMenuInitialView('highscores');
     openMenu();
   }, [openMenu]);
 
@@ -886,20 +902,20 @@ export function GameScreen() {
     pauseResumeRef.current = null;
     if (!resume) return;
 
-    if (resume.kind === "fill") {
+    if (resume.kind === 'fill') {
       resumeFillFrom(resume.fillAt);
       return;
     }
-    if (resume.kind === "countdown") {
+    if (resume.kind === 'countdown') {
       runCountdownFromRef.current(resume.countAt);
       return;
     }
-    if (resume.kind === "startFill") {
+    if (resume.kind === 'startFill') {
       meterX.set(0);
       startFillRef.current();
       return;
     }
-    if (resume.kind === "advance") {
+    if (resume.kind === 'advance') {
       autoTimer.current = setTimeout(() => advanceRef.current(), 200);
     }
   }, [meterX, resumeFillFrom]);
@@ -948,8 +964,8 @@ export function GameScreen() {
     setRound(idle);
     roundRef.current = idle;
     syncZoneMotion(idle);
-    setPhase("ready");
-    phaseRef.current = "ready";
+    setPhase('ready');
+    phaseRef.current = 'ready';
   };
 
   const startModeFromMenu = (daily: boolean) => {
@@ -959,14 +975,14 @@ export function GameScreen() {
 
   const sendFeedback = async () => {
     void gameHaptics.next();
-    const subject = encodeURIComponent("MeterZone feedback");
+    const subject = encodeURIComponent('MeterZone feedback');
     const url = `mailto:${FEEDBACK_EMAIL}?subject=${subject}`;
     try {
       // Don't gate on canOpenURL — iOS returns false for mailto: unless the
       // scheme is listed in LSApplicationQueriesSchemes.
       await Linking.openURL(url);
     } catch {
-      Alert.alert("Feedback", `Email us at ${FEEDBACK_EMAIL}`);
+      Alert.alert('Feedback', `Email us at ${FEEDBACK_EMAIL}`);
     }
   };
 
@@ -1004,16 +1020,16 @@ export function GameScreen() {
     setRound(idle);
     roundRef.current = idle;
     syncZoneMotion(idle);
-    setPhase("ready");
-    phaseRef.current = "ready";
+    setPhase('ready');
+    phaseRef.current = 'ready';
   };
 
   const onTap = () => {
     if (menuOpen || lockingTap.current) return;
     const p = phaseRef.current;
-    if (p === "countdown" || p === "ready" || p === "result") return;
+    if (p === 'countdown' || p === 'ready' || p === 'result') return;
 
-    if (p === "filling") {
+    if (p === 'filling') {
       lockingTap.current = true;
       // Freeze fill exactly where it is — zone is derived from fill, so it matches
       const stoppedAt = fill.value;
@@ -1031,7 +1047,7 @@ export function GameScreen() {
         );
       }
       isFilling.set(0);
-      play("tap");
+      play('tap');
       void gameHaptics.stop();
       finishRound(stoppedAt);
       requestAnimationFrame(() => {
@@ -1054,7 +1070,7 @@ export function GameScreen() {
     opacity: comboLabelOpacity.value,
     height: comboLabelOpacity.value * 18,
     marginBottom: comboLabelOpacity.value * 2,
-    overflow: "hidden" as const,
+    overflow: 'hidden' as const,
   }));
   const newBestStyle = useAnimatedStyle(() => ({
     transform: [{ scale: newBestPulse.value }],
@@ -1069,7 +1085,7 @@ export function GameScreen() {
       : 0
     : (persist?.highScore ?? 0);
   const displayedBest =
-    isNewBest && phase !== "ready"
+    isNewBest && phase !== 'ready'
       ? Math.max(score, persistedBest)
       : persistedBest;
 
@@ -1086,30 +1102,30 @@ export function GameScreen() {
       // Wait for React to commit + paint without Share/Retry/settings chrome.
       await new Promise<void>((resolve) => setTimeout(resolve, 50));
       const uri = await captureRef(shareRef, {
-        format: "png",
+        format: 'png',
         quality: 1,
-        result: "tmpfile",
+        result: 'tmpfile',
       });
       if (!(await Sharing.isAvailableAsync())) {
         Alert.alert(
-          "Sharing unavailable",
-          "Sharing is not available on this device.",
+          'Sharing unavailable',
+          'Sharing is not available on this device.',
         );
         return;
       }
       await Sharing.shareAsync(uri, {
-        mimeType: "image/png",
-        dialogTitle: "Share your score",
-        UTI: "public.png",
+        mimeType: 'image/png',
+        dialogTitle: 'Share your score',
+        UTI: 'public.png',
       });
     } catch {
-      Alert.alert("Share failed", "Could not create the score image.");
+      Alert.alert('Share failed', 'Could not create the score image.');
     } finally {
       setCapturingShare(false);
     }
   }, [capturingShare]);
 
-  const hitEnabled = phase === "filling" && !menuOpen;
+  const hitEnabled = phase === 'filling' && !menuOpen;
   const meterScale = round.meterScale;
   const meterWrapH = METER_BASE_H * meterScale + METER_WRAP_EXTRA;
   // Pin meter base to the yellow pad in the background art
@@ -1139,7 +1155,7 @@ export function GameScreen() {
             bottom: meterBottom,
             height: meterWrapH,
           },
-          phase === "gameover" && styles.meterDimmed,
+          phase === 'gameover' && styles.meterDimmed,
         ]}
         pointerEvents="none"
       >
@@ -1156,7 +1172,7 @@ export function GameScreen() {
             }
             skin={skin}
             scale={meterScale}
-            active={phase === "filling"}
+            active={phase === 'filling'}
           />
         </Animated.View>
       </View>
@@ -1176,7 +1192,7 @@ export function GameScreen() {
               />
             </View>
 
-            {phase === "ready" ? (
+            {phase === 'ready' ? (
               <ScoreModule
                 best={persist?.highScore ?? 0}
                 bestLevel={persist?.bestLevel ?? 0}
@@ -1185,7 +1201,7 @@ export function GameScreen() {
                 dailyPlayed={Boolean(dailyPlayedToday)}
                 onOpen={openScores}
               />
-            ) : phase === "gameover" ? null : (
+            ) : phase === 'gameover' ? null : (
               <View
                 style={[styles.bestPill, isNewBest && styles.bestPillHot]}
                 pointerEvents="none"
@@ -1193,7 +1209,7 @@ export function GameScreen() {
                 <Text
                   style={[styles.bestLabel, isNewBest && styles.bestLabelHot]}
                 >
-                  {isNewBest ? "NEW BEST" : dailyMode ? "DAILY" : "BEST"}
+                  {isNewBest ? 'NEW BEST' : dailyMode ? 'DAILY' : 'BEST'}
                 </Text>
                 <Text
                   style={[styles.bestValue, isNewBest && styles.bestValueHot]}
@@ -1203,7 +1219,7 @@ export function GameScreen() {
                 {!isNewBest ? (
                   <View style={styles.scoreLevelPill}>
                     <Text style={styles.scoreLevelText}>
-                      Level{" "}
+                      Level{' '}
                       {dailyMode
                         ? persist?.dailyBest.date === todayKey()
                           ? (persist.dailyBest.level ?? 0)
@@ -1217,9 +1233,9 @@ export function GameScreen() {
           </View>
         </View>
 
-        {phase !== "ready" ? (
+        {phase !== 'ready' ? (
           <View style={styles.statsBlock} pointerEvents="none">
-            {phase !== "gameover" ? (
+            {phase !== 'gameover' ? (
               <View style={styles.heartsAboveScore}>
                 <Hearts lives={lives} max={STARTING_LIVES} />
               </View>
@@ -1227,7 +1243,7 @@ export function GameScreen() {
             <Text style={[styles.bigScore, isNewBest && styles.bigScoreHot]}>
               {formatScore(score)}
             </Text>
-            {phase === "gameover" ? (
+            {phase === 'gameover' ? (
               <View style={styles.runStats}>
                 <View style={styles.runStat}>
                   <Text style={styles.runStatLabel}>ACC</Text>
@@ -1257,7 +1273,7 @@ export function GameScreen() {
           </View>
         ) : null}
 
-        {phase !== "ready" && phase !== "gameover" && combo > 1 ? (
+        {phase !== 'ready' && phase !== 'gameover' && combo > 1 ? (
           <Animated.View
             style={[
               styles.comboFloat,
@@ -1276,14 +1292,14 @@ export function GameScreen() {
         ) : null}
 
         <PerfectSwoosh
-          visible={phase !== "gameover" && feedback?.label === "Perfect"}
+          visible={phase !== 'gameover' && feedback?.label === 'Perfect'}
           burstKey={perfectBurstKey}
           points={feedback?.points ?? 0}
           combo={feedback?.comboGrew ? feedback.combo : 0}
         />
 
         <MissBreak
-          visible={phase !== "gameover" && feedback?.label === "Miss"}
+          visible={phase !== 'gameover' && feedback?.label === 'Miss'}
           burstKey={missBurstKey}
           livesLeft={lives}
         />
@@ -1293,21 +1309,21 @@ export function GameScreen() {
             styles.feedback,
             feedback ? FEEDBACK_SLOT_STYLE[feedback.slot] : null,
             feedbackStyle,
-            phase === "gameover" && styles.hidden,
+            phase === 'gameover' && styles.hidden,
           ]}
           pointerEvents="none"
         >
           {feedback &&
-          feedback.label !== "Perfect" &&
-          feedback.label !== "Miss" ? (
+          feedback.label !== 'Perfect' &&
+          feedback.label !== 'Miss' ? (
             <>
               <Text
                 style={[
                   styles.feedbackLabel,
-                  feedback.label === "Great" && styles.feedbackLabelGreat,
+                  feedback.label === 'Great' && styles.feedbackLabelGreat,
                   { color: LABEL_COLORS[feedback.label] },
-                  feedback.slot === "left" && styles.feedbackAlignStart,
-                  feedback.slot === "right" && styles.feedbackAlignEnd,
+                  feedback.slot === 'left' && styles.feedbackAlignStart,
+                  feedback.slot === 'right' && styles.feedbackAlignEnd,
                 ]}
                 numberOfLines={1}
               >
@@ -1317,8 +1333,8 @@ export function GameScreen() {
                 <Text
                   style={[
                     styles.feedbackPoints,
-                    feedback.slot === "left" && styles.feedbackAlignStart,
-                    feedback.slot === "right" && styles.feedbackAlignEnd,
+                    feedback.slot === 'left' && styles.feedbackAlignStart,
+                    feedback.slot === 'right' && styles.feedbackAlignEnd,
                   ]}
                 >
                   +{feedback.points}
@@ -1328,8 +1344,8 @@ export function GameScreen() {
                 <Text
                   style={[
                     styles.feedbackCombo,
-                    feedback.slot === "left" && styles.feedbackAlignStart,
-                    feedback.slot === "right" && styles.feedbackAlignEnd,
+                    feedback.slot === 'left' && styles.feedbackAlignStart,
+                    feedback.slot === 'right' && styles.feedbackAlignEnd,
                   ]}
                 >
                   COMBO x{feedback.combo}
@@ -1339,19 +1355,19 @@ export function GameScreen() {
           ) : null}
         </Animated.View>
 
-        <CountdownBurst value={countdown} visible={phase === "countdown"} />
+        <CountdownBurst value={countdown} visible={phase === 'countdown'} />
 
-        {phase === "gameover" ? (
+        {phase === 'gameover' ? (
           <View
             style={[styles.gameOverPanel, { paddingTop: insets.top + 176 }]}
             pointerEvents="box-none"
           >
             {dailyMode ? (
               <Text style={styles.dailyShareDate} pointerEvents="none">
-                DAILY ·{" "}
-                {new Date(todayKey() + "T12:00:00").toLocaleDateString(
+                DAILY ·{' '}
+                {new Date(todayKey() + 'T12:00:00').toLocaleDateString(
                   undefined,
-                  { month: "short", day: "numeric", year: "numeric" },
+                  { month: 'short', day: 'numeric', year: 'numeric' },
                 )}
               </Text>
             ) : null}
@@ -1369,7 +1385,7 @@ export function GameScreen() {
               ]}
               pointerEvents="none"
             >
-              {isNewBest ? "NEW BEST!" : "GAME OVER"}
+              {isNewBest ? 'NEW BEST!' : 'GAME OVER'}
             </Text>
             <View style={styles.resultSummary} pointerEvents="none">
               {isNewBest ? (
@@ -1426,7 +1442,7 @@ export function GameScreen() {
           </View>
         ) : null}
 
-        {phase === "ready" ? (
+        {phase === 'ready' ? (
           <View
             style={[styles.menuCol, { bottom: menuBottom }]}
             pointerEvents="box-none"
@@ -1455,18 +1471,18 @@ export function GameScreen() {
             capturingShare && styles.hidden,
           ]}
           onPress={() => {
-            setMenuInitialView("menu");
+            setMenuInitialView('menu');
             openMenu();
           }}
           hitSlop={10}
-          pointerEvents={capturingShare ? "none" : "auto"}
+          pointerEvents={capturingShare ? 'none' : 'auto'}
           accessibilityLabel="Menu"
         >
           <SymbolView
             name={{
-              ios: "line.3.horizontal",
-              android: "menu",
-              web: "menu",
+              ios: 'line.3.horizontal',
+              android: 'menu',
+              web: 'menu',
             }}
             size={22}
             tintColor={GameColors.white}
@@ -1480,7 +1496,7 @@ export function GameScreen() {
           style={styles.hitLayer}
           onPressIn={onTap}
           accessibilityRole="button"
-          android_ripple={{ color: "transparent" }}
+          android_ripple={{ color: 'transparent' }}
         />
       ) : null}
 
@@ -1488,7 +1504,7 @@ export function GameScreen() {
         visible={menuOpen}
         soundOn={!muted}
         hapticsOn={persist?.hapticsEnabled !== false}
-        canGoBack={phase !== "ready"}
+        canGoBack={phase !== 'ready'}
         dailyMode={dailyMode}
         initialView={menuInitialView}
         highScore={persist?.highScore ?? 0}
@@ -1501,7 +1517,7 @@ export function GameScreen() {
         }
         dailyRecordScore={persist?.dailyRecord.score ?? 0}
         dailyRecordLevel={persist?.dailyRecord.level ?? 0}
-        dailyRecordDate={persist?.dailyRecord.date ?? ""}
+        dailyRecordDate={persist?.dailyRecord.date ?? ''}
         onClose={closeMenu}
         onToggleSound={() => void toggleSound()}
         onToggleHaptics={() => void toggleHaptics()}
@@ -1521,14 +1537,14 @@ export function GameScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#1E8CFF" },
+  root: { flex: 1, backgroundColor: '#1E8CFF' },
   backdrop: {
     ...fillParent,
     zIndex: 0,
   },
   backdropImage: {
-    width: "100%",
-    height: "100%",
+    width: '100%',
+    height: '100%',
   },
   hitLayer: {
     ...fillParent,
@@ -1541,21 +1557,21 @@ const styles = StyleSheet.create({
     elevation: 30,
   },
   topBlock: {
-    width: "100%",
+    width: '100%',
     gap: 6,
   },
   topRow: {
-    width: "100%",
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
     gap: 10,
     minHeight: 40,
   },
   topLeft: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
     paddingRight: 4,
   },
@@ -1565,7 +1581,7 @@ const styles = StyleSheet.create({
     marginLeft: -4,
   },
   menuBtn: {
-    position: "absolute",
+    position: 'absolute',
     left: 16,
     zIndex: 45,
     width: 44,
@@ -1574,8 +1590,8 @@ const styles = StyleSheet.create({
     backgroundColor: GameColors.playBlue,
     borderWidth: 2.5,
     borderColor: GameColors.ink,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   bestPill: {
     paddingHorizontal: 12,
@@ -1583,8 +1599,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 2.5,
     borderColor: GameColors.ink,
-    backgroundColor: "#FFF4C2",
-    alignItems: "center",
+    backgroundColor: '#FFF4C2',
+    alignItems: 'center',
     minWidth: 64,
     flexShrink: 0,
   },
@@ -1617,22 +1633,22 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     borderWidth: 2.5,
     borderColor: GameColors.ink,
-    backgroundColor: "#FBEFBE",
-    overflow: "hidden",
+    backgroundColor: '#FBEFBE',
+    overflow: 'hidden',
   },
   scoreMain: {
     paddingHorizontal: 10,
     paddingTop: 7,
     paddingBottom: 8,
     gap: 3,
-    alignItems: "stretch",
+    alignItems: 'stretch',
   },
   scoreSectionPressed: {
-    backgroundColor: "rgba(26,28,44,0.06)",
+    backgroundColor: 'rgba(26,28,44,0.06)',
   },
   scoreMainHead: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 5,
   },
   trophyIcon: {
@@ -1657,7 +1673,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 3.5,
     paddingHorizontal: 8,
-    alignItems: "center",
+    alignItems: 'center',
     backgroundColor: GameColors.lemon,
   },
   scoreLevelText: {
@@ -1675,8 +1691,8 @@ const styles = StyleSheet.create({
     paddingTop: 5,
     paddingBottom: 6,
     gap: 1,
-    alignItems: "flex-start",
-    backgroundColor: "rgba(88,204,2,0.18)",
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(88,204,2,0.18)',
   },
   scoreDailyLabel: {
     fontFamily: GameFonts.body,
@@ -1685,8 +1701,8 @@ const styles = StyleSheet.create({
     color: GameColors.bubbleDark,
   },
   scoreDailyRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
   },
   scoreDailyValue: {
@@ -1706,13 +1722,13 @@ const styles = StyleSheet.create({
     height: 64,
   },
   resultSummary: {
-    backgroundColor: "rgba(255,255,255,0.94)",
+    backgroundColor: 'rgba(255,255,255,0.94)',
     borderRadius: 16,
     borderWidth: 2.5,
     borderColor: GameColors.ink,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    alignItems: "center",
+    alignItems: 'center',
     gap: 2,
     minWidth: 168,
   },
@@ -1729,8 +1745,8 @@ const styles = StyleSheet.create({
     color: GameColors.ink,
   },
   resultBestRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
   resultGap: {
@@ -1739,17 +1755,17 @@ const styles = StyleSheet.create({
     color: GameColors.scoreBad,
     marginTop: 2,
   },
-  statsBlock: { marginTop: 2, alignItems: "center" },
+  statsBlock: { marginTop: 2, alignItems: 'center' },
   heartsAboveScore: {
     marginBottom: 6,
-    alignItems: "center",
+    alignItems: 'center',
   },
   bigScore: {
     fontFamily: GameFonts.display,
     fontSize: 52,
     lineHeight: 56,
     color: GameColors.white,
-    textShadowColor: "rgba(26,28,44,0.4)",
+    textShadowColor: 'rgba(26,28,44,0.4)',
     textShadowOffset: { width: 0, height: 3 },
     textShadowRadius: 0,
   },
@@ -1778,9 +1794,9 @@ const styles = StyleSheet.create({
   },
   runStats: {
     marginTop: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.94)",
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.94)',
     borderRadius: 16,
     borderWidth: 2.5,
     borderColor: GameColors.ink,
@@ -1789,7 +1805,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   runStat: {
-    alignItems: "center",
+    alignItems: 'center',
     minWidth: 52,
   },
   runStatLabel: {
@@ -1808,13 +1824,13 @@ const styles = StyleSheet.create({
     width: 2,
     height: 28,
     borderRadius: 1,
-    backgroundColor: "rgba(26,28,44,0.15)",
+    backgroundColor: 'rgba(26,28,44,0.15)',
   },
   comboFloat: {
-    position: "absolute",
+    position: 'absolute',
     left: 0,
     right: 0,
-    alignItems: "center",
+    alignItems: 'center',
     zIndex: 30,
   },
   comboFloatLabel: {
@@ -1823,7 +1839,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     letterSpacing: 2,
     color: GameColors.white,
-    textAlign: "center",
+    textAlign: 'center',
     textShadowColor: GameColors.ink,
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 0,
@@ -1832,18 +1848,18 @@ const styles = StyleSheet.create({
     fontFamily: GameFonts.display,
     fontSize: 52,
     lineHeight: 56,
-    color: "#FFE96A",
-    textAlign: "center",
+    color: '#FFE96A',
+    textAlign: 'center',
     textShadowColor: GameColors.ink,
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 0,
   },
   meterAnchor: {
-    position: "absolute",
+    position: 'absolute',
     left: 0,
     right: 0,
-    alignItems: "center",
-    justifyContent: "flex-end",
+    alignItems: 'center',
+    justifyContent: 'flex-end',
     zIndex: 1,
   },
   meterDimmed: {
@@ -1852,23 +1868,23 @@ const styles = StyleSheet.create({
   hidden: { opacity: 0 },
   gameOverPanel: {
     ...fillParent,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     zIndex: 40,
     gap: 18,
     paddingHorizontal: 24,
   },
   gameOverActions: {
-    width: "100%",
-    alignItems: "center",
+    width: '100%',
+    alignItems: 'center',
     gap: 12,
   },
   gameOverTitle: {
     fontFamily: GameFonts.display,
     fontSize: 52,
     lineHeight: 56,
-    textAlign: "center",
-    color: "#FF4B4B",
+    textAlign: 'center',
+    color: '#FF4B4B',
     textShadowColor: GameColors.ink,
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 0,
@@ -1880,20 +1896,20 @@ const styles = StyleSheet.create({
     fontFamily: GameFonts.body,
     fontSize: 18,
     lineHeight: 22,
-    textAlign: "center",
+    textAlign: 'center',
     color: GameColors.white,
-    textShadowColor: "rgba(26,28,44,0.45)",
+    textShadowColor: 'rgba(26,28,44,0.45)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 0,
     marginBottom: -4,
   },
   feedback: {
-    position: "absolute",
+    position: 'absolute',
     zIndex: 35,
-    maxWidth: "52%",
+    maxWidth: '52%',
   },
-  feedbackAlignStart: { textAlign: "left" },
-  feedbackAlignEnd: { textAlign: "right" },
+  feedbackAlignStart: { textAlign: 'left' },
+  feedbackAlignEnd: { textAlign: 'right' },
   feedbackLabel: {
     fontFamily: GameFonts.display,
     fontSize: 28,
@@ -1928,15 +1944,15 @@ const styles = StyleSheet.create({
     textShadowRadius: 0,
   },
   menuCol: {
-    position: "absolute",
+    position: 'absolute',
     left: 28,
     right: 28,
     gap: 14,
     zIndex: 40,
-    alignItems: "center",
+    alignItems: 'center',
   },
   ctaPressable: {
-    width: "100%",
+    width: '100%',
     maxWidth: 320,
   },
   ctaPressableDown: {
@@ -1946,16 +1962,16 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 4,
     borderColor: GameColors.ink,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   ctaFace: {
     minHeight: 64,
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   ctaFaceUp: {
     marginBottom: 5,
@@ -1966,13 +1982,13 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   ctaShine: {
-    position: "absolute",
+    position: 'absolute',
     left: 10,
     right: 10,
     top: 6,
     height: 14,
     borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.28)",
+    backgroundColor: 'rgba(255,255,255,0.28)',
   },
   ctaText: {
     fontFamily: GameFonts.display,
@@ -1980,7 +1996,7 @@ const styles = StyleSheet.create({
     lineHeight: 34,
     color: GameColors.white,
     letterSpacing: 1.5,
-    textShadowColor: "rgba(26,28,44,0.35)",
+    textShadowColor: 'rgba(26,28,44,0.35)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 0,
   },
@@ -1989,7 +2005,7 @@ const styles = StyleSheet.create({
     fontFamily: GameFonts.soft,
     fontSize: 12,
     lineHeight: 14,
-    color: "rgba(255,255,255,0.92)",
+    color: 'rgba(255,255,255,0.92)',
     letterSpacing: 0.8,
   },
 });

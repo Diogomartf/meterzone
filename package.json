@@ -40,6 +40,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "prettier": "^3.9.6",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -50,6 +51,10 @@
     "ios": "bunx expo start --dev-client --ios",
     "web": "bunx expo start --web",
     "lint": "bunx expo lint",
+    "typecheck": "bunx tsc --noEmit",
+    "test": "bun test",
+    "format": "bunx prettier --write \"src/**/*.{ts,tsx}\"",
+    "format:check": "bunx prettier --check \"src/**/*.{ts,tsx}\"",
     "build:android": "bunx eas-cli build --profile development --platform android",
     "build:ios": "bunx eas-cli build --profile development --platform ios",
     "build:ios:simulator": "bunx eas-cli build --profile development-simulator --platform ios",

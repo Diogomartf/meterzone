@@ -43,7 +43,14 @@ export const Gradients = {
   skyStops: [0, 0.55, 1] as const,
   playZone: [GameColors.playZone, GameColors.playZoneDeep] as const,
   playZoneStops: [0, 1] as const,
-  zone: ['#123A78', '#1B4F9C', '#FF3A2F', '#FF3A2F', '#1B4F9C', '#123A78'] as const,
+  zone: [
+    '#123A78',
+    '#1B4F9C',
+    '#FF3A2F',
+    '#FF3A2F',
+    '#1B4F9C',
+    '#123A78',
+  ] as const,
   zoneStops: [0, 0.18, 0.36, 0.64, 0.82, 1] as const,
   liquid: [
     GameColors.liquidFoam,

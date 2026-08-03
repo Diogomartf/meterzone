@@ -1,4 +1,8 @@
-import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
+import {
+  createAudioPlayer,
+  setAudioModeAsync,
+  type AudioPlayer,
+} from 'expo-audio';
 import { useCallback, useEffect, useRef } from 'react';
 
 type Sfx = 'tap' | 'perfect' | 'zone' | 'miss' | 'start' | 'tick';

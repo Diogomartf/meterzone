@@ -68,7 +68,11 @@ function Heart({ filled }: { filled: boolean }) {
       />
       {popping ? (
         <Animated.View style={[styles.popLayer, popStyle]} pointerEvents="none">
-          <Image source={HEART_FILLED} style={styles.heart} contentFit="contain" />
+          <Image
+            source={HEART_FILLED}
+            style={styles.heart}
+            contentFit="contain"
+          />
         </Animated.View>
       ) : null}
     </View>

@@ -22,7 +22,12 @@ type Props = {
 /**
  * Full-screen PERFECT callout — big Bauhaus yellow with a horizontal swoosh.
  */
-export function PerfectSwoosh({ visible, burstKey = 0, points = 0, combo = 0 }: Props) {
+export function PerfectSwoosh({
+  visible,
+  burstKey = 0,
+  points = 0,
+  combo = 0,
+}: Props) {
   const { width } = useWindowDimensions();
   const opacity = useSharedValue(0);
   const scale = useSharedValue(0.4);
@@ -46,20 +51,32 @@ export function PerfectSwoosh({ visible, burstKey = 0, points = 0, combo = 0 }: 
 
     opacity.value = withSequence(
       withTiming(1, { duration: 80 }),
-      withDelay(640, withTiming(0, { duration: 200, easing: Easing.in(Easing.quad) })),
+      withDelay(
+        640,
+        withTiming(0, { duration: 200, easing: Easing.in(Easing.quad) }),
+      ),
     );
 
     // Light swoosh in, settle, soft fade — not a hard slash
     slide.value = withSequence(
       withTiming(6, { duration: 200, easing: Easing.out(Easing.cubic) }),
       withTiming(0, { duration: 140, easing: Easing.inOut(Easing.quad) }),
-      withDelay(380, withTiming(width * 0.12, { duration: 200, easing: Easing.in(Easing.quad) })),
+      withDelay(
+        380,
+        withTiming(width * 0.12, {
+          duration: 200,
+          easing: Easing.in(Easing.quad),
+        }),
+      ),
     );
 
     scale.value = withSequence(
       withTiming(1.18, { duration: 180, easing: Easing.out(Easing.cubic) }),
       withTiming(1.04, { duration: 160, easing: Easing.inOut(Easing.quad) }),
-      withDelay(360, withTiming(0.96, { duration: 180, easing: Easing.in(Easing.quad) })),
+      withDelay(
+        360,
+        withTiming(0.96, { duration: 180, easing: Easing.in(Easing.quad) }),
+      ),
     );
 
     tilt.value = withSequence(
@@ -75,7 +92,17 @@ export function PerfectSwoosh({ visible, burstKey = 0, points = 0, combo = 0 }: 
       duration: 320,
       easing: Easing.out(Easing.cubic),
     });
-  }, [burstKey, opacity, scale, slide, streakOpacity, streakX, tilt, visible, width]);
+  }, [
+    burstKey,
+    opacity,
+    scale,
+    slide,
+    streakOpacity,
+    streakX,
+    tilt,
+    visible,
+    width,
+  ]);
 
   const wordStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
@@ -100,13 +127,16 @@ export function PerfectSwoosh({ visible, burstKey = 0, points = 0, combo = 0 }: 
 
   return (
     <View style={styles.wrap} pointerEvents="none">
-      <Animated.View style={[styles.streak, { width: width * 1.2 }, streakStyle]} />
+      <Animated.View
+        style={[styles.streak, { width: width * 1.2 }, streakStyle]}
+      />
       <Animated.View style={[styles.wordWrap, wordStyle]}>
         <Text
           style={styles.word}
           numberOfLines={1}
           adjustsFontSizeToFit
-          minimumFontScale={0.55}>
+          minimumFontScale={0.55}
+        >
           PERFECT!
         </Text>
       </Animated.View>

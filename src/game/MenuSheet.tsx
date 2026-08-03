@@ -16,7 +16,11 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -79,7 +83,8 @@ function ToggleRow({
       onPress={onPress}
       style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
       accessibilityRole="switch"
-      accessibilityState={{ checked: value }}>
+      accessibilityState={{ checked: value }}
+    >
       <View style={styles.rowText}>
         <Text style={styles.rowLabel}>{label}</Text>
         <Text style={styles.rowSub}>{subtitle}</Text>
@@ -106,12 +111,17 @@ function ActionRow({
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-      accessibilityRole="button">
+      accessibilityRole="button"
+    >
       <View style={styles.rowText}>
-        <Text style={[styles.rowLabel, destructive && styles.rowLabelDanger]}>{label}</Text>
+        <Text style={[styles.rowLabel, destructive && styles.rowLabelDanger]}>
+          {label}
+        </Text>
         {subtitle ? <Text style={styles.rowSub}>{subtitle}</Text> : null}
       </View>
-      <Text style={[styles.chevron, destructive && styles.rowLabelDanger]}>›</Text>
+      <Text style={[styles.chevron, destructive && styles.rowLabelDanger]}>
+        ›
+      </Text>
     </Pressable>
   );
 }
@@ -122,10 +132,12 @@ function SupportCard() {
       colors={['#7B5CFF', '#5B3DF5', '#4A2FE0']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
-      style={styles.supportCard}>
+      style={styles.supportCard}
+    >
       <Text style={styles.supportTitle}>Support our ad-free app</Text>
       <Text style={styles.supportBody}>
-        Your support helps small developers like us keep building free, ad-free games like this.
+        Your support helps small developers like us keep building free, ad-free
+        games like this.
       </Text>
       <View style={styles.supportActions}>
         <Pressable
@@ -139,7 +151,8 @@ function SupportCard() {
             pressed && styles.supportBtnPressed,
           ]}
           accessibilityRole="button"
-          accessibilityLabel="Leave a 5-star review">
+          accessibilityLabel="Leave a 5-star review"
+        >
           <SymbolView
             name={{
               ios: 'star.fill',
@@ -163,7 +176,8 @@ function SupportCard() {
             pressed && styles.supportBtnPressed,
           ]}
           accessibilityRole="button"
-          accessibilityLabel="Share MeterZone with friends">
+          accessibilityLabel="Share MeterZone with friends"
+        >
           <SymbolView
             name={{
               ios: 'square.and.arrow.up',
@@ -220,7 +234,8 @@ function HighscoreCard({
               ]}
               hitSlop={8}
               accessibilityRole="button"
-              accessibilityLabel={`Share ${badge} highscore`}>
+              accessibilityLabel={`Share ${badge} highscore`}
+            >
               <SymbolView
                 name={{
                   ios: 'square.and.arrow.up',
@@ -276,7 +291,8 @@ function ModeRow({
         pressed && styles.rowPressed,
       ]}
       accessibilityRole="button"
-      accessibilityState={{ selected }}>
+      accessibilityState={{ selected }}
+    >
       <View style={styles.rowText}>
         <Text style={styles.rowLabel}>{label}</Text>
         <Text style={styles.rowSub}>{subtitle}</Text>
@@ -345,9 +361,11 @@ export function MenuSheet({
 
   const dismiss = () => {
     overlayOpacity.set(withTiming(0, { duration: 180 }));
-    translateY.set(withTiming(sheetH, { duration: 220 }, (finished) => {
-      if (finished) runOnJS(onClose)();
-    }));
+    translateY.set(
+      withTiming(sheetH, { duration: 220 }, (finished) => {
+        if (finished) runOnJS(onClose)();
+      }),
+    );
   };
 
   const confirmDeleteData = () => {
@@ -447,9 +465,11 @@ export function MenuSheet({
       const shouldClose = e.translationY > 110 || e.velocityY > 900;
       if (shouldClose) {
         overlayOpacity.set(withTiming(0, { duration: 160 }));
-        translateY.set(withTiming(sheetH, { duration: 200 }, (finished) => {
-          if (finished) runOnJS(onClose)();
-        }));
+        translateY.set(
+          withTiming(sheetH, { duration: 200 }, (finished) => {
+            if (finished) runOnJS(onClose)();
+          }),
+        );
       } else {
         overlayOpacity.set(withTiming(1, { duration: 160 }));
         translateY.set(withSpring(0, { damping: 22, stiffness: 240 }));
@@ -462,9 +482,12 @@ export function MenuSheet({
       transparent
       animationType="none"
       onRequestClose={view === 'menu' ? dismiss : () => setView('menu')}
-      statusBarTranslucent>
+      statusBarTranslucent
+    >
       <GestureHandlerRootView style={styles.overlayRoot}>
-        <Animated.View style={[styles.overlay, styles.overlayHidden, overlayStyle]}>
+        <Animated.View
+          style={[styles.overlay, styles.overlayHidden, overlayStyle]}
+        >
           <Pressable
             style={styles.dismissArea}
             onPress={dismiss}
@@ -479,255 +502,275 @@ export function MenuSheet({
                   paddingBottom: Math.max(insets.bottom, 18) + 10,
                 },
                 sheetStyle,
-              ]}>
-            <View style={styles.handleHit}>
-              <View style={styles.handle} />
-            </View>
+              ]}
+            >
+              <View style={styles.handleHit}>
+                <View style={styles.handle} />
+              </View>
 
-            <View style={styles.header}>
-              {view !== 'menu' ? (
+              <View style={styles.header}>
+                {view !== 'menu' ? (
+                  <Pressable
+                    onPress={() => setView('menu')}
+                    style={({ pressed }) => [
+                      styles.backBtn,
+                      pressed && styles.closeBtnPressed,
+                    ]}
+                    hitSlop={10}
+                    accessibilityLabel="Back"
+                  >
+                    <Text style={styles.backBtnText}>‹</Text>
+                  </Pressable>
+                ) : null}
+                <Text
+                  style={[styles.title, view === 'menu' && styles.titleRoot]}
+                >
+                  {title}
+                </Text>
                 <Pressable
-                  onPress={() => setView('menu')}
-                  style={({ pressed }) => [styles.backBtn, pressed && styles.closeBtnPressed]}
+                  onPress={dismiss}
+                  style={({ pressed }) => [
+                    styles.closeBtn,
+                    pressed && styles.closeBtnPressed,
+                  ]}
                   hitSlop={10}
-                  accessibilityLabel="Back">
-                  <Text style={styles.backBtnText}>‹</Text>
+                  accessibilityLabel="Close"
+                >
+                  <Text style={styles.closeBtnText}>DONE</Text>
                 </Pressable>
-              ) : null}
-              <Text style={[styles.title, view === 'menu' && styles.titleRoot]}>{title}</Text>
-              <Pressable
-                onPress={dismiss}
-                style={({ pressed }) => [styles.closeBtn, pressed && styles.closeBtnPressed]}
-                hitSlop={10}
-                accessibilityLabel="Close">
-                <Text style={styles.closeBtnText}>DONE</Text>
-              </Pressable>
-            </View>
+              </View>
 
-            <View style={styles.body}>
-              {view === 'menu' ? (
-                <ScrollView
-                  style={styles.menuScroll}
-                  contentContainerStyle={styles.menuScrollContent}
-                  showsVerticalScrollIndicator={false}
-                  bounces={false}>
-                  {canGoBack ? (
-                    <Pressable
-                      onPress={onGoBack}
-                      style={({ pressed }) => [
-                        styles.startOverBtn,
-                        pressed && styles.closeBtnPressed,
+              <View style={styles.body}>
+                {view === 'menu' ? (
+                  <ScrollView
+                    style={styles.menuScroll}
+                    contentContainerStyle={styles.menuScrollContent}
+                    showsVerticalScrollIndicator={false}
+                    bounces={false}
+                  >
+                    {canGoBack ? (
+                      <Pressable
+                        onPress={onGoBack}
+                        style={({ pressed }) => [
+                          styles.startOverBtn,
+                          pressed && styles.closeBtnPressed,
+                        ]}
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back"
+                      >
+                        <Text style={styles.startOverBtnText}>GO BACK</Text>
+                      </Pressable>
+                    ) : null}
+
+                    <SupportCard />
+
+                    <View style={styles.card}>
+                      <ActionRow
+                        label="Play mode"
+                        subtitle={dailyMode ? 'Daily challenge' : 'Normal run'}
+                        onPress={() => setView('mode')}
+                      />
+                      <View style={styles.divider} />
+                      <ActionRow
+                        label="Hall of fame"
+                        subtitle="Normal, today & best daily"
+                        onPress={() => setView('highscores')}
+                      />
+                      <View style={styles.divider} />
+                      <ActionRow
+                        label="Settings"
+                        subtitle="Sound, haptics & data"
+                        onPress={() => setView('settings')}
+                      />
+                      <View style={styles.divider} />
+                      <ActionRow
+                        label="How to play"
+                        subtitle="Goal, Normal & Daily"
+                        onPress={() => setView('howto')}
+                      />
+                      <View style={styles.divider} />
+                      <ActionRow
+                        label="Send feedback"
+                        subtitle="Ideas, bugs, or love notes"
+                        onPress={onSendFeedback}
+                      />
+                    </View>
+                  </ScrollView>
+                ) : null}
+
+                {view === 'mode' ? (
+                  <View style={styles.card}>
+                    <ModeRow
+                      label="Normal"
+                      subtitle="Classic endless run"
+                      selected={!dailyMode}
+                      onPress={() => onStartMode(false)}
+                    />
+                    <View style={styles.divider} />
+                    <ModeRow
+                      label="Daily"
+                      subtitle="Same sequence for everyone · updates daily"
+                      selected={dailyMode}
+                      onPress={() => onStartMode(true)}
+                    />
+                  </View>
+                ) : null}
+
+                {view === 'highscores' ? (
+                  <ScrollView
+                    style={styles.hsScroll}
+                    contentContainerStyle={styles.hsList}
+                    showsVerticalScrollIndicator={false}
+                  >
+                    <View
+                      ref={normalShareRef}
+                      collapsable={false}
+                      style={[
+                        styles.hsCapture,
+                        sharingKind === 'normal' && styles.hsCaptureShot,
                       ]}
-                      accessibilityRole="button"
-                      accessibilityLabel="Go back">
-                      <Text style={styles.startOverBtnText}>GO BACK</Text>
-                    </Pressable>
-                  ) : null}
-
-                  <SupportCard />
-
-                  <View style={styles.card}>
-                    <ActionRow
-                      label="Play mode"
-                      subtitle={dailyMode ? 'Daily challenge' : 'Normal run'}
-                      onPress={() => setView('mode')}
-                    />
-                    <View style={styles.divider} />
-                    <ActionRow
-                      label="Hall of fame"
-                      subtitle="Normal, today & best daily"
-                      onPress={() => setView('highscores')}
-                    />
-                    <View style={styles.divider} />
-                    <ActionRow
-                      label="Settings"
-                      subtitle="Sound, haptics & data"
-                      onPress={() => setView('settings')}
-                    />
-                    <View style={styles.divider} />
-                    <ActionRow
-                      label="How to play"
-                      subtitle="Goal, Normal & Daily"
-                      onPress={() => setView('howto')}
-                    />
-                    <View style={styles.divider} />
-                    <ActionRow
-                      label="Send feedback"
-                      subtitle="Ideas, bugs, or love notes"
-                      onPress={onSendFeedback}
-                    />
-                  </View>
-                </ScrollView>
-              ) : null}
-
-              {view === 'mode' ? (
-                <View style={styles.card}>
-                  <ModeRow
-                    label="Normal"
-                    subtitle="Classic endless run"
-                    selected={!dailyMode}
-                    onPress={() => onStartMode(false)}
-                  />
-                  <View style={styles.divider} />
-                  <ModeRow
-                    label="Daily"
-                    subtitle="Same sequence for everyone · updates daily"
-                    selected={dailyMode}
-                    onPress={() => onStartMode(true)}
-                  />
-                </View>
-              ) : null}
-
-              {view === 'highscores' ? (
-                <ScrollView
-                  style={styles.hsScroll}
-                  contentContainerStyle={styles.hsList}
-                  showsVerticalScrollIndicator={false}>
-                  <View
-                    ref={normalShareRef}
-                    collapsable={false}
-                    style={[
-                      styles.hsCapture,
-                      sharingKind === 'normal' && styles.hsCaptureShot,
-                    ]}>
-                    {sharingKind === 'normal' ? (
-                      <Image
-                        source={LOGO}
-                        style={styles.hsLogo}
-                        contentFit="contain"
+                    >
+                      {sharingKind === 'normal' ? (
+                        <Image
+                          source={LOGO}
+                          style={styles.hsLogo}
+                          contentFit="contain"
+                        />
+                      ) : null}
+                      <HighscoreCard
+                        badge="NORMAL"
+                        accent={GameColors.xpGold}
+                        accentDeep="#D97706"
+                        score={highScore}
+                        level={bestLevel}
+                        emptyHint="Beat the meter. Own the board."
+                        hideShare={sharingKind === 'normal'}
+                        onShare={() => void shareHighscore('normal')}
                       />
-                    ) : null}
-                    <HighscoreCard
-                      badge="NORMAL"
-                      accent={GameColors.xpGold}
-                      accentDeep="#D97706"
-                      score={highScore}
-                      level={bestLevel}
-                      emptyHint="Beat the meter. Own the board."
-                      hideShare={sharingKind === 'normal'}
-                      onShare={() => void shareHighscore('normal')}
-                    />
-                  </View>
-                  <View
-                    ref={todayShareRef}
-                    collapsable={false}
-                    style={[
-                      styles.hsCapture,
-                      sharingKind === 'today' && styles.hsCaptureShot,
-                    ]}>
-                    {sharingKind === 'today' ? (
-                      <Image
-                        source={LOGO}
-                        style={styles.hsLogo}
-                        contentFit="contain"
+                    </View>
+                    <View
+                      ref={todayShareRef}
+                      collapsable={false}
+                      style={[
+                        styles.hsCapture,
+                        sharingKind === 'today' && styles.hsCaptureShot,
+                      ]}
+                    >
+                      {sharingKind === 'today' ? (
+                        <Image
+                          source={LOGO}
+                          style={styles.hsLogo}
+                          contentFit="contain"
+                        />
+                      ) : null}
+                      <HighscoreCard
+                        badge="TODAY"
+                        accent={GameColors.playBlue}
+                        accentDeep={GameColors.playBlueDark}
+                        score={dailyTodayScore}
+                        level={dailyTodayLevel}
+                        emptyHint="Same challenge for everyone. Go!"
+                        hideShare={sharingKind === 'today'}
+                        onShare={() => void shareHighscore('today')}
                       />
-                    ) : null}
-                    <HighscoreCard
-                      badge="TODAY"
-                      accent={GameColors.playBlue}
-                      accentDeep={GameColors.playBlueDark}
-                      score={dailyTodayScore}
-                      level={dailyTodayLevel}
-                      emptyHint="Same challenge for everyone. Go!"
-                      hideShare={sharingKind === 'today'}
-                      onShare={() => void shareHighscore('today')}
-                    />
-                  </View>
-                  <View
-                    ref={recordShareRef}
-                    collapsable={false}
-                    style={[
-                      styles.hsCapture,
-                      sharingKind === 'record' && styles.hsCaptureShot,
-                    ]}>
-                    {sharingKind === 'record' ? (
-                      <Image
-                        source={LOGO}
-                        style={styles.hsLogo}
-                        contentFit="contain"
+                    </View>
+                    <View
+                      ref={recordShareRef}
+                      collapsable={false}
+                      style={[
+                        styles.hsCapture,
+                        sharingKind === 'record' && styles.hsCaptureShot,
+                      ]}
+                    >
+                      {sharingKind === 'record' ? (
+                        <Image
+                          source={LOGO}
+                          style={styles.hsLogo}
+                          contentFit="contain"
+                        />
+                      ) : null}
+                      <HighscoreCard
+                        badge="BEST DAILY"
+                        accent={GameColors.bubble}
+                        accentDeep={GameColors.bubbleDark}
+                        score={dailyRecordScore}
+                        level={dailyRecordLevel}
+                        meta={recordMeta}
+                        emptyHint="Your greatest daily still awaits."
+                        hideShare={sharingKind === 'record'}
+                        onShare={() => void shareHighscore('record')}
                       />
-                    ) : null}
-                    <HighscoreCard
-                      badge="BEST DAILY"
-                      accent={GameColors.bubble}
-                      accentDeep={GameColors.bubbleDark}
-                      score={dailyRecordScore}
-                      level={dailyRecordLevel}
-                      meta={recordMeta}
-                      emptyHint="Your greatest daily still awaits."
-                      hideShare={sharingKind === 'record'}
-                      onShare={() => void shareHighscore('record')}
-                    />
-                  </View>
-                </ScrollView>
-              ) : null}
-
-              {view === 'howto' ? (
-                <ScrollView
-                  style={styles.menuScroll}
-                  contentContainerStyle={styles.menuScrollContent}
-                  showsVerticalScrollIndicator={false}
-                  bounces={false}>
-                  <View style={styles.card}>
-                    <View style={styles.infoBlock}>
-                      <Text style={styles.rowLabel}>The goal</Text>
-                      <Text style={styles.rowSub}>
-                        Watch the meter rise, then tap once to stop it inside
-                        the zone. Perfect, Great, and Nice keep you going and
-                        stack combos. Miss and you lose a heart.
-                      </Text>
                     </View>
-                    <View style={styles.divider} />
-                    <View style={styles.infoBlock}>
-                      <Text style={styles.rowLabel}>Normal</Text>
-                      <Text style={styles.rowSub}>
-                        A classic endless run. Levels get tougher as you climb —
-                        chase your all-time high score.
-                      </Text>
+                  </ScrollView>
+                ) : null}
+
+                {view === 'howto' ? (
+                  <ScrollView
+                    style={styles.menuScroll}
+                    contentContainerStyle={styles.menuScrollContent}
+                    showsVerticalScrollIndicator={false}
+                    bounces={false}
+                  >
+                    <View style={styles.card}>
+                      <View style={styles.infoBlock}>
+                        <Text style={styles.rowLabel}>The goal</Text>
+                        <Text style={styles.rowSub}>
+                          Watch the meter rise, then tap once to stop it inside
+                          the zone. Perfect, Great, and Nice keep you going and
+                          stack combos. Miss and you lose a heart.
+                        </Text>
+                      </View>
+                      <View style={styles.divider} />
+                      <View style={styles.infoBlock}>
+                        <Text style={styles.rowLabel}>Normal</Text>
+                        <Text style={styles.rowSub}>
+                          A classic endless run. Levels get tougher as you climb
+                          — chase your all-time high score.
+                        </Text>
+                      </View>
+                      <View style={styles.divider} />
+                      <View style={styles.infoBlock}>
+                        <Text style={styles.rowLabel}>Daily</Text>
+                        <Text style={styles.rowSub}>
+                          The same sequence for everyone that day, so scores are
+                          fair to compare. A fresh challenge every day.
+                        </Text>
+                      </View>
                     </View>
-                    <View style={styles.divider} />
-                    <View style={styles.infoBlock}>
-                      <Text style={styles.rowLabel}>Daily</Text>
-                      <Text style={styles.rowSub}>
-                        The same sequence for everyone that day, so scores are
-                        fair to compare. A fresh challenge every day.
-                      </Text>
+                  </ScrollView>
+                ) : null}
+
+                {view === 'settings' ? (
+                  <>
+                    <View style={styles.card}>
+                      <ToggleRow
+                        label="Sound"
+                        subtitle="Effects & countdown ticks"
+                        value={soundOn}
+                        onPress={onToggleSound}
+                      />
+                      <View style={styles.divider} />
+                      <ToggleRow
+                        label="Haptics"
+                        subtitle="Vibration on taps & results"
+                        value={hapticsOn}
+                        onPress={onToggleHaptics}
+                      />
                     </View>
-                  </View>
-                </ScrollView>
-              ) : null}
 
-              {view === 'settings' ? (
-                <>
-                  <View style={styles.card}>
-                    <ToggleRow
-                      label="Sound"
-                      subtitle="Effects & countdown ticks"
-                      value={soundOn}
-                      onPress={onToggleSound}
-                    />
-                    <View style={styles.divider} />
-                    <ToggleRow
-                      label="Haptics"
-                      subtitle="Vibration on taps & results"
-                      value={hapticsOn}
-                      onPress={onToggleHaptics}
-                    />
-                  </View>
+                    <View style={styles.card}>
+                      <ActionRow
+                        label="Delete data"
+                        subtitle="High score, progress & unlocks"
+                        onPress={confirmDeleteData}
+                        destructive
+                      />
+                    </View>
+                  </>
+                ) : null}
+              </View>
 
-                  <View style={styles.card}>
-                    <ActionRow
-                      label="Delete data"
-                      subtitle="High score, progress & unlocks"
-                      onPress={confirmDeleteData}
-                      destructive
-                    />
-                  </View>
-                </>
-              ) : null}
-            </View>
-
-            <Text style={styles.version}>MeterZone · v{version}</Text>
+              <Text style={styles.version}>MeterZone · v{version}</Text>
             </Animated.View>
           </GestureDetector>
         </Animated.View>

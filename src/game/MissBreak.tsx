@@ -53,7 +53,10 @@ export function MissBreak({ visible, burstKey = 0, livesLeft = 0 }: Props) {
 
     opacity.value = withSequence(
       withTiming(1, { duration: 80 }),
-      withDelay(700, withTiming(0, { duration: 260, easing: Easing.in(Easing.quad) })),
+      withDelay(
+        700,
+        withTiming(0, { duration: 260, easing: Easing.in(Easing.quad) }),
+      ),
     );
 
     // Soft sad droop — not a victory punch
@@ -134,7 +137,9 @@ export function MissBreak({ visible, burstKey = 0, livesLeft = 0 }: Props) {
         <Animated.View style={wordStyle}>
           <Text style={styles.word}>MISS</Text>
           <Text style={styles.sub}>
-            {livesLeft <= 0 ? 'no hearts left' : `${livesLeft} heart${livesLeft === 1 ? '' : 's'} left`}
+            {livesLeft <= 0
+              ? 'no hearts left'
+              : `${livesLeft} heart${livesLeft === 1 ? '' : 's'} left`}
           </Text>
         </Animated.View>
       </Animated.View>
