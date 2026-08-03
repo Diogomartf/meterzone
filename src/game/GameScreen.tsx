@@ -1314,36 +1314,40 @@ export function GameScreen() {
             >
               {isNewBest ? 'NEW BEST!' : 'GAME OVER'}
             </Text>
-            <View style={styles.resultSummary} pointerEvents="none">
-              {isNewBest ? (
-                previousBest > 0 ? (
-                  <>
-                    <Text style={styles.resultSummaryLabel}>PREVIOUS BEST</Text>
+            {!capturingShare ? (
+              <View style={styles.resultSummary} pointerEvents="none">
+                {isNewBest ? (
+                  previousBest > 0 ? (
+                    <>
+                      <Text style={styles.resultSummaryLabel}>
+                        PREVIOUS BEST
+                      </Text>
+                      <Text style={styles.resultSummaryValue}>
+                        {formatScore(previousBest)}
+                      </Text>
+                    </>
+                  ) : (
                     <Text style={styles.resultSummaryValue}>
-                      {formatScore(previousBest)}
+                      Your first record!
                     </Text>
-                  </>
+                  )
                 ) : (
-                  <Text style={styles.resultSummaryValue}>
-                    Your first record!
-                  </Text>
-                )
-              ) : (
-                <>
-                  <View style={styles.resultBestRow}>
-                    <Text style={styles.resultSummaryLabel}>BEST</Text>
-                    <Text style={styles.resultSummaryValue}>
-                      {formatScore(persistedBest)}
-                    </Text>
-                  </View>
-                  {scoreGap > 0 ? (
-                    <Text style={styles.resultGap}>
-                      −{formatScore(scoreGap)} from your best
-                    </Text>
-                  ) : null}
-                </>
-              )}
-            </View>
+                  <>
+                    <View style={styles.resultBestRow}>
+                      <Text style={styles.resultSummaryLabel}>BEST</Text>
+                      <Text style={styles.resultSummaryValue}>
+                        {formatScore(persistedBest)}
+                      </Text>
+                    </View>
+                    {scoreGap > 0 ? (
+                      <Text style={styles.resultGap}>
+                        −{formatScore(scoreGap)} from your best
+                      </Text>
+                    ) : null}
+                  </>
+                )}
+              </View>
+            ) : null}
             {!capturingShare ? (
               <View style={styles.gameOverActions} pointerEvents="box-none">
                 <GameCta
