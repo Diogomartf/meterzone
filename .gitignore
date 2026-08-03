@@ -38,7 +38,9 @@ pnpm-lock.yaml
 # local env files
 .env*.local
 
-# Google Play / EAS credentials (never commit)
+# Local credentials (never commit)
+# - credentials/          Google Play / EAS / service accounts
+# - credentials/asc-cli/  App Store Connect API keys (.p8) for asc CLI
 credentials/
 
 # typescript

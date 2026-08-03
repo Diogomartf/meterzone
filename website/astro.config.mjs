@@ -13,7 +13,7 @@ export default defineConfig({
         if (item.url === `${SITE_URL}/` || item.url === SITE_URL) {
           item.changefreq = 'weekly';
           item.priority = 1;
-        } else if (item.url.includes('/privacy')) {
+        } else if (item.url.includes('/privacy') || item.url.includes('/support')) {
           item.changefreq = 'yearly';
           item.priority = 0.3;
         }

@@ -1,0 +1,134 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { APP_NAME, CONTACT_EMAIL } from '../site';
+---
+
+<BaseLayout
+  title="Support"
+  description={`Get help with ${APP_NAME}. Contact us by email for support, feedback, and questions.`}
+>
+  <main class="support">
+    <a class="back" href="/">← Back to {APP_NAME}</a>
+
+    <h1>{APP_NAME} Support</h1>
+    <p class="lede">
+      Need help with {APP_NAME}? We are happy to help with gameplay questions,
+      technical issues, feedback, or App Store requests.
+    </p>
+
+    <section>
+      <h2>Email us</h2>
+      <p>
+        The fastest way to reach us is email. Include your device model, iOS
+        version, and a short description of the issue when you can.
+      </p>
+      <p class="email-line">
+        <a class="email" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+      </p>
+    </section>
+
+    <section>
+      <h2>Common questions</h2>
+      <ul>
+        <li>
+          <strong>How do I play?</strong> Watch the meter fill, then tap to stop
+          it inside the zone. Perfect and Great hits build your combo; miss and
+          you lose a heart.
+        </li>
+        <li>
+          <strong>Does the game need an account?</strong> No. There is no sign-in
+          and progress is stored on your device.
+        </li>
+        <li>
+          <strong>Can I turn off sound or haptics?</strong> Yes — both can be
+          disabled in the in-app settings.
+        </li>
+        <li>
+          <strong>Where is my data?</strong> High scores, settings, and unlocks
+          stay on your device. See our
+          <a href="/privacy/">Privacy Policy</a> for details.
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Response time</h2>
+      <p>
+        We aim to reply within a few business days. For urgent App Store review
+        or account issues, mention that in the subject line.
+      </p>
+    </section>
+  </main>
+</BaseLayout>
+
+<style>
+  .support {
+    max-width: 42rem;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+    line-height: 1.6;
+  }
+
+  .back {
+    display: inline-block;
+    margin-bottom: 2rem;
+    font-weight: 500;
+    text-decoration: none;
+    color: var(--ink);
+  }
+
+  .back:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  h1 {
+    margin: 0 0 0.5rem;
+    font-size: clamp(2rem, 5vw, 2.75rem);
+    font-weight: 700;
+  }
+
+  .lede {
+    margin: 0 0 2rem;
+    color: var(--panel-ink);
+    font-size: 1.05rem;
+  }
+
+  section {
+    margin-bottom: 1.75rem;
+  }
+
+  h2 {
+    margin: 0 0 0.5rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+  }
+
+  p,
+  ul {
+    margin: 0;
+    color: var(--panel-ink);
+  }
+
+  ul {
+    padding-left: 1.25rem;
+  }
+
+  li + li {
+    margin-top: 0.75rem;
+  }
+
+  .email-line {
+    margin-top: 0.75rem;
+  }
+
+  a {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .email {
+    font-size: 1.15rem;
+    font-weight: 600;
+  }
+</style>
