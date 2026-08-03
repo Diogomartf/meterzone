@@ -10,17 +10,63 @@ const { type, src, poster, alt } = HERO_MEDIA;
     <div class="phone-screen">
       {
         type === 'video' ? (
-          <video
-            src={src}
-            poster={poster}
-            autoplay
-            muted
-            loop
-            playsinline
-            preload="metadata"
-            aria-label={alt}
-            title={alt}
-          />
+          <>
+            <video
+              id="hero-preview"
+              src={src}
+              poster={poster}
+              autoplay
+              muted
+              loop
+              playsinline
+              preload="metadata"
+              aria-label={alt}
+              title={alt}
+            />
+            <button
+              type="button"
+              class="audio-toggle"
+              id="hero-audio-toggle"
+              aria-pressed="false"
+              aria-controls="hero-preview"
+              aria-label="Unmute preview"
+              title="Sound off — tap to unmute"
+            >
+              <span class="audio-toggle__icon" aria-hidden="true">
+                {/* Muted speaker */}
+                <svg class="icon-muted" viewBox="0 0 24 24" width="18" height="18" fill="none">
+                  <path
+                    d="M11 5 6 9H3v6h3l5 4V5Z"
+                    stroke="currentColor"
+                    stroke-width="1.75"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="m16 10 5 5M21 10l-5 5"
+                    stroke="currentColor"
+                    stroke-width="1.75"
+                    stroke-linecap="round"
+                  />
+                </svg>
+                {/* Unmuted speaker */}
+                <svg class="icon-on" viewBox="0 0 24 24" width="18" height="18" fill="none">
+                  <path
+                    d="M11 5 6 9H3v6h3l5 4V5Z"
+                    stroke="currentColor"
+                    stroke-width="1.75"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M15.5 8.5a5 5 0 0 1 0 7M18.5 6a9 9 0 0 1 0 12"
+                    stroke="currentColor"
+                    stroke-width="1.75"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </span>
+              <span class="audio-toggle__label">Sound</span>
+            </button>
+          </>
         ) : (
           <img
             src={src}
@@ -37,6 +83,36 @@ const { type, src, poster, alt } = HERO_MEDIA;
     <div class="phone-home" aria-hidden="true"></div>
   </div>
 </div>
+
+{
+  type === 'video' && (
+    <script>
+      const video = document.getElementById('hero-preview');
+      const btn = document.getElementById('hero-audio-toggle');
+      if (video instanceof HTMLVideoElement && btn instanceof HTMLButtonElement) {
+        const setMutedUI = (muted: boolean) => {
+          video.muted = muted;
+          btn.setAttribute('aria-pressed', muted ? 'false' : 'true');
+          btn.setAttribute('aria-label', muted ? 'Unmute preview' : 'Mute preview');
+          btn.title = muted ? 'Sound off — tap to unmute' : 'Sound on — tap to mute';
+          btn.classList.toggle('is-on', !muted);
+        };
+
+        btn.addEventListener('click', async () => {
+          const nextMuted = !video.muted;
+          setMutedUI(nextMuted);
+          // Resuming with sound may need play() after a user gesture
+          try {
+            if (!nextMuted && video.paused) await video.play();
+          } catch {
+            // Autoplay with sound can still fail; leave muted UI honest
+            setMutedUI(true);
+          }
+        });
+      }
+    </script>
+  )
+}
 
 <style>
   .phone {
@@ -81,6 +157,7 @@ const { type, src, poster, alt } = HERO_MEDIA;
   }
 
   .phone-screen {
+    position: relative;
     overflow: hidden;
     border-radius: 1.65rem;
     background: #000;
@@ -94,6 +171,76 @@ const { type, src, poster, alt } = HERO_MEDIA;
     height: 100%;
     object-fit: cover;
     object-position: center top;
+  }
+
+  .audio-toggle {
+    position: absolute;
+    right: 0.55rem;
+    bottom: 0.55rem;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.65rem 0.4rem 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 999px;
+    background: rgba(10, 11, 16, 0.62);
+    color: #fff;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease,
+      transform 0.15s ease;
+  }
+
+  .audio-toggle:hover {
+    background: rgba(10, 11, 16, 0.78);
+    border-color: rgba(255, 255, 255, 0.35);
+  }
+
+  .audio-toggle:active {
+    transform: scale(0.97);
+  }
+
+  .audio-toggle:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+  }
+
+  .audio-toggle__icon {
+    display: grid;
+    place-items: center;
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+
+  .audio-toggle__icon svg {
+    grid-area: 1 / 1;
+  }
+
+  .audio-toggle .icon-on {
+    display: none;
+  }
+
+  .audio-toggle.is-on .icon-muted {
+    display: none;
+  }
+
+  .audio-toggle.is-on .icon-on {
+    display: block;
+  }
+
+  .audio-toggle.is-on {
+    background: rgba(0, 11, 178, 0.72);
+    border-color: rgba(255, 255, 255, 0.4);
   }
 
   .phone-home {

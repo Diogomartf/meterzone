@@ -32,13 +32,13 @@ export const HERO_HEADLINE = {
 
 export const HERO_KICKER = SITE_TAGLINE;
 
-/** Hero phone preview — swap to video when ready. */
+/** Hero phone preview — optimized from App Store preview for landing. */
 export const HERO_MEDIA = {
   type: 'video' as 'image' | 'video',
   src: '/videos/gameplay.mp4',
   /** Used when type is 'video' (and as img fallback poster). */
   poster: '/images/game-preview.png',
-  alt: 'MeterZone gameplay: tap when the meter hits the zone',
+  alt: 'MeterZone gameplay preview: stop the rising meter in the zone',
 } satisfies {
   type: 'image' | 'video';
   src: string;
