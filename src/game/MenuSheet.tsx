@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Sharing from 'expo-sharing';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
@@ -27,6 +28,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { captureRef } from 'react-native-view-shot';
 
 import { GameColors, GameFonts } from '@/constants/gameTheme';
+import { requestNativeReview, shareApp } from '@/game/review';
+import { markReviewAccepted } from '@/game/storage';
 
 type HighscoreKind = 'normal' | 'today' | 'record';
 
@@ -107,6 +110,71 @@ function ActionRow({
       </View>
       <Text style={[styles.chevron, destructive && styles.rowLabelDanger]}>›</Text>
     </Pressable>
+  );
+}
+
+function SupportCard() {
+  return (
+    <LinearGradient
+      colors={['#7B5CFF', '#5B3DF5', '#4A2FE0']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.supportCard}>
+      <Text style={styles.supportTitle}>Support our ad-free app</Text>
+      <Text style={styles.supportBody}>
+        Your support helps small developers like us keep building free, ad-free games like this.
+      </Text>
+      <View style={styles.supportActions}>
+        <Pressable
+          onPress={() => {
+            // Stop future soft prompts once they choose to review.
+            void markReviewAccepted();
+            void requestNativeReview();
+          }}
+          style={({ pressed }) => [
+            styles.supportBtn,
+            pressed && styles.supportBtnPressed,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Leave a 5-star review">
+          <SymbolView
+            name={{
+              ios: 'star.fill',
+              android: 'star',
+              web: 'star',
+            }}
+            size={16}
+            tintColor={GameColors.white}
+            weight="bold"
+          />
+          <Text style={styles.supportBtnText}>Review</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => {
+            void shareApp().catch(() => {
+              Alert.alert('Share failed', 'Could not open the share sheet.');
+            });
+          }}
+          style={({ pressed }) => [
+            styles.supportBtn,
+            pressed && styles.supportBtnPressed,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Share MeterZone with friends">
+          <SymbolView
+            name={{
+              ios: 'square.and.arrow.up',
+              android: 'share',
+              web: 'share',
+            }}
+            size={16}
+            tintColor={GameColors.white}
+            weight="bold"
+          />
+          <Text style={styles.supportBtnText}>Share</Text>
+        </Pressable>
+      </View>
+    </LinearGradient>
   );
 }
 
@@ -424,7 +492,11 @@ export function MenuSheet({
 
             <View style={styles.body}>
               {view === 'menu' ? (
-                <>
+                <ScrollView
+                  style={styles.menuScroll}
+                  contentContainerStyle={styles.menuScrollContent}
+                  showsVerticalScrollIndicator={false}
+                  bounces={false}>
                   {canGoBack ? (
                     <Pressable
                       onPress={onGoBack}
@@ -437,6 +509,8 @@ export function MenuSheet({
                       <Text style={styles.startOverBtnText}>GO BACK</Text>
                     </Pressable>
                   ) : null}
+
+                  <SupportCard />
 
                   <View style={styles.card}>
                     <ActionRow
@@ -463,7 +537,7 @@ export function MenuSheet({
                       onPress={onSendFeedback}
                     />
                   </View>
-                </>
+                </ScrollView>
               ) : null}
 
               {view === 'mode' ? (
@@ -714,6 +788,62 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
     gap: 16,
+  },
+  menuScroll: {
+    flex: 1,
+  },
+  menuScrollContent: {
+    gap: 16,
+    paddingBottom: 4,
+  },
+  supportCard: {
+    borderRadius: 20,
+    borderWidth: 2.5,
+    borderColor: GameColors.ink,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 16,
+    gap: 10,
+    overflow: 'hidden',
+  },
+  supportTitle: {
+    fontFamily: GameFonts.display,
+    fontSize: 22,
+    lineHeight: 26,
+    color: GameColors.white,
+  },
+  supportBody: {
+    fontFamily: GameFonts.soft,
+    fontSize: 15,
+    lineHeight: 20,
+    color: 'rgba(255,255,255,0.92)',
+  },
+  supportActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+  supportBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.35)',
+  },
+  supportBtnPressed: {
+    transform: [{ translateY: 1 }],
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  supportBtnText: {
+    fontFamily: GameFonts.body,
+    fontSize: 16,
+    lineHeight: 20,
+    color: GameColors.white,
   },
   card: {
     backgroundColor: GameColors.white,

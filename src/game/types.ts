@@ -52,6 +52,12 @@ export type SessionStats = {
 
 export type SkinId = 'toxic' | 'lava' | 'ice' | 'gold';
 
+/**
+ * Soft review prompt — native Store Review only after `accepted`.
+ * At most a few spaced asks (see REVIEW_PROMPT_MILESTONES); always + high score.
+ */
+export type ReviewPromptStatus = 'none' | 'accepted';
+
 export type PersistState = {
   highScore: number;
   coins: number;
@@ -67,4 +73,15 @@ export type PersistState = {
   soundMuted: boolean;
   /** Vibration / haptic feedback during play */
   hapticsEnabled: boolean;
+  /** Finished runs across all modes (normal + daily) */
+  totalRuns: number;
+  /** Soft “enjoying MeterZone?” — `accepted` stops auto prompts */
+  reviewPromptStatus: ReviewPromptStatus;
+  /**
+   * Soft prompts already dismissed with Not now (0…REVIEW_PROMPT_MAX).
+   * Caps lifetime auto-asks so we don't fatigue players.
+   */
+  reviewPromptsShown: number;
+  /** totalRuns when the last soft prompt was answered (decline). */
+  reviewLastPromptAtRuns: number;
 };

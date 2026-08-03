@@ -38,13 +38,17 @@ import {
   STARTING_LIVES,
 } from "@/game/scoring";
 import { MenuSheet } from "@/game/MenuSheet";
+import { ReviewPromptModal } from "@/game/ReviewPromptModal";
+import { shouldShowReviewPrompt } from "@/game/review";
 import { DEFAULT_SKIN, SKINS } from "@/game/skins";
 import {
   clearPersist,
   commitRunResult,
   dailySeed,
   loadPersist,
+  recordReviewPromptDecline,
   setHapticsEnabled,
+  markReviewAccepted,
   setSoundMuted,
   todayKey,
 } from "@/game/storage";
@@ -185,6 +189,8 @@ export function GameScreen() {
   const shareRef = useRef<View>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [capturingShare, setCapturingShare] = useState(false);
+  const [reviewPromptVisible, setReviewPromptVisible] = useState(false);
+  const reviewPromptTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fill = useSharedValue(0);
   const zoneTarget = useSharedValue(round.target);
@@ -406,9 +412,37 @@ export function GameScreen() {
       if (beatBest) newBestAnnouncedRef.current = true;
       setPhase("gameover");
       phaseRef.current = "gameover";
+
+      // Soft prompt only — native Store Review waits for a positive tap.
+      if (
+        shouldShowReviewPrompt(next, { isNewHighScore: beatBest })
+      ) {
+        if (reviewPromptTimer.current) clearTimeout(reviewPromptTimer.current);
+        reviewPromptTimer.current = setTimeout(() => {
+          reviewPromptTimer.current = null;
+          setReviewPromptVisible(true);
+        }, 900);
+      }
     },
     [dailyMode],
   );
+
+  useEffect(() => {
+    return () => {
+      if (reviewPromptTimer.current) clearTimeout(reviewPromptTimer.current);
+    };
+  }, []);
+
+  const onReviewAccept = useCallback(() => {
+    setReviewPromptVisible(false);
+    // Persist before native UI so we never re-prompt even if they bounce.
+    void markReviewAccepted().then(setPersist);
+  }, []);
+
+  const onReviewDecline = useCallback(() => {
+    setReviewPromptVisible(false);
+    void recordReviewPromptDecline().then(setPersist);
+  }, []);
 
   const finishRound = useCallback(
     (value: number) => {
@@ -1344,6 +1378,12 @@ export function GameScreen() {
         onStartMode={startModeFromMenu}
         onSendFeedback={() => void sendFeedback()}
         onDeleteData={() => void deleteData()}
+      />
+
+      <ReviewPromptModal
+        visible={reviewPromptVisible}
+        onAccept={onReviewAccept}
+        onDecline={onReviewDecline}
       />
     </View>
   );

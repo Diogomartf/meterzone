@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { DEFAULT_SKIN } from '@/game/skins';
-import type { PersistState, SkinId } from '@/game/types';
+import { REVIEW_PROMPT_MAX } from '@/game/review';
+import type { PersistState, ReviewPromptStatus, SkinId } from '@/game/types';
 
 const KEY = 'zone-meter:persist-v1';
 
@@ -20,7 +21,32 @@ const DEFAULT_STATE: PersistState = {
   dailyRecord: { ...EMPTY_DAILY },
   soundMuted: false,
   hapticsEnabled: true,
+  totalRuns: 0,
+  reviewPromptStatus: 'none',
+  reviewPromptsShown: 0,
+  reviewLastPromptAtRuns: 0,
 };
+
+function parseReviewPromptStatus(value: unknown): ReviewPromptStatus {
+  if (value === 'accepted') return 'accepted';
+  return 'none';
+}
+
+/** Migrate legacy declined/exhausted into prompts-shown count. */
+function parseReviewPromptsShown(parsed: Record<string, unknown>): number {
+  if (Number.isFinite(parsed.reviewPromptsShown as number)) {
+    return Math.max(
+      0,
+      Math.min(REVIEW_PROMPT_MAX, Number(parsed.reviewPromptsShown)),
+    );
+  }
+  // Legacy statuses from earlier builds
+  const legacy = parsed.reviewPromptStatus;
+  if (legacy === 'exhausted') return REVIEW_PROMPT_MAX;
+  if (legacy === 'declined') return 1;
+  if (legacy === 'accepted') return REVIEW_PROMPT_MAX;
+  return 0;
+}
 
 function todayKey() {
   return new Date().toISOString().slice(0, 10);
@@ -65,6 +91,14 @@ export async function loadPersist(): Promise<PersistState> {
       soundMuted: Boolean(parsed.soundMuted),
       hapticsEnabled: parsed.hapticsEnabled !== false,
       bestLevel: Number.isFinite(parsed.bestLevel) ? Number(parsed.bestLevel) : 0,
+      totalRuns: Number.isFinite(parsed.totalRuns) ? Math.max(0, Number(parsed.totalRuns)) : 0,
+      reviewPromptStatus: parseReviewPromptStatus(parsed.reviewPromptStatus),
+      reviewPromptsShown: parseReviewPromptsShown(
+        parsed as Record<string, unknown>,
+      ),
+      reviewLastPromptAtRuns: Number.isFinite(parsed.reviewLastPromptAtRuns)
+        ? Math.max(0, Number(parsed.reviewLastPromptAtRuns))
+        : 0,
     };
   } catch {
     return { ...DEFAULT_STATE, unlockedSkins: [...DEFAULT_STATE.unlockedSkins] };
@@ -139,6 +173,45 @@ export async function commitRunResult(input: {
       : Math.max(prev.bestLevel, input.bestLevel),
     dailyBest,
     dailyRecord,
+    totalRuns: (prev.totalRuns ?? 0) + 1,
+  };
+  await savePersist(next);
+  return next;
+}
+
+export async function setReviewPromptStatus(
+  status: ReviewPromptStatus,
+): Promise<PersistState> {
+  const prev = await loadPersist();
+  if (status === 'accepted' && prev.reviewPromptStatus === 'accepted') {
+    return prev;
+  }
+  const next = { ...prev, reviewPromptStatus: status };
+  await savePersist(next);
+  return next;
+}
+
+/**
+ * User intentionally opened the review flow (soft prompt or menu).
+ * Apple does not tell us if a rating was submitted — treating engage as done
+ * stops further auto soft prompts.
+ */
+export async function markReviewAccepted(): Promise<PersistState> {
+  return setReviewPromptStatus('accepted');
+}
+
+/** Record a "Not now" — advances ladder and starts the inter-prompt cooldown. */
+export async function recordReviewPromptDecline(): Promise<PersistState> {
+  const prev = await loadPersist();
+  if (prev.reviewPromptStatus === 'accepted') return prev;
+  const next: PersistState = {
+    ...prev,
+    reviewPromptStatus: 'none',
+    reviewPromptsShown: Math.min(
+      REVIEW_PROMPT_MAX,
+      (prev.reviewPromptsShown ?? 0) + 1,
+    ),
+    reviewLastPromptAtRuns: prev.totalRuns,
   };
   await savePersist(next);
   return next;
