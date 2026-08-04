@@ -33,7 +33,8 @@ export function ReviewPromptModal({
       transparent
       animationType="fade"
       onRequestClose={onDecline}
-      statusBarTranslucent>
+      statusBarTranslucent
+    >
       <View style={styles.overlay}>
         <Pressable
           style={styles.backdrop}
@@ -45,7 +46,8 @@ export function ReviewPromptModal({
             colors={['#7B5CFF', '#5B3DF5', '#4A2FE0']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.card}>
+            style={styles.card}
+          >
             <View style={styles.starsRow} accessibilityElementsHidden>
               {[0, 1, 2, 3, 4].map((i) => (
                 <SymbolView
@@ -74,7 +76,8 @@ export function ReviewPromptModal({
                 pressed && styles.btnPressed,
               ]}
               accessibilityRole="button"
-              accessibilityLabel="Rate 5 stars">
+              accessibilityLabel="Rate 5 stars"
+            >
               <SymbolView
                 name={{
                   ios: 'star.fill',
@@ -95,7 +98,8 @@ export function ReviewPromptModal({
                 pressed && styles.btnPressed,
               ]}
               accessibilityRole="button"
-              accessibilityLabel="Not now">
+              accessibilityLabel="Not now"
+            >
               <Text style={styles.secondaryBtnText}>Not now</Text>
             </Pressable>
           </LinearGradient>

@@ -70,7 +70,11 @@ function betterDaily(a: DailyScore, b: DailyScore): DailyScore {
 export async function loadPersist(): Promise<PersistState> {
   try {
     const raw = await AsyncStorage.getItem(KEY);
-    if (!raw) return { ...DEFAULT_STATE, unlockedSkins: [...DEFAULT_STATE.unlockedSkins] };
+    if (!raw)
+      return {
+        ...DEFAULT_STATE,
+        unlockedSkins: [...DEFAULT_STATE.unlockedSkins],
+      };
     const parsed = JSON.parse(raw) as Partial<PersistState>;
     const dailyBest = parseDailyScore(parsed.dailyBest);
     // Migrate older saves that only had dailyBest
@@ -90,8 +94,12 @@ export async function loadPersist(): Promise<PersistState> {
       dailyRecord: betterDaily(dailyRecord, dailyBest),
       soundMuted: Boolean(parsed.soundMuted),
       hapticsEnabled: parsed.hapticsEnabled !== false,
-      bestLevel: Number.isFinite(parsed.bestLevel) ? Number(parsed.bestLevel) : 0,
-      totalRuns: Number.isFinite(parsed.totalRuns) ? Math.max(0, Number(parsed.totalRuns)) : 0,
+      bestLevel: Number.isFinite(parsed.bestLevel)
+        ? Number(parsed.bestLevel)
+        : 0,
+      totalRuns: Number.isFinite(parsed.totalRuns)
+        ? Math.max(0, Number(parsed.totalRuns))
+        : 0,
       reviewPromptStatus: parseReviewPromptStatus(parsed.reviewPromptStatus),
       reviewPromptsShown: parseReviewPromptsShown(
         parsed as Record<string, unknown>,
@@ -101,7 +109,10 @@ export async function loadPersist(): Promise<PersistState> {
         : 0,
     };
   } catch {
-    return { ...DEFAULT_STATE, unlockedSkins: [...DEFAULT_STATE.unlockedSkins] };
+    return {
+      ...DEFAULT_STATE,
+      unlockedSkins: [...DEFAULT_STATE.unlockedSkins],
+    };
   }
 }
 
@@ -112,7 +123,9 @@ export async function setSoundMuted(muted: boolean): Promise<PersistState> {
   return next;
 }
 
-export async function setHapticsEnabled(enabled: boolean): Promise<PersistState> {
+export async function setHapticsEnabled(
+  enabled: boolean,
+): Promise<PersistState> {
   const prev = await loadPersist();
   const next = { ...prev, hapticsEnabled: enabled };
   await savePersist(next);
@@ -217,7 +230,10 @@ export async function recordReviewPromptDecline(): Promise<PersistState> {
   return next;
 }
 
-export async function unlockSkin(skin: SkinId, cost: number): Promise<PersistState | null> {
+export async function unlockSkin(
+  skin: SkinId,
+  cost: number,
+): Promise<PersistState | null> {
   const prev = await loadPersist();
   if (prev.unlockedSkins.includes(skin)) return prev;
   if (prev.coins < cost) return null;

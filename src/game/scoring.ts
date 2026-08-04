@@ -52,7 +52,10 @@ export function scoreFill(
 
   // Great = red ring
   if (distance <= live.greatHalf) {
-    const t = 1 - (distance - live.perfectHalf) / Math.max(0.001, live.greatHalf - live.perfectHalf);
+    const t =
+      1 -
+      (distance - live.perfectHalf) /
+        Math.max(0.001, live.greatHalf - live.perfectHalf);
     const basePoints = Math.round((55 + t * 30) * levelBonus);
     const points = Math.round(basePoints * mult);
     return {
@@ -71,7 +74,10 @@ export function scoreFill(
 
   // Nice = navy ring out to the rim. Outside rim = miss.
   if (distance <= live.zoneHalf) {
-    const t = 1 - (distance - live.greatHalf) / Math.max(0.001, live.zoneHalf - live.greatHalf);
+    const t =
+      1 -
+      (distance - live.greatHalf) /
+        Math.max(0.001, live.zoneHalf - live.greatHalf);
     const basePoints = Math.round((22 + t * 28) * levelBonus);
     const points = Math.round(basePoints * mult);
     return {

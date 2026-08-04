@@ -1,7 +1,6 @@
-import { Image } from "expo-image";
-import * as Sharing from "expo-sharing";
-import { SymbolView } from "expo-symbols";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Image } from 'expo-image';
+import { SymbolView } from 'expo-symbols';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import {
   Alert,
   Linking,
@@ -10,7 +9,7 @@ import {
   Text,
   useWindowDimensions,
   View,
-} from "react-native";
+} from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -21,24 +20,33 @@ import Animated, {
   withDelay,
   withSequence,
   withTiming,
-} from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { captureRef } from "react-native-view-shot";
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { GameColors, GameFonts } from "@/constants/gameTheme";
-import { CountdownBurst } from "@/game/CountdownBurst";
-import { Hearts } from "@/game/Hearts";
-import { MenuSheet } from "@/game/MenuSheet";
-import { MissBreak } from "@/game/MissBreak";
-import { PerfectSwoosh } from "@/game/PerfectSwoosh";
-import { ReviewPromptModal } from "@/game/ReviewPromptModal";
-import { VerticalMeter } from "@/game/VerticalMeter";
-import { formatScore } from "@/game/format";
-import { gameHaptics, setGameHapticsEnabled } from "@/game/haptics";
-import { createRng, makeRound } from "@/game/levels";
-import { shouldShowReviewPrompt } from "@/game/review";
-import { comboMultiplier, scoreFill, STARTING_LIVES } from "@/game/scoring";
-import { DEFAULT_SKIN, SKINS } from "@/game/skins";
+import { GameColors, GameFonts, fillParent } from '@/constants/gameTheme';
+import { CountdownBurst } from '@/game/CountdownBurst';
+import { Hearts } from '@/game/Hearts';
+import { MenuSheet } from '@/game/MenuSheet';
+import { MissBreak } from '@/game/MissBreak';
+import { PerfectSwoosh } from '@/game/PerfectSwoosh';
+import { ReviewPromptModal } from '@/game/ReviewPromptModal';
+import { VerticalMeter } from '@/game/VerticalMeter';
+import { formatScore } from '@/game/format';
+import { gameHaptics, setGameHapticsEnabled } from '@/game/haptics';
+import { createRng, makeRound } from '@/game/levels';
+import { shouldShowReviewPrompt } from '@/game/review';
+import { comboMultiplier, scoreFill, STARTING_LIVES } from '@/game/scoring';
+import {
+  feedbackSlotFor,
+  initialRunState,
+  INITIAL_COUNTDOWN,
+  runReducer,
+  type Feedback,
+  type FeedbackSlot,
+  type RunAction,
+} from '@/game/runState';
+import { captureAndShare, SHARE_SCORE_CAPTION } from '@/game/share';
+import { DEFAULT_SKIN, SKINS } from '@/game/skins';
 import {
   clearPersist,
   commitRunResult,
@@ -49,52 +57,53 @@ import {
   setHapticsEnabled,
   setSoundMuted,
   todayKey,
-} from "@/game/storage";
+} from '@/game/storage';
 import type {
   PersistState,
   RoundConfig,
   RoundLabel,
-  RoundOutcome,
   SessionStats,
-} from "@/game/types";
-import { useSounds } from "@/game/useSounds";
+} from '@/game/types';
+import { useSounds } from '@/game/useSounds';
 
-const LOGO = require("../../assets/images/zone-meter-logo.png");
-const GAME_BG = require("../../assets/images/game-bg.png");
-const TROPHY = require("../../assets/images/trophy.png");
-const FEEDBACK_EMAIL = "hello@meterzone.net";
+const LOGO = require('../../assets/images/zone-meter-logo.png');
+const GAME_BG = require('../../assets/images/game-bg.png');
+const TROPHY = require('../../assets/images/trophy.png');
+const FEEDBACK_EMAIL = 'hello@meterzone.net';
 
 /** Yellow pad surface in game-bg.png (fraction of image height from top). */
 const PAD_SURFACE_Y = 0.905;
 const METER_BASE_H = 340;
 const METER_WRAP_EXTRA = 28;
-/** Brief freeze after the meter lands so short zones can be read before fill. */
-const LEVEL_READ_PAUSE_MS = 139;
 
-type Phase = "ready" | "countdown" | "filling" | "result" | "gameover";
+/**
+ * Run pacing, in ms. These are the knobs that decide how the game *feels*
+ * between taps — kept together so pacing can be tuned in one place rather than
+ * hunted through the flow. Per-animation easing curves stay at their call sites.
+ */
+const TIMING = {
+  /** Brief freeze after the meter lands so short zones can be read before fill. */
+  levelReadPause: 139,
+  /** Gap between countdown numbers. */
+  countdownTick: 560,
+  /** Beat after "GO!" before the fill starts. */
+  countdownToFill: 520,
+  /** Hold on the result before the next meter — a Perfect gets to breathe. */
+  advanceAfterHit: 480,
+  advanceAfterPerfect: 900,
+  advanceAfterMiss: 620,
+  /** Settle time after closing the menu before the queued advance resumes. */
+  advanceAfterResume: 200,
+  /** Meter slide-out, then the next one slides in. */
+  meterSlideOut: 220,
+  meterSlideIn: 340,
+  /** Let the results screen land before asking for a review. */
+  reviewPromptDelay: 900,
+} as const;
 
-type PauseResume =
-  | { kind: "fill"; fillAt: number }
-  | { kind: "countdown"; countAt: number }
-  | { kind: "startFill" }
-  | { kind: "advance" };
-
-/** Side chips — fixed per label so Nice / Great don't jump around */
-type FeedbackSlot = "left" | "right";
-
-type Feedback = {
-  label: RoundLabel;
-  points: number;
-  combo: number;
-  comboGrew: boolean;
-  slot: FeedbackSlot;
-};
-
-function feedbackSlotFor(label: RoundLabel): FeedbackSlot {
-  // Great = right, Nice = left — same spot every time
-  if (label === "Great") return "right";
-  return "left";
-}
+/** Off-screen X the meter slides between. */
+const METER_ENTER_X = 340;
+const METER_EXIT_X = -360;
 
 const FEEDBACK_SLOT_STYLE: Record<
   FeedbackSlot,
@@ -102,29 +111,20 @@ const FEEDBACK_SLOT_STYLE: Record<
     top: `${number}%`;
     left?: number;
     right?: number;
-    alignItems: "flex-start" | "flex-end";
+    alignItems: 'flex-start' | 'flex-end';
   }
 > = {
-  left: { top: "44%", left: 10, alignItems: "flex-start" },
-  right: { top: "44%", right: 10, alignItems: "flex-end" },
+  left: { top: '44%', left: 10, alignItems: 'flex-start' },
+  right: { top: '44%', right: 10, alignItems: 'flex-end' },
 };
 
-const emptyStats = (): SessionStats => ({
-  attempts: 0,
-  hits: 0,
-  perfects: 0,
-  misses: 0,
-  bestCombo: 0,
-  coinsEarned: 0,
-});
-
 const LABEL_COLORS: Record<RoundLabel, string> = {
-  Perfect: "#FFE14A",
-  Great: "#E24B2D",
-  Good: "#58CC02",
-  Nice: "#1B3A8C",
-  Close: "#FFC800",
-  Miss: "#6B7280",
+  Perfect: '#FFE14A',
+  Great: '#E24B2D',
+  Good: '#58CC02',
+  Nice: '#1B3A8C',
+  Close: '#FFC800',
+  Miss: '#6B7280',
 };
 
 type GameCtaProps = {
@@ -224,7 +224,7 @@ function ScoreModule({
         accessibilityLabel={
           dailyPlayed
             ? `Daily best ${dailyScore}, level ${dailyLevel}. Open scores.`
-            : "Daily best not set yet. Play today."
+            : 'Daily best not set yet. Play today.'
         }
       >
         <Text style={styles.scoreDailyLabel}>DAILY</Text>
@@ -243,6 +243,34 @@ function ScoreModule({
   );
 }
 
+/**
+ * Run state plus a ref that always holds the latest value.
+ *
+ * Timers and Reanimated callbacks fire outside render and would otherwise read
+ * a stale closure, which is why this component used to carry a hand-written
+ * `useRef` mirror beside every piece of state. Here the ref is advanced by the
+ * same pure reducer React uses, so the two cannot drift: both are
+ * `actions.reduce(runReducer, initial)`.
+ *
+ * StrictMode caveat: React double-invokes the reducer in development, so
+ * `state` and `stateRef.current` briefly hold different object identities for
+ * the same logical value while stepping through a dispatch. Production keeps
+ * them in lockstep; do not treat the identity mismatch as a drift bug.
+ */
+function useRunState() {
+  const [state, baseDispatch] = useReducer(runReducer, undefined, () =>
+    initialRunState(),
+  );
+  const stateRef = useRef(state);
+
+  const dispatch = useCallback((action: RunAction) => {
+    stateRef.current = runReducer(stateRef.current, action);
+    baseDispatch(action);
+  }, []);
+
+  return [state, dispatch, stateRef] as const;
+}
+
 export function GameScreen() {
   const insets = useSafeAreaInsets();
   const { height: windowH, width: windowW } = useWindowDimensions();
@@ -250,25 +278,28 @@ export function GameScreen() {
   const muted = Boolean(persist?.soundMuted);
   const { play } = useSounds(muted);
 
-  const [phase, setPhase] = useState<Phase>("ready");
-  const [round, setRound] = useState<RoundConfig>(() => makeRound(1));
-  const [score, setScore] = useState(0);
-  const [lives, setLives] = useState(STARTING_LIVES);
-  const [combo, setCombo] = useState(0);
-  const [outcome, setOutcome] = useState<RoundOutcome | null>(null);
-  const [isNewBest, setIsNewBest] = useState(false);
+  const [state, dispatch, stateRef] = useRunState();
+  const {
+    phase,
+    round,
+    score,
+    lives,
+    combo,
+    countdown,
+    stats,
+    dailyMode,
+    isNewBest,
+    feedback,
+    paused: menuOpen,
+  } = state;
+
   /** Best (for the played mode) at the moment a finished run is committed. */
   const [previousBest, setPreviousBest] = useState(0);
-  const [countdown, setCountdown] = useState(3);
-  const [dailyMode, setDailyMode] = useState(false);
-  const [stats, setStats] = useState<SessionStats>(emptyStats);
-  const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [perfectBurstKey, setPerfectBurstKey] = useState(0);
   const [missBurstKey, setMissBurstKey] = useState(0);
   const shareRef = useRef<View>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [menuInitialView, setMenuInitialView] = useState<"menu" | "highscores">(
-    "menu",
+  const [menuInitialView, setMenuInitialView] = useState<'menu' | 'highscores'>(
+    'menu',
   );
   const [capturingShare, setCapturingShare] = useState(false);
   const [reviewPromptVisible, setReviewPromptVisible] = useState(false);
@@ -294,37 +325,24 @@ export function GameScreen() {
 
   const syncZoneMotion = useCallback(
     (config: RoundConfig) => {
-      zoneFrom.value = config.target;
-      zoneTo.value = config.targetEnd ?? config.target;
-      zoneMoves.value = config.moving && config.targetEnd != null ? 1 : 0;
-      halfFrom.value = config.zoneHalf;
-      halfTo.value = config.zoneHalfEnd ?? config.zoneHalf;
+      zoneFrom.set(config.target);
+      zoneTo.set(config.targetEnd ?? config.target);
+      zoneMoves.set(config.moving && config.targetEnd != null ? 1 : 0);
+      halfFrom.set(config.zoneHalf);
+      halfTo.set(config.zoneHalfEnd ?? config.zoneHalf);
       zoneShrinks.value =
         config.shrinking && config.zoneHalfEnd != null ? 1 : 0;
-      zoneTarget.value = config.target;
-      zoneHalf.value = config.zoneHalf;
+      zoneTarget.set(config.target);
+      zoneHalf.set(config.zoneHalf);
     },
-    [
-      halfFrom,
-      halfTo,
-      zoneFrom,
-      zoneHalf,
-      zoneMoves,
-      zoneShrinks,
-      zoneTarget,
-      zoneTo,
-    ],
+    // Shared values are stable refs — listing them as deps makes the React Compiler
+    // treat the `.value` writes above as forbidden mutation and bail out of the file.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
   );
 
-  const phaseRef = useRef<Phase>("ready");
-  const roundRef = useRef(round);
-  const scoreRef = useRef(0);
-  const livesRef = useRef(STARTING_LIVES);
-  const comboRef = useRef(0);
   /** Best score at run start — used to detect a live / final new high. */
   const runBestBaselineRef = useRef(0);
-  /** Fire the mid-run "NEW BEST" cue only once per run. */
-  const newBestAnnouncedRef = useRef(false);
   /** "COMBO" label only once per streak, then multiplier alone */
   const comboIntroShownRef = useRef(false);
   const lockingTap = useRef(false);
@@ -332,23 +350,12 @@ export function GameScreen() {
   const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const advanceRef = useRef<() => void>(() => {});
-  /** True while menu sheet is open — game must not progress. */
-  const menuPausedRef = useRef(false);
-  const countdownRef = useRef(3);
-  const pendingTimerRef = useRef<"countdown" | "startFill" | "advance" | null>(
-    null,
-  );
-  const pauseResumeRef = useRef<PauseResume | null>(null);
   const startFillRef = useRef<() => void>(() => {});
   const runCountdownFromRef = useRef<(at: number) => void>(() => {});
 
   const skin = SKINS[persist?.equippedSkin ?? DEFAULT_SKIN];
 
   useEffect(() => {
-    phaseRef.current = phase;
-  }, [phase]);
-  useEffect(() => {
-    roundRef.current = round;
     syncZoneMotion(round);
   }, [round, syncZoneMotion]);
 
@@ -361,38 +368,14 @@ export function GameScreen() {
       const shrinks = zoneShrinks.value;
       if (!moves && !shrinks) return;
       if (moves) {
-        zoneTarget.value = zoneFrom.value + (zoneTo.value - zoneFrom.value) * t;
+        zoneTarget.set(zoneFrom.value + (zoneTo.value - zoneFrom.value) * t);
       }
       if (shrinks) {
-        zoneHalf.value = halfFrom.value + (halfTo.value - halfFrom.value) * t;
+        zoneHalf.set(halfFrom.value + (halfTo.value - halfFrom.value) * t);
       }
     },
-    [
-      fill,
-      halfFrom,
-      halfTo,
-      zoneFrom,
-      zoneHalf,
-      zoneMoves,
-      zoneShrinks,
-      zoneTarget,
-      zoneTo,
-    ],
+    [],
   );
-  useEffect(() => {
-    scoreRef.current = score;
-  }, [score]);
-  useEffect(() => {
-    livesRef.current = lives;
-  }, [lives]);
-  useEffect(() => {
-    comboRef.current = combo;
-  }, [combo]);
-
-  useEffect(() => {
-    countdownRef.current = countdown;
-  }, [countdown]);
-
   useEffect(() => {
     void loadPersist().then((state) => {
       setPersist(state);
@@ -404,24 +387,28 @@ export function GameScreen() {
     };
   }, []);
 
-  const showFeedback = (next: Omit<Feedback, "slot">) => {
-    const isPerfect = next.label === "Perfect";
-    const isMiss = next.label === "Miss";
-    setFeedback({ ...next, slot: feedbackSlotFor(next.label) });
+  /** Animation side of a judged round — the chip itself lives in run state. */
+  const showFeedback = useCallback((next: Omit<Feedback, 'slot'>) => {
+    const isPerfect = next.label === 'Perfect';
+    const isMiss = next.label === 'Miss';
 
     const pulseCombo = (showIntro: boolean) => {
-      comboPulse.value = withSequence(
-        withTiming(1.28, { duration: 120, easing: Easing.out(Easing.cubic) }),
-        withTiming(1, { duration: 200, easing: Easing.inOut(Easing.quad) }),
+      comboPulse.set(
+        withSequence(
+          withTiming(1.28, { duration: 120, easing: Easing.out(Easing.cubic) }),
+          withTiming(1, { duration: 200, easing: Easing.inOut(Easing.quad) }),
+        ),
       );
       if (!showIntro) return;
       // First streak only — then just the multiplier
-      comboLabelOpacity.value = 0;
-      comboLabelOpacity.value = withSequence(
-        withTiming(1, { duration: 90 }),
-        withDelay(
-          650,
-          withTiming(0, { duration: 320, easing: Easing.in(Easing.quad) }),
+      comboLabelOpacity.set(0);
+      comboLabelOpacity.set(
+        withSequence(
+          withTiming(1, { duration: 90 }),
+          withDelay(
+            650,
+            withTiming(0, { duration: 320, easing: Easing.in(Easing.quad) }),
+          ),
         ),
       );
       comboIntroShownRef.current = true;
@@ -429,12 +416,12 @@ export function GameScreen() {
 
     if (next.combo <= 1) {
       comboIntroShownRef.current = false;
-      comboLabelOpacity.value = 0;
+      comboLabelOpacity.set(0);
     }
 
     // Perfect / Miss get dedicated center callouts; others keep side chips
     if (isPerfect) {
-      feedbackOpacity.value = 0;
+      feedbackOpacity.set(0);
       setPerfectBurstKey((k) => k + 1);
       if (next.comboGrew && next.combo > 1) {
         pulseCombo(!comboIntroShownRef.current);
@@ -443,38 +430,47 @@ export function GameScreen() {
     }
 
     if (isMiss) {
-      feedbackOpacity.value = 0;
+      feedbackOpacity.set(0);
       setMissBurstKey((k) => k + 1);
-      comboLabelOpacity.value = 0;
+      comboLabelOpacity.set(0);
       comboIntroShownRef.current = false;
       return;
     }
 
-    feedbackOpacity.value = 0;
-    feedbackScale.value = 0.55;
-    feedbackOpacity.value = withSequence(
-      withTiming(1, { duration: 90 }),
-      withDelay(520, withTiming(0, { duration: 260 })),
+    feedbackOpacity.set(0);
+    feedbackScale.set(0.55);
+    feedbackOpacity.set(
+      withSequence(
+        withTiming(1, { duration: 90 }),
+        withDelay(520, withTiming(0, { duration: 260 })),
+      ),
     );
-    feedbackScale.value = withSequence(
-      withTiming(1.18, { duration: 140, easing: Easing.out(Easing.cubic) }),
-      withTiming(1, { duration: 160, easing: Easing.inOut(Easing.quad) }),
+    feedbackScale.set(
+      withSequence(
+        withTiming(1.18, { duration: 140, easing: Easing.out(Easing.cubic) }),
+        withTiming(1, { duration: 160, easing: Easing.inOut(Easing.quad) }),
+      ),
     );
     if (next.comboGrew && next.combo > 1) {
       pulseCombo(!comboIntroShownRef.current);
     }
-  };
+    // Shared values only — all stable refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const announceNewBest = useCallback(() => {
-    if (newBestAnnouncedRef.current) return;
-    newBestAnnouncedRef.current = true;
-    setIsNewBest(true);
-    newBestPulse.value = withSequence(
-      withTiming(1.22, { duration: 140, easing: Easing.out(Easing.cubic) }),
-      withTiming(1, { duration: 220, easing: Easing.inOut(Easing.quad) }),
+    // `isNewBest` doubles as the "already announced" latch — the reducer makes
+    // the action a no-op once it is set, so the cue fires once per run.
+    if (stateRef.current.isNewBest) return;
+    dispatch({ type: 'announceNewBest' });
+    newBestPulse.set(
+      withSequence(
+        withTiming(1.22, { duration: 140, easing: Easing.out(Easing.cubic) }),
+        withTiming(1, { duration: 220, easing: Easing.inOut(Easing.quad) }),
+      ),
     );
-    void gameHaptics.result("Great");
-  }, [newBestPulse]);
+    void gameHaptics.result('Great');
+  }, [dispatch, newBestPulse, stateRef]);
 
   const endRun = useCallback(
     async (finalScore: number, session: SessionStats) => {
@@ -485,16 +481,13 @@ export function GameScreen() {
         score: finalScore,
         coinsEarned: session.coinsEarned,
         bestCombo: session.bestCombo,
-        bestLevel: roundRef.current.level,
-        isDaily: dailyMode,
+        bestLevel: stateRef.current.round.level,
+        isDaily: stateRef.current.dailyMode,
       });
       setPersist(next);
       const beatBest =
         finalScore > 0 && finalScore >= runBestBaselineRef.current;
-      setIsNewBest(beatBest);
-      if (beatBest) newBestAnnouncedRef.current = true;
-      setPhase("gameover");
-      phaseRef.current = "gameover";
+      dispatch({ type: 'gameOver', isNewBest: beatBest });
 
       // Soft prompt only — native Store Review waits for a positive tap.
       if (shouldShowReviewPrompt(next, { isNewHighScore: beatBest })) {
@@ -502,10 +495,10 @@ export function GameScreen() {
         reviewPromptTimer.current = setTimeout(() => {
           reviewPromptTimer.current = null;
           setReviewPromptVisible(true);
-        }, 900);
+        }, TIMING.reviewPromptDelay);
       }
     },
-    [dailyMode],
+    [dispatch, stateRef],
   );
 
   useEffect(() => {
@@ -525,114 +518,124 @@ export function GameScreen() {
     void recordReviewPromptDecline().then(setPersist);
   }, []);
 
+  /**
+   * Queue the move to the next meter. If the menu opens before it fires, the
+   * advance is parked on the run state and replayed when the sheet closes.
+   */
+  const scheduleAdvance = useCallback(
+    (delayMs: number) => {
+      if (autoTimer.current) clearTimeout(autoTimer.current);
+      dispatch({ type: 'pendingTimer', pending: 'advance' });
+      autoTimer.current = setTimeout(() => {
+        dispatch({ type: 'pendingTimer', pending: null });
+        if (stateRef.current.paused) {
+          dispatch({ type: 'park', resume: { kind: 'advance' } });
+          return;
+        }
+        advanceRef.current();
+      }, delayMs);
+    },
+    [dispatch, stateRef],
+  );
+
   const finishRound = useCallback(
     (value: number) => {
-      const current = roundRef.current;
-      const prevCombo = comboRef.current;
-      const result = scoreFill(value, current, prevCombo);
-      setOutcome(result);
-      setCombo(result.combo);
-      comboRef.current = result.combo;
-      isFilling.value = 0;
-      void gameHaptics.result(result.label === "Close" ? "Nice" : result.label);
+      const before = stateRef.current;
+      const result = scoreFill(value, before.round, before.combo);
+      const comboGrew = result.combo > before.combo;
+      isFilling.set(0);
+      void gameHaptics.result(result.label === 'Close' ? 'Nice' : result.label);
+
+      // One dispatch folds combo, score, lives, stats, phase and the callout
+      // together, so they can never be left half-applied. Everything below is a
+      // side effect and stays out of it.
+      dispatch({
+        type: 'scored',
+        result,
+        feedback: {
+          label: result.label,
+          points: result.points,
+          combo: result.combo,
+          comboGrew,
+          slot: feedbackSlotFor(result.label),
+        },
+      });
+      const after = stateRef.current;
 
       showFeedback({
         label: result.label,
         points: result.points,
         combo: result.combo,
-        comboGrew: result.combo > prevCombo,
+        comboGrew,
       });
 
-      setStats((s) => {
-        const next: SessionStats = {
-          ...s,
-          attempts: s.attempts + 1,
-          hits: result.result === "miss" ? s.hits : s.hits + 1,
-          perfects: result.result === "perfect" ? s.perfects + 1 : s.perfects,
-          misses: result.costsLife ? s.misses + 1 : s.misses,
-          bestCombo: Math.max(s.bestCombo, result.combo),
-          coinsEarned: s.coinsEarned + result.coins,
-        };
-
-        if (result.costsLife) {
-          play("miss");
-          const livesLeft = livesRef.current - 1;
-          setLives(livesLeft);
-          livesRef.current = livesLeft;
-          setPhase("result");
-          phaseRef.current = "result";
-          if (livesLeft <= 0) {
-            void endRun(scoreRef.current, next);
-          } else {
-            // Continue run — next meter
-            if (autoTimer.current) clearTimeout(autoTimer.current);
-            pendingTimerRef.current = "advance";
-            autoTimer.current = setTimeout(() => {
-              pendingTimerRef.current = null;
-              if (menuPausedRef.current) {
-                pauseResumeRef.current = { kind: "advance" };
-                return;
-              }
-              advanceRef.current();
-            }, 620);
-          }
-          return next;
+      if (result.costsLife) {
+        play('miss');
+        if (after.lives <= 0) {
+          void endRun(after.score, after.stats);
+        } else {
+          scheduleAdvance(TIMING.advanceAfterMiss);
         }
+        return;
+      }
 
-        play(result.result === "perfect" ? "perfect" : "zone");
-        setScore((sc) => sc + result.points);
-        scoreRef.current += result.points;
-        if (scoreRef.current > runBestBaselineRef.current) {
-          announceNewBest();
-        }
-        setPhase("result");
-        phaseRef.current = "result";
-
-        if (autoTimer.current) clearTimeout(autoTimer.current);
-        pendingTimerRef.current = "advance";
-        autoTimer.current = setTimeout(
-          () => {
-            pendingTimerRef.current = null;
-            if (menuPausedRef.current) {
-              pauseResumeRef.current = { kind: "advance" };
-              return;
-            }
-            advanceRef.current();
-          },
-          result.result === "perfect" ? 900 : 480,
-        );
-        return next;
-      });
+      play(result.result === 'perfect' ? 'perfect' : 'zone');
+      if (after.score > runBestBaselineRef.current) {
+        announceNewBest();
+      }
+      scheduleAdvance(
+        result.result === 'perfect'
+          ? TIMING.advanceAfterPerfect
+          : TIMING.advanceAfterHit,
+      );
     },
-    [announceNewBest, endRun, isFilling, play],
+    [
+      announceNewBest,
+      dispatch,
+      endRun,
+      isFilling,
+      play,
+      scheduleAdvance,
+      showFeedback,
+      stateRef,
+    ],
   );
 
   const startFill = useCallback(() => {
-    if (menuPausedRef.current) {
-      pauseResumeRef.current = { kind: "startFill" };
+    if (stateRef.current.paused) {
+      dispatch({ type: 'park', resume: { kind: 'startFill' } });
       return;
     }
-    const current = roundRef.current;
-    setOutcome(null);
-    setFeedback(null);
-    feedbackOpacity.value = 0;
-    setPhase("filling");
-    phaseRef.current = "filling";
-    isFilling.value = 1;
+    const current = stateRef.current.round;
+    dispatch({ type: 'clearFeedback' });
+    feedbackOpacity.set(0);
+    dispatch({ type: 'phase', phase: 'filling' });
+    isFilling.set(1);
     syncZoneMotion(current);
-    fill.value = 0;
-    play("start");
+    fill.set(0);
+    play('start');
     void gameHaptics.start();
 
     // Zone position/size follow fill via useAnimatedReaction (matches scoreFill)
-    fill.value = withTiming(
-      1,
-      { duration: current.fillMs, easing: Easing.bezier(0.2, 0.05, 0.35, 1) },
-      (finished) => {
-        if (finished) runOnJS(finishRound)(1);
-      },
+    fill.set(
+      withTiming(
+        1,
+        { duration: current.fillMs, easing: Easing.bezier(0.2, 0.05, 0.35, 1) },
+        (finished) => {
+          if (finished) runOnJS(finishRound)(1);
+        },
+      ),
     );
-  }, [fill, finishRound, isFilling, play, syncZoneMotion]);
+  }, [
+    dispatch,
+    fill,
+    feedbackOpacity,
+    finishRound,
+    isFilling,
+    play,
+    stateRef,
+    syncZoneMotion,
+  ]);
 
   useEffect(() => {
     startFillRef.current = startFill;
@@ -643,40 +646,42 @@ export function GameScreen() {
       if (countTimer.current) clearTimeout(countTimer.current);
 
       if (current <= 0) {
-        pendingTimerRef.current = "startFill";
+        dispatch({ type: 'pendingTimer', pending: 'startFill' });
         countTimer.current = setTimeout(() => {
-          pendingTimerRef.current = null;
-          if (menuPausedRef.current) {
-            pauseResumeRef.current = { kind: "startFill" };
+          dispatch({ type: 'pendingTimer', pending: null });
+          if (stateRef.current.paused) {
+            dispatch({ type: 'park', resume: { kind: 'startFill' } });
             return;
           }
           startFillRef.current();
-        }, 520);
+        }, TIMING.countdownToFill);
         return;
       }
 
-      pendingTimerRef.current = "countdown";
+      dispatch({ type: 'pendingTimer', pending: 'countdown' });
       countTimer.current = setTimeout(() => {
-        pendingTimerRef.current = null;
-        if (menuPausedRef.current) {
-          pauseResumeRef.current = { kind: "countdown", countAt: current };
+        dispatch({ type: 'pendingTimer', pending: null });
+        if (stateRef.current.paused) {
+          dispatch({
+            type: 'park',
+            resume: { kind: 'countdown', countAt: current },
+          });
           return;
         }
         const next = current - 1;
-        setCountdown(next);
-        countdownRef.current = next;
+        dispatch({ type: 'countdown', value: next });
         if (next > 0) {
-          play("tick");
+          play('tick');
           void gameHaptics.countdownTick(next);
           runCountdownFromRef.current(next);
         } else {
-          play("start");
+          play('start');
           void gameHaptics.countdownTick(0);
           runCountdownFromRef.current(0);
         }
-      }, 560);
+      }, TIMING.countdownTick);
     },
-    [play],
+    [dispatch, play, stateRef],
   );
 
   useEffect(() => {
@@ -685,88 +690,89 @@ export function GameScreen() {
 
   const beginRound = useCallback(
     (next: RoundConfig, animateIn: boolean) => {
-      setRound(next);
-      roundRef.current = next;
-      fill.value = 0;
+      dispatch({ type: 'beginRound', round: next });
+      fill.set(0);
       syncZoneMotion(next);
-      setOutcome(null);
 
       // Only countdown on the very first meter of a run
       if (next.level === 1) {
-        meterX.value = 0;
-        setPhase("countdown");
-        phaseRef.current = "countdown";
-        setCountdown(3);
-        countdownRef.current = 3;
-        play("tick");
-        void gameHaptics.countdownTick(3);
-        runCountdownFromRef.current(3);
+        meterX.set(0);
+        dispatch({ type: 'phase', phase: 'countdown' });
+        dispatch({ type: 'countdown', value: INITIAL_COUNTDOWN });
+        play('tick');
+        void gameHaptics.countdownTick(INITIAL_COUNTDOWN);
+        runCountdownFromRef.current(INITIAL_COUNTDOWN);
         return;
       }
 
       // Later levels: land the meter, pause so the zone is readable, then fill
       const startAfterReadPause = () => {
-        if (menuPausedRef.current) {
-          pauseResumeRef.current = { kind: "startFill" };
+        if (stateRef.current.paused) {
+          dispatch({ type: 'park', resume: { kind: 'startFill' } });
           return;
         }
         if (countTimer.current) clearTimeout(countTimer.current);
-        pendingTimerRef.current = "startFill";
+        dispatch({ type: 'pendingTimer', pending: 'startFill' });
         countTimer.current = setTimeout(() => {
-          pendingTimerRef.current = null;
-          if (menuPausedRef.current) {
-            pauseResumeRef.current = { kind: "startFill" };
+          dispatch({ type: 'pendingTimer', pending: null });
+          if (stateRef.current.paused) {
+            dispatch({ type: 'park', resume: { kind: 'startFill' } });
             return;
           }
           startFillRef.current();
-        }, LEVEL_READ_PAUSE_MS);
+        }, TIMING.levelReadPause);
       };
 
       if (animateIn) {
-        meterX.value = 340;
-        meterX.value = withTiming(
-          0,
-          { duration: 340, easing: Easing.out(Easing.cubic) },
-          (done) => {
-            if (done) runOnJS(startAfterReadPause)();
-          },
+        meterX.set(METER_ENTER_X);
+        meterX.set(
+          withTiming(
+            0,
+            { duration: TIMING.meterSlideIn, easing: Easing.out(Easing.cubic) },
+            (done) => {
+              if (done) runOnJS(startAfterReadPause)();
+            },
+          ),
         );
       } else {
-        meterX.value = 0;
+        meterX.set(0);
         startAfterReadPause();
       }
     },
-    [fill, meterX, play, syncZoneMotion],
+    [dispatch, fill, meterX, play, stateRef, syncZoneMotion],
   );
 
   const spawnNextLevel = useCallback(() => {
-    const next = makeRound(roundRef.current.level + 1, {
-      previousTarget: roundRef.current.target,
+    const current = stateRef.current.round;
+    const next = makeRound(current.level + 1, {
+      previousTarget: current.target,
       rng: rngRef.current,
     });
     beginRound(next, true);
-  }, [beginRound]);
+  }, [beginRound, stateRef]);
 
   const onMeterSlidOut = useCallback(() => {
-    if (menuPausedRef.current) {
-      pauseResumeRef.current = { kind: "advance" };
+    if (stateRef.current.paused) {
+      dispatch({ type: 'park', resume: { kind: 'advance' } });
       return;
     }
     spawnNextLevel();
-  }, [spawnNextLevel]);
+  }, [dispatch, spawnNextLevel, stateRef]);
 
   const advanceLevel = useCallback(() => {
     if (autoTimer.current) clearTimeout(autoTimer.current);
-    pendingTimerRef.current = null;
+    dispatch({ type: 'pendingTimer', pending: null });
     // Slide current meter out, then bring next in
-    meterX.value = withTiming(
-      -360,
-      { duration: 220, easing: Easing.in(Easing.cubic) },
-      (done) => {
-        if (done) runOnJS(onMeterSlidOut)();
-      },
+    meterX.set(
+      withTiming(
+        METER_EXIT_X,
+        { duration: TIMING.meterSlideOut, easing: Easing.in(Easing.cubic) },
+        (done) => {
+          if (done) runOnJS(onMeterSlidOut)();
+        },
+      ),
     );
-  }, [meterX, onMeterSlidOut]);
+  }, [dispatch, meterX, onMeterSlidOut]);
 
   useEffect(() => {
     advanceRef.current = advanceLevel;
@@ -786,88 +792,90 @@ export function GameScreen() {
     [onZoneEnter],
   );
 
-  const startRun = (daily: boolean) => {
+  /**
+   * Stop every pending timer and in-flight animation and drop the pause state,
+   * so nothing queued from the previous run can fire into the next one.
+   */
+  const haltRun = useCallback(() => {
     if (countTimer.current) clearTimeout(countTimer.current);
     if (autoTimer.current) clearTimeout(autoTimer.current);
-    menuPausedRef.current = false;
-    pauseResumeRef.current = null;
-    pendingTimerRef.current = null;
-    setMenuOpen(false);
+    countTimer.current = null;
+    autoTimer.current = null;
+    // Drops the pause, the parked resume and the pending timer in one step.
+    dispatch({ type: 'resume' });
+    dispatch({ type: 'pendingTimer', pending: null });
     cancelAnimation(meterX);
     cancelAnimation(fill);
-    setDailyMode(daily);
-    rngRef.current = daily ? createRng(dailySeed()) : Math.random;
-    setScore(0);
-    scoreRef.current = 0;
-    setLives(STARTING_LIVES);
-    livesRef.current = STARTING_LIVES;
-    setCombo(0);
-    comboRef.current = 0;
+  }, [dispatch, fill, meterX]);
+
+  /** Reset the animation layer that sits alongside run state. */
+  const resetRunVisuals = useCallback(() => {
     comboIntroShownRef.current = false;
-    comboLabelOpacity.value = 0;
+    comboLabelOpacity.set(0);
+    newBestPulse.set(1);
+    feedbackOpacity.set(0);
+    isFilling.set(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Back to the home screen with a fresh idle meter. */
+  const resetToIdle = useCallback(() => {
+    haltRun();
+    resetRunVisuals();
+    fill.set(0);
+    rngRef.current = Math.random;
+    const idle = makeRound(1);
+    dispatch({ type: 'idle', round: idle });
+    syncZoneMotion(idle);
+  }, [dispatch, fill, haltRun, resetRunVisuals, syncZoneMotion]);
+
+  const startRun = (daily: boolean) => {
+    haltRun();
+    resetRunVisuals();
+    dispatch({ type: 'startRun', daily });
+    rngRef.current = daily ? createRng(dailySeed()) : Math.random;
     runBestBaselineRef.current = daily
       ? persist?.dailyBest.date === todayKey()
         ? persist.dailyBest.score
         : 0
       : (persist?.highScore ?? 0);
-    newBestAnnouncedRef.current = false;
-    newBestPulse.value = 1;
-    setStats(emptyStats());
-    setIsNewBest(false);
-    setFeedback(null);
-    feedbackOpacity.value = 0;
-    isFilling.value = 0;
     beginRound(makeRound(1, { rng: rngRef.current }), false);
   };
 
   const resumeFillFrom = useCallback(
     (from: number) => {
-      const current = roundRef.current;
+      const current = stateRef.current.round;
       const remaining = Math.max(90, Math.round(current.fillMs * (1 - from)));
-      setPhase("filling");
-      phaseRef.current = "filling";
-      isFilling.value = 1;
-      fill.value = from;
-      fill.value = withTiming(
-        1,
-        { duration: remaining, easing: Easing.bezier(0.2, 0.05, 0.35, 1) },
-        (finished) => {
-          if (finished) runOnJS(finishRound)(1);
-        },
+      dispatch({ type: 'phase', phase: 'filling' });
+      isFilling.set(1);
+      fill.set(from);
+      fill.set(
+        withTiming(
+          1,
+          { duration: remaining, easing: Easing.bezier(0.2, 0.05, 0.35, 1) },
+          (finished) => {
+            if (finished) runOnJS(finishRound)(1);
+          },
+        ),
       );
     },
-    [fill, finishRound, isFilling],
+    [dispatch, fill, finishRound, isFilling, stateRef],
   );
 
   const openMenu = useCallback(() => {
     void gameHaptics.next();
-    menuPausedRef.current = true;
 
-    const p = phaseRef.current;
-    if (p === "filling") {
-      const at = fill.value;
+    // Freeze the meter before dispatching so the parked position is the exact
+    // one the player last saw.
+    let fillAt = 0;
+    if (stateRef.current.phase === 'filling') {
+      fillAt = fill.value;
       cancelAnimation(fill);
-      fill.value = at;
-      isFilling.value = 0;
-      pauseResumeRef.current = { kind: "fill", fillAt: at };
-    } else if (p === "countdown") {
-      pauseResumeRef.current = {
-        kind: "countdown",
-        countAt: countdownRef.current,
-      };
-    } else if (pendingTimerRef.current === "startFill") {
-      pauseResumeRef.current = { kind: "startFill" };
-    } else if (pendingTimerRef.current === "advance" || p === "result") {
-      // Result auto-advance, or mid level-transition
-      if (
-        pendingTimerRef.current === "advance" ||
-        pauseResumeRef.current == null
-      ) {
-        if (livesRef.current > 0 && p === "result") {
-          pauseResumeRef.current = { kind: "advance" };
-        }
-      }
+      fill.set(fillAt);
+      isFilling.set(0);
     }
+    // The reducer decides what to park from the current phase / pending timer.
+    dispatch({ type: 'pause', fillAt });
 
     if (countTimer.current) {
       clearTimeout(countTimer.current);
@@ -877,49 +885,47 @@ export function GameScreen() {
       clearTimeout(autoTimer.current);
       autoTimer.current = null;
     }
-    pendingTimerRef.current = null;
 
-    // Freeze any in-flight meter slide
+    // Freeze any in-flight meter slide. cancelAnimation already pins meterX at
+    // its current value, which is what an `advance` resume wants — only a
+    // pending startFill needs the meter snapped back to centre.
     cancelAnimation(meterX);
-    if (pauseResumeRef.current?.kind === "startFill") {
-      meterX.value = 0;
-    } else if (pauseResumeRef.current?.kind === "advance") {
-      // Keep meter put until resume spawns the next level
-      meterX.value = meterX.value;
+    if (stateRef.current.pauseResume?.kind === 'startFill') {
+      meterX.set(0);
     }
-
-    setMenuOpen(true);
-  }, [fill, isFilling, meterX]);
+  }, [dispatch, fill, isFilling, meterX, stateRef]);
 
   const openScores = useCallback(() => {
-    setMenuInitialView("highscores");
+    setMenuInitialView('highscores');
     openMenu();
   }, [openMenu]);
 
   const closeMenu = useCallback(() => {
-    setMenuOpen(false);
-    menuPausedRef.current = false;
-    const resume = pauseResumeRef.current;
-    pauseResumeRef.current = null;
+    // Read the parked resume before dispatching — `resume` clears it.
+    const resume = stateRef.current.pauseResume;
+    dispatch({ type: 'resume' });
     if (!resume) return;
 
-    if (resume.kind === "fill") {
+    if (resume.kind === 'fill') {
       resumeFillFrom(resume.fillAt);
       return;
     }
-    if (resume.kind === "countdown") {
+    if (resume.kind === 'countdown') {
       runCountdownFromRef.current(resume.countAt);
       return;
     }
-    if (resume.kind === "startFill") {
-      meterX.value = 0;
+    if (resume.kind === 'startFill') {
+      meterX.set(0);
       startFillRef.current();
       return;
     }
-    if (resume.kind === "advance") {
-      autoTimer.current = setTimeout(() => advanceRef.current(), 200);
+    if (resume.kind === 'advance') {
+      autoTimer.current = setTimeout(
+        () => advanceRef.current(),
+        TIMING.advanceAfterResume,
+      );
     }
-  }, [meterX, resumeFillFrom]);
+  }, [dispatch, meterX, resumeFillFrom, stateRef]);
 
   const toggleSound = async () => {
     const next = await setSoundMuted(!(persist?.soundMuted ?? false));
@@ -937,37 +943,7 @@ export function GameScreen() {
 
   const goBackFromMenu = () => {
     void gameHaptics.next();
-    if (countTimer.current) clearTimeout(countTimer.current);
-    if (autoTimer.current) clearTimeout(autoTimer.current);
-    menuPausedRef.current = false;
-    pauseResumeRef.current = null;
-    pendingTimerRef.current = null;
-    setMenuOpen(false);
-    cancelAnimation(meterX);
-    cancelAnimation(fill);
-    isFilling.value = 0;
-    fill.value = 0;
-    setDailyMode(false);
-    rngRef.current = Math.random;
-    setScore(0);
-    scoreRef.current = 0;
-    setLives(STARTING_LIVES);
-    livesRef.current = STARTING_LIVES;
-    setCombo(0);
-    comboRef.current = 0;
-    comboIntroShownRef.current = false;
-    comboLabelOpacity.value = 0;
-    setStats(emptyStats());
-    setIsNewBest(false);
-    setFeedback(null);
-    feedbackOpacity.value = 0;
-    setOutcome(null);
-    const idle = makeRound(1);
-    setRound(idle);
-    roundRef.current = idle;
-    syncZoneMotion(idle);
-    setPhase("ready");
-    phaseRef.current = "ready";
+    resetToIdle();
   };
 
   const startModeFromMenu = (daily: boolean) => {
@@ -977,14 +953,14 @@ export function GameScreen() {
 
   const sendFeedback = async () => {
     void gameHaptics.next();
-    const subject = encodeURIComponent("MeterZone feedback");
+    const subject = encodeURIComponent('MeterZone feedback');
     const url = `mailto:${FEEDBACK_EMAIL}?subject=${subject}`;
     try {
       // Don't gate on canOpenURL — iOS returns false for mailto: unless the
       // scheme is listed in LSApplicationQueriesSchemes.
       await Linking.openURL(url);
     } catch {
-      Alert.alert("Feedback", `Email us at ${FEEDBACK_EMAIL}`);
+      Alert.alert('Feedback', `Email us at ${FEEDBACK_EMAIL}`);
     }
   };
 
@@ -993,68 +969,37 @@ export function GameScreen() {
     const next = await clearPersist();
     setPersist(next);
     setGameHapticsEnabled(next.hapticsEnabled !== false);
-
-    if (countTimer.current) clearTimeout(countTimer.current);
-    if (autoTimer.current) clearTimeout(autoTimer.current);
-    menuPausedRef.current = false;
-    pauseResumeRef.current = null;
-    pendingTimerRef.current = null;
-    setMenuOpen(false);
-    cancelAnimation(meterX);
-    cancelAnimation(fill);
-    isFilling.value = 0;
-    fill.value = 0;
-    setDailyMode(false);
-    rngRef.current = Math.random;
-    setScore(0);
-    scoreRef.current = 0;
-    setLives(STARTING_LIVES);
-    livesRef.current = STARTING_LIVES;
-    setCombo(0);
-    comboRef.current = 0;
-    comboIntroShownRef.current = false;
-    comboLabelOpacity.value = 0;
-    setStats(emptyStats());
-    setIsNewBest(false);
-    setFeedback(null);
-    feedbackOpacity.value = 0;
-    setOutcome(null);
-    const idle = makeRound(1);
-    setRound(idle);
-    roundRef.current = idle;
-    syncZoneMotion(idle);
-    setPhase("ready");
-    phaseRef.current = "ready";
+    resetToIdle();
   };
 
   const onTap = () => {
-    if (menuOpen || lockingTap.current) return;
-    const p = phaseRef.current;
-    if (p === "countdown" || p === "ready" || p === "result") return;
+    if (lockingTap.current) return;
+    const { phase: p, paused } = stateRef.current;
+    if (paused || p !== 'filling') return;
 
-    if (p === "filling") {
-      lockingTap.current = true;
-      // Freeze fill exactly where it is — zone is derived from fill, so it matches
-      const stoppedAt = fill.value;
-      cancelAnimation(fill);
-      fill.value = stoppedAt;
-      // Snap zone to the scored position (same as zoneAt)
-      if (zoneMoves.value) {
-        zoneTarget.value =
-          zoneFrom.value + (zoneTo.value - zoneFrom.value) * stoppedAt;
-      }
-      if (zoneShrinks.value) {
-        zoneHalf.value =
-          halfFrom.value + (halfTo.value - halfFrom.value) * stoppedAt;
-      }
-      isFilling.value = 0;
-      play("tap");
-      void gameHaptics.stop();
-      finishRound(stoppedAt);
-      requestAnimationFrame(() => {
-        lockingTap.current = false;
-      });
+    lockingTap.current = true;
+    // Freeze fill exactly where it is — zone is derived from fill, so it matches
+    const stoppedAt = fill.value;
+    cancelAnimation(fill);
+    fill.set(stoppedAt);
+    // Snap zone to the scored position (same as zoneAt)
+    if (zoneMoves.value) {
+      zoneTarget.set(
+        zoneFrom.value + (zoneTo.value - zoneFrom.value) * stoppedAt,
+      );
     }
+    if (zoneShrinks.value) {
+      zoneHalf.set(
+        halfFrom.value + (halfTo.value - halfFrom.value) * stoppedAt,
+      );
+    }
+    isFilling.set(0);
+    play('tap');
+    void gameHaptics.stop();
+    finishRound(stoppedAt);
+    requestAnimationFrame(() => {
+      lockingTap.current = false;
+    });
   };
 
   const meterStyle = useAnimatedStyle(() => ({
@@ -1071,7 +1016,7 @@ export function GameScreen() {
     opacity: comboLabelOpacity.value,
     height: comboLabelOpacity.value * 18,
     marginBottom: comboLabelOpacity.value * 2,
-    overflow: "hidden" as const,
+    overflow: 'hidden' as const,
   }));
   const newBestStyle = useAnimatedStyle(() => ({
     transform: [{ scale: newBestPulse.value }],
@@ -1086,7 +1031,7 @@ export function GameScreen() {
       : 0
     : (persist?.highScore ?? 0);
   const displayedBest =
-    isNewBest && phase !== "ready"
+    isNewBest && phase !== 'ready'
       ? Math.max(score, persistedBest)
       : persistedBest;
 
@@ -1098,35 +1043,21 @@ export function GameScreen() {
 
   const shareScoreImage = useCallback(async () => {
     if (capturingShare || !shareRef.current) return;
+    // Re-renders without the Share/Retry/settings chrome before the capture.
     setCapturingShare(true);
     try {
-      // Wait for React to commit + paint without Share/Retry/settings chrome.
-      await new Promise<void>((resolve) => setTimeout(resolve, 50));
-      const uri = await captureRef(shareRef, {
-        format: "png",
-        quality: 1,
-        result: "tmpfile",
-      });
-      if (!(await Sharing.isAvailableAsync())) {
-        Alert.alert(
-          "Sharing unavailable",
-          "Sharing is not available on this device.",
-        );
-        return;
-      }
-      await Sharing.shareAsync(uri, {
-        mimeType: "image/png",
-        dialogTitle: "Share your score",
-        UTI: "public.png",
+      await captureAndShare(shareRef.current, {
+        message: SHARE_SCORE_CAPTION,
+        dialogTitle: 'Share your score',
       });
     } catch {
-      Alert.alert("Share failed", "Could not create the score image.");
+      Alert.alert('Share failed', 'Could not create the score image.');
     } finally {
       setCapturingShare(false);
     }
   }, [capturingShare]);
 
-  const hitEnabled = phase === "filling" && !menuOpen;
+  const hitEnabled = phase === 'filling' && !menuOpen;
   const meterScale = round.meterScale;
   const meterWrapH = METER_BASE_H * meterScale + METER_WRAP_EXTRA;
   // Pin meter base to the yellow pad in the background art
@@ -1156,7 +1087,7 @@ export function GameScreen() {
             bottom: meterBottom,
             height: meterWrapH,
           },
-          phase === "gameover" && styles.meterDimmed,
+          phase === 'gameover' && styles.meterDimmed,
         ]}
         pointerEvents="none"
       >
@@ -1173,7 +1104,7 @@ export function GameScreen() {
             }
             skin={skin}
             scale={meterScale}
-            active={phase === "filling"}
+            active={phase === 'filling'}
           />
         </Animated.View>
       </View>
@@ -1193,7 +1124,7 @@ export function GameScreen() {
               />
             </View>
 
-            {phase === "ready" ? (
+            {phase === 'ready' ? (
               <ScoreModule
                 best={persist?.highScore ?? 0}
                 bestLevel={persist?.bestLevel ?? 0}
@@ -1202,7 +1133,7 @@ export function GameScreen() {
                 dailyPlayed={Boolean(dailyPlayedToday)}
                 onOpen={openScores}
               />
-            ) : phase === "gameover" ? null : (
+            ) : phase === 'gameover' ? null : (
               <View
                 style={[styles.bestPill, isNewBest && styles.bestPillHot]}
                 pointerEvents="none"
@@ -1210,7 +1141,7 @@ export function GameScreen() {
                 <Text
                   style={[styles.bestLabel, isNewBest && styles.bestLabelHot]}
                 >
-                  {isNewBest ? "NEW BEST" : dailyMode ? "DAILY" : "BEST"}
+                  {isNewBest ? 'NEW BEST' : dailyMode ? 'DAILY' : 'BEST'}
                 </Text>
                 <Text
                   style={[styles.bestValue, isNewBest && styles.bestValueHot]}
@@ -1220,7 +1151,7 @@ export function GameScreen() {
                 {!isNewBest ? (
                   <View style={styles.scoreLevelPill}>
                     <Text style={styles.scoreLevelText}>
-                      Level{" "}
+                      Level{' '}
                       {dailyMode
                         ? persist?.dailyBest.date === todayKey()
                           ? (persist.dailyBest.level ?? 0)
@@ -1234,9 +1165,9 @@ export function GameScreen() {
           </View>
         </View>
 
-        {phase !== "ready" ? (
+        {phase !== 'ready' ? (
           <View style={styles.statsBlock} pointerEvents="none">
-            {phase !== "gameover" ? (
+            {phase !== 'gameover' ? (
               <View style={styles.heartsAboveScore}>
                 <Hearts lives={lives} max={STARTING_LIVES} />
               </View>
@@ -1244,7 +1175,7 @@ export function GameScreen() {
             <Text style={[styles.bigScore, isNewBest && styles.bigScoreHot]}>
               {formatScore(score)}
             </Text>
-            {phase === "gameover" ? (
+            {phase === 'gameover' ? (
               <View style={styles.runStats}>
                 <View style={styles.runStat}>
                   <Text style={styles.runStatLabel}>ACC</Text>
@@ -1274,7 +1205,7 @@ export function GameScreen() {
           </View>
         ) : null}
 
-        {phase !== "ready" && phase !== "gameover" && combo > 1 ? (
+        {phase !== 'ready' && phase !== 'gameover' && combo > 1 ? (
           <Animated.View
             style={[
               styles.comboFloat,
@@ -1293,14 +1224,14 @@ export function GameScreen() {
         ) : null}
 
         <PerfectSwoosh
-          visible={phase !== "gameover" && feedback?.label === "Perfect"}
+          visible={phase !== 'gameover' && feedback?.label === 'Perfect'}
           burstKey={perfectBurstKey}
           points={feedback?.points ?? 0}
           combo={feedback?.comboGrew ? feedback.combo : 0}
         />
 
         <MissBreak
-          visible={phase !== "gameover" && feedback?.label === "Miss"}
+          visible={phase !== 'gameover' && feedback?.label === 'Miss'}
           burstKey={missBurstKey}
           livesLeft={lives}
         />
@@ -1310,21 +1241,21 @@ export function GameScreen() {
             styles.feedback,
             feedback ? FEEDBACK_SLOT_STYLE[feedback.slot] : null,
             feedbackStyle,
-            phase === "gameover" && styles.hidden,
+            phase === 'gameover' && styles.hidden,
           ]}
           pointerEvents="none"
         >
           {feedback &&
-          feedback.label !== "Perfect" &&
-          feedback.label !== "Miss" ? (
+          feedback.label !== 'Perfect' &&
+          feedback.label !== 'Miss' ? (
             <>
               <Text
                 style={[
                   styles.feedbackLabel,
-                  feedback.label === "Great" && styles.feedbackLabelGreat,
+                  feedback.label === 'Great' && styles.feedbackLabelGreat,
                   { color: LABEL_COLORS[feedback.label] },
-                  feedback.slot === "left" && styles.feedbackAlignStart,
-                  feedback.slot === "right" && styles.feedbackAlignEnd,
+                  feedback.slot === 'left' && styles.feedbackAlignStart,
+                  feedback.slot === 'right' && styles.feedbackAlignEnd,
                 ]}
                 numberOfLines={1}
               >
@@ -1334,8 +1265,8 @@ export function GameScreen() {
                 <Text
                   style={[
                     styles.feedbackPoints,
-                    feedback.slot === "left" && styles.feedbackAlignStart,
-                    feedback.slot === "right" && styles.feedbackAlignEnd,
+                    feedback.slot === 'left' && styles.feedbackAlignStart,
+                    feedback.slot === 'right' && styles.feedbackAlignEnd,
                   ]}
                 >
                   +{feedback.points}
@@ -1345,8 +1276,8 @@ export function GameScreen() {
                 <Text
                   style={[
                     styles.feedbackCombo,
-                    feedback.slot === "left" && styles.feedbackAlignStart,
-                    feedback.slot === "right" && styles.feedbackAlignEnd,
+                    feedback.slot === 'left' && styles.feedbackAlignStart,
+                    feedback.slot === 'right' && styles.feedbackAlignEnd,
                   ]}
                 >
                   COMBO x{feedback.combo}
@@ -1356,19 +1287,19 @@ export function GameScreen() {
           ) : null}
         </Animated.View>
 
-        <CountdownBurst value={countdown} visible={phase === "countdown"} />
+        <CountdownBurst value={countdown} visible={phase === 'countdown'} />
 
-        {phase === "gameover" ? (
+        {phase === 'gameover' ? (
           <View
             style={[styles.gameOverPanel, { paddingTop: insets.top + 176 }]}
             pointerEvents="box-none"
           >
             {dailyMode ? (
               <Text style={styles.dailyShareDate} pointerEvents="none">
-                DAILY ·{" "}
-                {new Date(todayKey() + "T12:00:00").toLocaleDateString(
+                DAILY ·{' '}
+                {new Date(todayKey() + 'T12:00:00').toLocaleDateString(
                   undefined,
-                  { month: "short", day: "numeric", year: "numeric" },
+                  { month: 'short', day: 'numeric', year: 'numeric' },
                 )}
               </Text>
             ) : null}
@@ -1386,38 +1317,42 @@ export function GameScreen() {
               ]}
               pointerEvents="none"
             >
-              {isNewBest ? "NEW BEST!" : "GAME OVER"}
+              {isNewBest ? 'NEW BEST!' : 'GAME OVER'}
             </Text>
-            <View style={styles.resultSummary} pointerEvents="none">
-              {isNewBest ? (
-                previousBest > 0 ? (
-                  <>
-                    <Text style={styles.resultSummaryLabel}>PREVIOUS BEST</Text>
+            {!capturingShare ? (
+              <View style={styles.resultSummary} pointerEvents="none">
+                {isNewBest ? (
+                  previousBest > 0 ? (
+                    <>
+                      <Text style={styles.resultSummaryLabel}>
+                        PREVIOUS BEST
+                      </Text>
+                      <Text style={styles.resultSummaryValue}>
+                        {formatScore(previousBest)}
+                      </Text>
+                    </>
+                  ) : (
                     <Text style={styles.resultSummaryValue}>
-                      {formatScore(previousBest)}
+                      Your first record!
                     </Text>
-                  </>
+                  )
                 ) : (
-                  <Text style={styles.resultSummaryValue}>
-                    Your first record!
-                  </Text>
-                )
-              ) : (
-                <>
-                  <View style={styles.resultBestRow}>
-                    <Text style={styles.resultSummaryLabel}>BEST</Text>
-                    <Text style={styles.resultSummaryValue}>
-                      {formatScore(persistedBest)}
-                    </Text>
-                  </View>
-                  {scoreGap > 0 ? (
-                    <Text style={styles.resultGap}>
-                      −{formatScore(scoreGap)} from your best
-                    </Text>
-                  ) : null}
-                </>
-              )}
-            </View>
+                  <>
+                    <View style={styles.resultBestRow}>
+                      <Text style={styles.resultSummaryLabel}>BEST</Text>
+                      <Text style={styles.resultSummaryValue}>
+                        {formatScore(persistedBest)}
+                      </Text>
+                    </View>
+                    {scoreGap > 0 ? (
+                      <Text style={styles.resultGap}>
+                        −{formatScore(scoreGap)} from your best
+                      </Text>
+                    ) : null}
+                  </>
+                )}
+              </View>
+            ) : null}
             {!capturingShare ? (
               <View style={styles.gameOverActions} pointerEvents="box-none">
                 <GameCta
@@ -1443,7 +1378,7 @@ export function GameScreen() {
           </View>
         ) : null}
 
-        {phase === "ready" ? (
+        {phase === 'ready' ? (
           <View
             style={[styles.menuCol, { bottom: menuBottom }]}
             pointerEvents="box-none"
@@ -1472,18 +1407,18 @@ export function GameScreen() {
             capturingShare && styles.hidden,
           ]}
           onPress={() => {
-            setMenuInitialView("menu");
+            setMenuInitialView('menu');
             openMenu();
           }}
           hitSlop={10}
-          pointerEvents={capturingShare ? "none" : "auto"}
+          pointerEvents={capturingShare ? 'none' : 'auto'}
           accessibilityLabel="Menu"
         >
           <SymbolView
             name={{
-              ios: "line.3.horizontal",
-              android: "menu",
-              web: "menu",
+              ios: 'line.3.horizontal',
+              android: 'menu',
+              web: 'menu',
             }}
             size={22}
             tintColor={GameColors.white}
@@ -1497,7 +1432,7 @@ export function GameScreen() {
           style={styles.hitLayer}
           onPressIn={onTap}
           accessibilityRole="button"
-          android_ripple={{ color: "transparent" }}
+          android_ripple={{ color: 'transparent' }}
         />
       ) : null}
 
@@ -1505,7 +1440,7 @@ export function GameScreen() {
         visible={menuOpen}
         soundOn={!muted}
         hapticsOn={persist?.hapticsEnabled !== false}
-        canGoBack={phase !== "ready"}
+        canGoBack={phase !== 'ready'}
         dailyMode={dailyMode}
         initialView={menuInitialView}
         highScore={persist?.highScore ?? 0}
@@ -1518,7 +1453,7 @@ export function GameScreen() {
         }
         dailyRecordScore={persist?.dailyRecord.score ?? 0}
         dailyRecordLevel={persist?.dailyRecord.level ?? 0}
-        dailyRecordDate={persist?.dailyRecord.date ?? ""}
+        dailyRecordDate={persist?.dailyRecord.date ?? ''}
         onClose={closeMenu}
         onToggleSound={() => void toggleSound()}
         onToggleHaptics={() => void toggleHaptics()}
@@ -1537,23 +1472,15 @@ export function GameScreen() {
   );
 }
 
-const fillParent = {
-  position: "absolute" as const,
-  left: 0,
-  right: 0,
-  top: 0,
-  bottom: 0,
-};
-
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#1E8CFF" },
+  root: { flex: 1, backgroundColor: '#1E8CFF' },
   backdrop: {
     ...fillParent,
     zIndex: 0,
   },
   backdropImage: {
-    width: "100%",
-    height: "100%",
+    width: '100%',
+    height: '100%',
   },
   hitLayer: {
     ...fillParent,
@@ -1566,21 +1493,21 @@ const styles = StyleSheet.create({
     elevation: 30,
   },
   topBlock: {
-    width: "100%",
+    width: '100%',
     gap: 6,
   },
   topRow: {
-    width: "100%",
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
     gap: 10,
     minHeight: 40,
   },
   topLeft: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
     paddingRight: 4,
   },
@@ -1590,7 +1517,7 @@ const styles = StyleSheet.create({
     marginLeft: -4,
   },
   menuBtn: {
-    position: "absolute",
+    position: 'absolute',
     left: 16,
     zIndex: 45,
     width: 44,
@@ -1599,8 +1526,8 @@ const styles = StyleSheet.create({
     backgroundColor: GameColors.playBlue,
     borderWidth: 2.5,
     borderColor: GameColors.ink,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   bestPill: {
     paddingHorizontal: 12,
@@ -1608,8 +1535,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 2.5,
     borderColor: GameColors.ink,
-    backgroundColor: "#FFF4C2",
-    alignItems: "center",
+    backgroundColor: '#FFF4C2',
+    alignItems: 'center',
     minWidth: 64,
     flexShrink: 0,
   },
@@ -1642,22 +1569,22 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     borderWidth: 2.5,
     borderColor: GameColors.ink,
-    backgroundColor: "#FBEFBE",
-    overflow: "hidden",
+    backgroundColor: '#FBEFBE',
+    overflow: 'hidden',
   },
   scoreMain: {
     paddingHorizontal: 10,
     paddingTop: 7,
     paddingBottom: 8,
     gap: 3,
-    alignItems: "stretch",
+    alignItems: 'stretch',
   },
   scoreSectionPressed: {
-    backgroundColor: "rgba(26,28,44,0.06)",
+    backgroundColor: 'rgba(26,28,44,0.06)',
   },
   scoreMainHead: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 5,
   },
   trophyIcon: {
@@ -1682,7 +1609,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 3.5,
     paddingHorizontal: 8,
-    alignItems: "center",
+    alignItems: 'center',
     backgroundColor: GameColors.lemon,
   },
   scoreLevelText: {
@@ -1700,8 +1627,8 @@ const styles = StyleSheet.create({
     paddingTop: 5,
     paddingBottom: 6,
     gap: 1,
-    alignItems: "flex-start",
-    backgroundColor: "rgba(88,204,2,0.18)",
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(88,204,2,0.18)',
   },
   scoreDailyLabel: {
     fontFamily: GameFonts.body,
@@ -1710,8 +1637,8 @@ const styles = StyleSheet.create({
     color: GameColors.bubbleDark,
   },
   scoreDailyRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
   },
   scoreDailyValue: {
@@ -1731,13 +1658,13 @@ const styles = StyleSheet.create({
     height: 64,
   },
   resultSummary: {
-    backgroundColor: "rgba(255,255,255,0.94)",
+    backgroundColor: 'rgba(255,255,255,0.94)',
     borderRadius: 16,
     borderWidth: 2.5,
     borderColor: GameColors.ink,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    alignItems: "center",
+    alignItems: 'center',
     gap: 2,
     minWidth: 168,
   },
@@ -1754,8 +1681,8 @@ const styles = StyleSheet.create({
     color: GameColors.ink,
   },
   resultBestRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
   resultGap: {
@@ -1764,17 +1691,17 @@ const styles = StyleSheet.create({
     color: GameColors.scoreBad,
     marginTop: 2,
   },
-  statsBlock: { marginTop: 2, alignItems: "center" },
+  statsBlock: { marginTop: 2, alignItems: 'center' },
   heartsAboveScore: {
     marginBottom: 6,
-    alignItems: "center",
+    alignItems: 'center',
   },
   bigScore: {
     fontFamily: GameFonts.display,
     fontSize: 52,
     lineHeight: 56,
     color: GameColors.white,
-    textShadowColor: "rgba(26,28,44,0.4)",
+    textShadowColor: 'rgba(26,28,44,0.4)',
     textShadowOffset: { width: 0, height: 3 },
     textShadowRadius: 0,
   },
@@ -1803,9 +1730,9 @@ const styles = StyleSheet.create({
   },
   runStats: {
     marginTop: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.94)",
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.94)',
     borderRadius: 16,
     borderWidth: 2.5,
     borderColor: GameColors.ink,
@@ -1814,7 +1741,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   runStat: {
-    alignItems: "center",
+    alignItems: 'center',
     minWidth: 52,
   },
   runStatLabel: {
@@ -1833,13 +1760,13 @@ const styles = StyleSheet.create({
     width: 2,
     height: 28,
     borderRadius: 1,
-    backgroundColor: "rgba(26,28,44,0.15)",
+    backgroundColor: 'rgba(26,28,44,0.15)',
   },
   comboFloat: {
-    position: "absolute",
+    position: 'absolute',
     left: 0,
     right: 0,
-    alignItems: "center",
+    alignItems: 'center',
     zIndex: 30,
   },
   comboFloatLabel: {
@@ -1848,7 +1775,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     letterSpacing: 2,
     color: GameColors.white,
-    textAlign: "center",
+    textAlign: 'center',
     textShadowColor: GameColors.ink,
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 0,
@@ -1857,18 +1784,18 @@ const styles = StyleSheet.create({
     fontFamily: GameFonts.display,
     fontSize: 52,
     lineHeight: 56,
-    color: "#FFE96A",
-    textAlign: "center",
+    color: '#FFE96A',
+    textAlign: 'center',
     textShadowColor: GameColors.ink,
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 0,
   },
   meterAnchor: {
-    position: "absolute",
+    position: 'absolute',
     left: 0,
     right: 0,
-    alignItems: "center",
-    justifyContent: "flex-end",
+    alignItems: 'center',
+    justifyContent: 'flex-end',
     zIndex: 1,
   },
   meterDimmed: {
@@ -1877,23 +1804,23 @@ const styles = StyleSheet.create({
   hidden: { opacity: 0 },
   gameOverPanel: {
     ...fillParent,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     zIndex: 40,
     gap: 18,
     paddingHorizontal: 24,
   },
   gameOverActions: {
-    width: "100%",
-    alignItems: "center",
+    width: '100%',
+    alignItems: 'center',
     gap: 12,
   },
   gameOverTitle: {
     fontFamily: GameFonts.display,
     fontSize: 52,
     lineHeight: 56,
-    textAlign: "center",
-    color: "#FF4B4B",
+    textAlign: 'center',
+    color: '#FF4B4B',
     textShadowColor: GameColors.ink,
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 0,
@@ -1905,20 +1832,20 @@ const styles = StyleSheet.create({
     fontFamily: GameFonts.body,
     fontSize: 18,
     lineHeight: 22,
-    textAlign: "center",
+    textAlign: 'center',
     color: GameColors.white,
-    textShadowColor: "rgba(26,28,44,0.45)",
+    textShadowColor: 'rgba(26,28,44,0.45)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 0,
     marginBottom: -4,
   },
   feedback: {
-    position: "absolute",
+    position: 'absolute',
     zIndex: 35,
-    maxWidth: "52%",
+    maxWidth: '52%',
   },
-  feedbackAlignStart: { textAlign: "left" },
-  feedbackAlignEnd: { textAlign: "right" },
+  feedbackAlignStart: { textAlign: 'left' },
+  feedbackAlignEnd: { textAlign: 'right' },
   feedbackLabel: {
     fontFamily: GameFonts.display,
     fontSize: 28,
@@ -1953,15 +1880,15 @@ const styles = StyleSheet.create({
     textShadowRadius: 0,
   },
   menuCol: {
-    position: "absolute",
+    position: 'absolute',
     left: 28,
     right: 28,
     gap: 14,
     zIndex: 40,
-    alignItems: "center",
+    alignItems: 'center',
   },
   ctaPressable: {
-    width: "100%",
+    width: '100%',
     maxWidth: 320,
   },
   ctaPressableDown: {
@@ -1971,16 +1898,16 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 4,
     borderColor: GameColors.ink,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   ctaFace: {
     minHeight: 64,
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   ctaFaceUp: {
     marginBottom: 5,
@@ -1991,13 +1918,13 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   ctaShine: {
-    position: "absolute",
+    position: 'absolute',
     left: 10,
     right: 10,
     top: 6,
     height: 14,
     borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.28)",
+    backgroundColor: 'rgba(255,255,255,0.28)',
   },
   ctaText: {
     fontFamily: GameFonts.display,
@@ -2005,7 +1932,7 @@ const styles = StyleSheet.create({
     lineHeight: 34,
     color: GameColors.white,
     letterSpacing: 1.5,
-    textShadowColor: "rgba(26,28,44,0.35)",
+    textShadowColor: 'rgba(26,28,44,0.35)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 0,
   },
@@ -2014,7 +1941,7 @@ const styles = StyleSheet.create({
     fontFamily: GameFonts.soft,
     fontSize: 12,
     lineHeight: 14,
-    color: "rgba(255,255,255,0.92)",
+    color: 'rgba(255,255,255,0.92)',
     letterSpacing: 0.8,
   },
 });

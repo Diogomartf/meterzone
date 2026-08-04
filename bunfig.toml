@@ -1,0 +1,3 @@
+[test]
+# Stubs react-native / expo native modules so pure game logic is testable.
+preload = ["./src/game/__tests__/setup.ts"]

@@ -1,5 +1,6 @@
 export type RoundResult = 'perfect' | 'zone' | 'near' | 'miss';
-export type RoundLabel = 'Perfect' | 'Great' | 'Good' | 'Nice' | 'Close' | 'Miss';
+export type RoundLabel =
+  'Perfect' | 'Great' | 'Good' | 'Nice' | 'Close' | 'Miss';
 
 export type RoundConfig = {
   level: number;

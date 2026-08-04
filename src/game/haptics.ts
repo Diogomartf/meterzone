@@ -41,7 +41,9 @@ export const gameHaptics = {
       return safe(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy));
     }
     if (n === 1) {
-      return safe(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
+      return safe(() =>
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium),
+      );
     }
     return safe(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
   },
@@ -62,30 +64,50 @@ export const gameHaptics = {
 
     switch (label) {
       case 'Perfect':
-        await safe(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
+        await safe(() =>
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success),
+        );
         await sleep(40);
-        await safe(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy));
+        await safe(() =>
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy),
+        );
         await sleep(50);
-        await safe(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
+        await safe(() =>
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium),
+        );
         break;
       case 'Great':
-        await safe(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
+        await safe(() =>
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success),
+        );
         await sleep(30);
-        await safe(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
+        await safe(() =>
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium),
+        );
         break;
       case 'Good':
-        await safe(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
+        await safe(() =>
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium),
+        );
         break;
       case 'Nice':
-        await safe(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
+        await safe(() =>
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
+        );
         break;
       case 'Miss':
         // Soft-heavy thud — sad loss, not a sharp slap
-        await safe(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy));
+        await safe(() =>
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy),
+        );
         await sleep(90);
-        await safe(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error));
+        await safe(() =>
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error),
+        );
         await sleep(70);
-        await safe(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
+        await safe(() =>
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium),
+        );
         break;
     }
   },

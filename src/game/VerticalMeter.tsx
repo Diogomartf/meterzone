@@ -1,6 +1,6 @@
-import { LinearGradient } from "expo-linear-gradient";
-import { memo, useEffect, useMemo } from "react";
-import { StyleSheet, View } from "react-native";
+import { LinearGradient } from 'expo-linear-gradient';
+import { memo, useEffect, useMemo } from 'react';
+import { StyleSheet, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -9,10 +9,10 @@ import Animated, {
   withRepeat,
   withTiming,
   type SharedValue,
-} from "react-native-reanimated";
+} from 'react-native-reanimated';
 
-import { GameColors } from "@/constants/gameTheme";
-import type { SkinDef } from "@/game/skins";
+import { GameColors } from '@/constants/gameTheme';
+import type { SkinDef } from '@/game/skins';
 
 type Props = {
   fill: SharedValue<number>;
@@ -37,12 +37,12 @@ const MIN_ZONE_PX = 12;
 
 /** Glossy toy bullseye — Nice, red Great, yellow Perfect line */
 const EYE = {
-  nice: "#6a219bc9",
-  great: "#f15c2e",
+  nice: '#6a219bc9',
+  great: '#f15c2e',
   /** Soft mid-tone for Great → Nice falloff */
-  greatFade: "#c44a5a",
-  niceFade: "#6a3a8a",
-  perfect: "#FFE44A",
+  greatFade: '#c44a5a',
+  niceFade: '#6a3a8a',
+  perfect: '#FFE44A',
 } as const;
 
 function VerticalMeterComponent({
@@ -187,18 +187,15 @@ function VerticalMeterComponent({
         {/* Glossy cylinder shading — light hitting the right side */}
         <LinearGradient
           colors={[
-            "rgba(0,0,0,0.06)",
-            "rgba(0,0,0,0)",
-            "rgba(255,255,255,0)",
-            "rgba(255,255,255,0.22)",
+            'rgba(0,0,0,0.06)',
+            'rgba(0,0,0,0)',
+            'rgba(255,255,255,0)',
+            'rgba(255,255,255,0.22)',
           ]}
           locations={[0, 0.5, 0.86, 1]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={[
-            StyleSheet.absoluteFill,
-            { borderRadius: 20 * scale },
-          ]}
+          style={[StyleSheet.absoluteFill, { borderRadius: 20 * scale }]}
           pointerEvents="none"
         />
         <View style={styles.shellLip} />
@@ -222,11 +219,11 @@ function VerticalMeterComponent({
           >
             <LinearGradient
               colors={[
-                "rgba(255,228,74,0)",
-                "rgba(255,228,74,0.55)",
+                'rgba(255,228,74,0)',
+                'rgba(255,228,74,0.55)',
                 EYE.perfect,
-                "rgba(255,228,74,0.55)",
-                "rgba(255,228,74,0)",
+                'rgba(255,228,74,0.55)',
+                'rgba(255,228,74,0)',
               ]}
               locations={[0, 0.28, 0.5, 0.72, 1]}
               style={StyleSheet.absoluteFill}
@@ -238,9 +235,9 @@ function VerticalMeterComponent({
           >
             <LinearGradient
               colors={[
-                "rgba(255,176,32,0)",
-                "rgba(255,176,32,0.28)",
-                "rgba(255,240,120,0.5)",
+                'rgba(255,176,32,0)',
+                'rgba(255,176,32,0.28)',
+                'rgba(255,240,120,0.5)',
               ]}
               locations={[0, 0.55, 1]}
               style={styles.surfaceGlow}
@@ -257,7 +254,7 @@ function VerticalMeterComponent({
 
             <Animated.View style={[styles.surface, surfaceStyle]}>
               <LinearGradient
-                colors={["#FFFFFF", "#FFF6A0", "#FFC94A"]}
+                colors={['#FFFFFF', '#FFF6A0', '#FFC94A']}
                 start={{ x: 0, y: 0.5 }}
                 end={{ x: 1, y: 0.5 }}
                 style={StyleSheet.absoluteFill}
@@ -302,8 +299,8 @@ export const VerticalMeter = memo(VerticalMeterComponent);
 
 const styles = StyleSheet.create({
   wrap: {
-    alignItems: "center",
-    justifyContent: "flex-end",
+    alignItems: 'center',
+    justifyContent: 'flex-end',
   },
   pipeCap: {
     height: 20,
@@ -315,51 +312,51 @@ const styles = StyleSheet.create({
   shell: {
     borderWidth: 4,
     borderColor: GameColors.ink,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   shellLip: {
-    position: "absolute",
+    position: 'absolute',
     left: 10,
     top: 16,
     bottom: 16,
     width: 12,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.14)",
+    backgroundColor: 'rgba(255,255,255,0.14)',
     zIndex: 1,
   },
   glass: {
     flex: 1,
-    overflow: "hidden",
+    overflow: 'hidden',
     backgroundColor: GameColors.meterInner,
     borderWidth: 3,
     borderColor: GameColors.ink,
   },
   zoneWrap: {
-    position: "absolute",
+    position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
     zIndex: 1,
-    overflow: "hidden",
+    overflow: 'hidden',
     borderRadius: 2,
   },
   /** Flat specular strip — cheaper than a LinearGradient layer */
   zoneSheen: {
-    position: "absolute",
+    position: 'absolute',
     left: 0,
     top: 0,
     bottom: 0,
-    width: "48%",
-    backgroundColor: "rgba(255,255,255,0.22)",
+    width: '48%',
+    backgroundColor: 'rgba(255,255,255,0.22)',
   },
   strikeLine: {
-    position: "absolute",
+    position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
     height: 10,
     zIndex: 5,
-    overflow: "hidden",
+    overflow: 'hidden',
     shadowColor: EYE.perfect,
     shadowOpacity: 0.7,
     shadowRadius: 6,
@@ -367,51 +364,51 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   liquidWrap: {
-    position: "absolute",
+    position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    overflow: "visible",
+    overflow: 'visible',
     zIndex: 3,
   },
   fill: {
-    position: "absolute",
+    position: 'absolute',
     left: 0,
     right: 0,
     top: 0,
     bottom: 0,
   },
   liquidSheen: {
-    position: "absolute",
+    position: 'absolute',
     left: 0,
     top: 0,
     bottom: 0,
-    width: "42%",
-    backgroundColor: "rgba(255,255,255,0.16)",
+    width: '42%',
+    backgroundColor: 'rgba(255,255,255,0.16)',
   },
   surfaceGlow: {
-    position: "absolute",
+    position: 'absolute',
     left: -2,
     right: -2,
     top: -14,
     height: 26,
   },
   surface: {
-    position: "absolute",
+    position: 'absolute',
     left: 0,
     right: 0,
     top: -1,
     height: 5,
     borderRadius: 2,
-    overflow: "hidden",
-    shadowColor: "#FFB020",
+    overflow: 'hidden',
+    shadowColor: '#FFB020',
     shadowOpacity: 0.45,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 0 },
     elevation: 3,
   },
   ticks: {
-    position: "absolute",
+    position: 'absolute',
     left: 0,
     right: 0,
     top: 0,
@@ -419,20 +416,20 @@ const styles = StyleSheet.create({
     zIndex: 3,
   },
   tick: {
-    position: "absolute",
+    position: 'absolute',
     right: 5,
     marginBottom: -1,
     borderRadius: 1,
-    backgroundColor: "rgba(255,255,255,0.4)",
+    backgroundColor: 'rgba(255,255,255,0.4)',
   },
   glassShine: {
-    position: "absolute",
+    position: 'absolute',
     left: 5,
     top: 10,
     bottom: 10,
     width: 9,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.14)",
+    backgroundColor: 'rgba(255,255,255,0.14)',
     zIndex: 4,
   },
   pipeBase: {

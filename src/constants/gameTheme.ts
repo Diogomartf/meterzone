@@ -43,7 +43,14 @@ export const Gradients = {
   skyStops: [0, 0.55, 1] as const,
   playZone: [GameColors.playZone, GameColors.playZoneDeep] as const,
   playZoneStops: [0, 1] as const,
-  zone: ['#123A78', '#1B4F9C', '#FF3A2F', '#FF3A2F', '#1B4F9C', '#123A78'] as const,
+  zone: [
+    '#123A78',
+    '#1B4F9C',
+    '#FF3A2F',
+    '#FF3A2F',
+    '#1B4F9C',
+    '#123A78',
+  ] as const,
   zoneStops: [0, 0.18, 0.36, 0.64, 0.82, 1] as const,
   liquid: [
     GameColors.liquidFoam,
@@ -60,3 +67,16 @@ export const GameFonts = {
   body: 'Fredoka_600SemiBold',
   soft: 'Fredoka_500Medium',
 } as const;
+
+/**
+ * Absolute overlay covering its parent.
+ * Spelled out rather than using `StyleSheet.absoluteFillObject`, which react-native
+ * dropped in 0.86 — spreading the now-undefined value silently produced in-flow views.
+ */
+export const fillParent = {
+  position: 'absolute' as const,
+  left: 0,
+  right: 0,
+  top: 0,
+  bottom: 0,
+};

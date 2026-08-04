@@ -212,7 +212,9 @@ const jsonLd = [
         {faqs.map((faq) => (
           <details class="faq-item">
             <summary>{faq.question}</summary>
-            <p>{faq.answer}</p>
+            <div class="faq-body">
+              <p>{faq.answer}</p>
+            </div>
           </details>
         ))}
       </div>
@@ -235,6 +237,7 @@ const jsonLd = [
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    --section-wide: 48rem;
   }
 
   .hero {
@@ -630,7 +633,8 @@ const jsonLd = [
 
   .features {
     padding: 1rem 1.5rem 3.5rem;
-    max-width: 48rem;
+    max-width: var(--section-wide);
+    width: 100%;
     margin: 0 auto;
   }
 
@@ -681,7 +685,8 @@ const jsonLd = [
 
   .faq {
     padding: 0 1.5rem 3.5rem;
-    max-width: 40rem;
+    max-width: var(--section-wide);
+    width: 100%;
     margin: 0 auto;
   }
 
@@ -700,13 +705,31 @@ const jsonLd = [
   }
 
   .faq-item {
+    width: 100%;
     border-radius: 0.85rem;
     border: 2px solid rgba(26, 28, 44, 0.1);
     background: rgba(255, 255, 255, 0.45);
     padding: 0.15rem 1rem;
+    interpolate-size: allow-keywords;
+  }
+
+  .faq-item::details-content {
+    block-size: 0;
+    overflow-y: clip;
+    transition:
+      block-size 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+      content-visibility 0.32s allow-discrete;
+  }
+
+  .faq-item[open]::details-content {
+    block-size: auto;
   }
 
   .faq-item summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
     cursor: pointer;
     list-style: none;
     padding: 0.9rem 0;
@@ -720,7 +743,7 @@ const jsonLd = [
 
   .faq-item summary::after {
     content: '+';
-    float: right;
+    flex-shrink: 0;
     font-weight: 700;
     color: var(--panel-ink);
   }
@@ -729,10 +752,39 @@ const jsonLd = [
     content: '−';
   }
 
-  .faq-item p {
-    margin: 0 0 1rem;
+  .faq-body {
+    padding-bottom: 1rem;
+  }
+
+  .faq-item[open] .faq-body {
+    animation: faq-open 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .faq-body p {
+    margin: 0;
     line-height: 1.55;
     color: var(--panel-ink);
+  }
+
+  @keyframes faq-open {
+    from {
+      opacity: 0;
+      transform: translateY(-0.35rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .faq-item::details-content {
+      transition: none;
+    }
+
+    .faq-item[open] .faq-body {
+      animation: none;
+    }
   }
 
   .footer {
