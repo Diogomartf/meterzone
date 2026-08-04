@@ -251,6 +251,11 @@ function ScoreModule({
  * `useRef` mirror beside every piece of state. Here the ref is advanced by the
  * same pure reducer React uses, so the two cannot drift: both are
  * `actions.reduce(runReducer, initial)`.
+ *
+ * StrictMode caveat: React double-invokes the reducer in development, so
+ * `state` and `stateRef.current` briefly hold different object identities for
+ * the same logical value while stepping through a dispatch. Production keeps
+ * them in lockstep; do not treat the identity mismatch as a drift bug.
  */
 function useRunState() {
   const [state, baseDispatch] = useReducer(runReducer, undefined, () =>

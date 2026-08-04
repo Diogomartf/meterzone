@@ -28,17 +28,17 @@ export type ShareCaptureOptions = {
  * back to a text-only share whenever the capture or the image path is
  * unavailable, so the button never dead-ends.
  *
- * Returns false when sharing could not be started at all.
+ * Resolves once a share sheet was presented; failures throw (callers catch).
  */
 export async function captureAndShare(
   target: View | null,
   { message, dialogTitle = message }: ShareCaptureOptions,
-): Promise<boolean> {
+): Promise<void> {
   await new Promise<void>((resolve) => setTimeout(resolve, PAINT_SETTLE_MS));
 
   if (!target) {
     await Share.share({ message });
-    return true;
+    return;
   }
 
   const uri = await captureRef(target, {
@@ -49,7 +49,7 @@ export async function captureAndShare(
 
   if (Platform.OS === 'ios') {
     await Share.share({ message, url: uri });
-    return true;
+    return;
   }
 
   if (await Sharing.isAvailableAsync()) {
@@ -58,9 +58,8 @@ export async function captureAndShare(
       dialogTitle,
       UTI: 'public.png',
     });
-    return true;
+    return;
   }
 
   await Share.share({ message });
-  return true;
 }
