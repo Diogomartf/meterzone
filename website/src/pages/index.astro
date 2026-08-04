@@ -206,29 +206,31 @@ const jsonLd = [
       </ul>
     </section>
 
-    <section class="faq" aria-labelledby="faq-title">
-      <h2 id="faq-title">Frequently asked questions</h2>
-      <div class="faq-list">
-        {faqs.map((faq) => (
-          <details class="faq-item">
-            <summary>{faq.question}</summary>
-            <div class="faq-body">
-              <p>{faq.answer}</p>
-            </div>
-          </details>
-        ))}
-      </div>
-    </section>
+    <div class="bottom-band">
+      <section class="faq" aria-labelledby="faq-title">
+        <h2 id="faq-title">Frequently asked questions</h2>
+        <div class="faq-list">
+          {faqs.map((faq) => (
+            <details class="faq-item">
+              <summary>{faq.question}</summary>
+              <div class="faq-body">
+                <p>{faq.answer}</p>
+              </div>
+            </details>
+          ))}
+        </div>
+      </section>
 
-    <footer class="footer">
-      <p class="footer-brand">{APP_NAME}</p>
-      <nav aria-label="Footer">
-        <a href="/support/">Support</a>
-        <a href="/privacy/">Privacy Policy</a>
-        <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
-      </nav>
-      <p>© {new Date().getFullYear()} {APP_NAME}. All rights reserved.</p>
-    </footer>
+      <footer class="footer">
+        <p class="footer-brand">{APP_NAME}</p>
+        <nav aria-label="Footer">
+          <a href="/support/">Support</a>
+          <a href="/privacy/">Privacy Policy</a>
+          <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+        </nav>
+        <p>© {new Date().getFullYear()} {APP_NAME}. All rights reserved.</p>
+      </footer>
+    </div>
   </main>
 </BaseLayout>
 
@@ -683,8 +685,18 @@ const jsonLd = [
     font-size: 0.95rem;
   }
 
+  .bottom-band {
+    margin-top: auto;
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      color-mix(in srgb, var(--lemon) 22%, transparent) 28%,
+      color-mix(in srgb, var(--lemon) 48%, var(--sky-bottom)) 100%
+    );
+  }
+
   .faq {
-    padding: 0 1.5rem 3.5rem;
+    padding: 2rem 1.5rem 2.5rem;
     max-width: var(--section-wide);
     width: 100%;
     margin: 0 auto;
@@ -707,10 +719,16 @@ const jsonLd = [
   .faq-item {
     width: 100%;
     border-radius: 0.85rem;
-    border: 2px solid rgba(26, 28, 44, 0.1);
-    background: rgba(255, 255, 255, 0.45);
+    border: 2px solid var(--ink);
+    background: color-mix(in srgb, var(--lemon) 42%, white);
+    box-shadow: 0 3px 0 var(--ink);
     padding: 0.15rem 1rem;
     interpolate-size: allow-keywords;
+    transition: background 0.2s ease;
+  }
+
+  .faq-item[open] {
+    background: color-mix(in srgb, var(--lemon) 68%, white);
   }
 
   .faq-item::details-content {
@@ -744,12 +762,22 @@ const jsonLd = [
   .faq-item summary::after {
     content: '+';
     flex-shrink: 0;
+    width: 1.55rem;
+    height: 1.55rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 2px solid var(--ink);
+    background: var(--lemon);
     font-weight: 700;
-    color: var(--panel-ink);
+    font-size: 1rem;
+    line-height: 1;
+    color: var(--ink);
   }
 
   .faq-item[open] summary::after {
     content: '−';
+    background: white;
   }
 
   .faq-body {
@@ -785,18 +813,21 @@ const jsonLd = [
     .faq-item[open] .faq-body {
       animation: none;
     }
+
+    .faq-item {
+      transition: none;
+    }
   }
 
   .footer {
-    margin-top: auto;
     padding: 2rem 1.5rem 2.5rem;
     text-align: center;
-    border-top: 2px solid rgba(26, 28, 44, 0.08);
-    background: rgba(255, 255, 255, 0.35);
+    border-top: 2px solid rgba(26, 28, 44, 0.12);
+    background: transparent;
   }
 
   .footer-brand {
-    margin: 0 0 0.5rem;
+    margin: 0 0 1rem;
     font-weight: 700;
     font-size: 1.05rem;
     color: var(--ink);
@@ -806,8 +837,8 @@ const jsonLd = [
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 1rem 1.5rem;
-    margin-bottom: 0.75rem;
+    gap: 1rem 2.25rem;
+    margin-bottom: 1.25rem;
   }
 
   .footer a {
