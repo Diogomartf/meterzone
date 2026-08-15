@@ -8,6 +8,7 @@ import {
   loadPersist,
   markReviewAccepted,
   recordReviewPromptDecline,
+  recordTapHintPlay,
   savePersist,
   setHapticsEnabled,
   setSoundMuted,
@@ -283,25 +284,39 @@ describe('commitRunResult', () => {
     expect(readAsyncStorage(KEY)).toContain('777');
   });
 
-  test('attempts advance the TAP coach and cap at three', async () => {
-    const first = await commitRunResult({
+  test('does not fold this run into the TAP coach count', async () => {
+    await recordTapHintPlay();
+    await recordTapHintPlay();
+    const ended = await commitRunResult({
       score: 10,
       coinsEarned: 0,
       bestCombo: 0,
       bestLevel: 2,
       isDaily: false,
-      attempts: 2,
     });
-    expect(first.tapHintPlays).toBe(2);
-    const second = await commitRunResult({
-      score: 10,
-      coinsEarned: 0,
-      bestCombo: 0,
-      bestLevel: 2,
-      isDaily: false,
-      attempts: 8,
-    });
-    expect(second.tapHintPlays).toBe(3);
+    expect(ended.tapHintPlays).toBe(2);
+  });
+});
+
+describe('recordTapHintPlay', () => {
+  test('advances one fill at a time and caps at three', async () => {
+    expect((await recordTapHintPlay()).tapHintPlays).toBe(1);
+    expect((await recordTapHintPlay()).tapHintPlays).toBe(2);
+    expect((await recordTapHintPlay()).tapHintPlays).toBe(3);
+    expect((await recordTapHintPlay()).tapHintPlays).toBe(3);
+  });
+
+  test('survives an abandoned run that never reaches game over', async () => {
+    await recordTapHintPlay();
+    await recordTapHintPlay();
+    expect((await loadPersist()).tapHintPlays).toBe(2);
+    expect(readAsyncStorage(KEY)).toContain('"tapHintPlays":2');
+  });
+
+  test('an explicit count never lowers a higher disk value', async () => {
+    await recordTapHintPlay(2);
+    expect((await recordTapHintPlay(1)).tapHintPlays).toBe(2);
+    expect((await recordTapHintPlay(5)).tapHintPlays).toBe(3);
   });
 });
 

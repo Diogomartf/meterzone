@@ -38,8 +38,10 @@ import { createRng, makeRound } from '@/game/levels';
 import { shouldShowReviewPrompt } from '@/game/review';
 import { comboMultiplier, scoreFill, STARTING_LIVES } from '@/game/scoring';
 import {
+  nextTapHintPlays,
   shouldShowTapHint,
   shouldShowTapHowTo,
+  TAP_HINT_PLAYS,
   TAP_HOW_TO,
 } from '@/game/tapCoach';
 import {
@@ -60,6 +62,7 @@ import {
   loadPersist,
   markReviewAccepted,
   recordReviewPromptDecline,
+  recordTapHintPlay,
   setHapticsEnabled,
   setSoundMuted,
   todayKey,
@@ -313,6 +316,8 @@ export function GameScreen() {
   const insets = useSafeAreaInsets();
   const { height: windowH, width: windowW } = useWindowDimensions();
   const [persist, setPersist] = useState<PersistState | null>(null);
+  const persistRef = useRef(persist);
+  persistRef.current = persist;
   const muted = Boolean(persist?.soundMuted);
   const { play } = useSounds(muted);
 
@@ -521,7 +526,6 @@ export function GameScreen() {
         bestCombo: session.bestCombo,
         bestLevel: stateRef.current.round.level,
         isDaily: stateRef.current.dailyMode,
-        attempts: session.attempts,
       });
       setPersist(next);
       const beatBest =
@@ -601,6 +605,23 @@ export function GameScreen() {
       });
       const after = stateRef.current;
 
+      // Count this fill toward the coach now — not at game over — so going
+      // home or killing the app still consumes one of the three hints.
+      const coachLive =
+        (persistRef.current?.tapHintPlays ?? 0) < TAP_HINT_PLAYS;
+      const nextPlays = nextTapHintPlays(
+        persistRef.current?.tapHintPlays ?? 0,
+        1,
+      );
+      if (coachLive) {
+        setPersist((prev) =>
+          prev ? { ...prev, tapHintPlays: nextPlays } : prev,
+        );
+      }
+      const persistCoach = coachLive
+        ? recordTapHintPlay(nextPlays)
+        : Promise.resolve(null);
+
       showFeedback({
         label: result.label,
         points: result.points,
@@ -611,8 +632,14 @@ export function GameScreen() {
       if (result.costsLife) {
         play('miss');
         if (after.lives <= 0) {
-          void endRun(after.score, after.stats);
+          void persistCoach.then((next) => {
+            if (next) setPersist(next);
+            void endRun(after.score, after.stats);
+          });
         } else {
+          void persistCoach.then((next) => {
+            if (next) setPersist(next);
+          });
           scheduleAdvance(TIMING.advanceAfterMiss);
         }
         return;
@@ -622,6 +649,9 @@ export function GameScreen() {
       if (after.score > runBestBaselineRef.current) {
         announceNewBest();
       }
+      void persistCoach.then((next) => {
+        if (next) setPersist(next);
+      });
       scheduleAdvance(
         result.result === 'perfect'
           ? TIMING.advanceAfterPerfect
@@ -1101,7 +1131,6 @@ export function GameScreen() {
     persist != null &&
     shouldShowTapHint({
       tapHintPlays: persist.tapHintPlays,
-      attemptsThisRun: stats.attempts,
       phase,
       paused: menuOpen,
     });
@@ -1109,7 +1138,6 @@ export function GameScreen() {
     persist != null &&
     shouldShowTapHowTo({
       tapHintPlays: persist.tapHintPlays,
-      attemptsThisRun: stats.attempts,
       phase,
       paused: menuOpen,
     });

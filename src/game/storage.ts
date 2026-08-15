@@ -148,14 +148,29 @@ export async function clearPersist(): Promise<PersistState> {
   };
 }
 
+/**
+ * Persist first-play TAP coach progress.
+ * With no argument, counts one more completed fill. With a count, keeps the
+ * higher of disk and that value so an in-flight write cannot go backwards.
+ */
+export async function recordTapHintPlay(plays?: number): Promise<PersistState> {
+  const prev = await loadPersist();
+  const tapHintPlays =
+    plays == null
+      ? nextTapHintPlays(prev.tapHintPlays, 1)
+      : Math.max(prev.tapHintPlays, nextTapHintPlays(plays, 0));
+  if (tapHintPlays === prev.tapHintPlays) return prev;
+  const next = { ...prev, tapHintPlays };
+  await savePersist(next);
+  return next;
+}
+
 export async function commitRunResult(input: {
   score: number;
   coinsEarned: number;
   bestCombo: number;
   bestLevel: number;
   isDaily: boolean;
-  /** Fills in this run — advances the first-play TAP coach. */
-  attempts?: number;
 }): Promise<PersistState> {
   const prev = await loadPersist();
   const today = todayKey();
@@ -192,7 +207,9 @@ export async function commitRunResult(input: {
     dailyBest,
     dailyRecord,
     totalRuns: (prev.totalRuns ?? 0) + 1,
-    tapHintPlays: nextTapHintPlays(prev.tapHintPlays, input.attempts ?? 0),
+    // Coach progress is recorded per fill — do not fold this run's attempts
+    // here or an abandoned run's fills would be forgotten, then double-counted.
+    tapHintPlays: prev.tapHintPlays,
   };
   await savePersist(next);
   return next;

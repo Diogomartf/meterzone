@@ -12,14 +12,12 @@ import {
 function hint(
   overrides: Partial<{
     tapHintPlays: number;
-    attemptsThisRun: number;
     phase: Phase;
     paused: boolean;
   }> = {},
 ) {
   return shouldShowTapHint({
     tapHintPlays: 0,
-    attemptsThisRun: 0,
     phase: 'filling',
     paused: false,
     ...overrides,
@@ -29,14 +27,12 @@ function hint(
 function howTo(
   overrides: Partial<{
     tapHintPlays: number;
-    attemptsThisRun: number;
     phase: Phase;
     paused: boolean;
   }> = {},
 ) {
   return shouldShowTapHowTo({
     tapHintPlays: 0,
-    attemptsThisRun: 0,
     phase: 'filling',
     paused: false,
     ...overrides,
@@ -48,19 +44,11 @@ describe('shouldShowTapHint', () => {
     expect(hint()).toBe(true);
   });
 
-  test('shows for the first three fills of a new player', () => {
-    expect(hint({ attemptsThisRun: 0 })).toBe(true);
-    expect(hint({ attemptsThisRun: 1 })).toBe(true);
-    expect(hint({ attemptsThisRun: 2 })).toBe(true);
-    expect(hint({ attemptsThisRun: 3 })).toBe(false);
-  });
-
-  test('counts lifetime plays plus this run together', () => {
-    expect(hint({ tapHintPlays: 2, attemptsThisRun: 0 })).toBe(true);
-    expect(hint({ tapHintPlays: 2, attemptsThisRun: 1 })).toBe(false);
-    expect(hint({ tapHintPlays: TAP_HINT_PLAYS, attemptsThisRun: 0 })).toBe(
-      false,
-    );
+  test('shows until the lifetime count is used up', () => {
+    expect(hint({ tapHintPlays: 0 })).toBe(true);
+    expect(hint({ tapHintPlays: 1 })).toBe(true);
+    expect(hint({ tapHintPlays: 2 })).toBe(true);
+    expect(hint({ tapHintPlays: TAP_HINT_PLAYS })).toBe(false);
   });
 
   test('hides when the meter is not filling', () => {
@@ -84,6 +72,12 @@ describe('shouldShowTapHowTo', () => {
     expect(howTo({ phase: 'ready' })).toBe(false);
     expect(howTo({ phase: 'result' })).toBe(false);
     expect(howTo({ phase: 'gameover' })).toBe(false);
+  });
+
+  test('hides once the lifetime count is used up', () => {
+    expect(howTo({ tapHintPlays: TAP_HINT_PLAYS, phase: 'countdown' })).toBe(
+      false,
+    );
   });
 });
 
