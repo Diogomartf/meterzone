@@ -85,21 +85,17 @@ export function TapHint({ visible, bottom, shift = 108 }: Props) {
 
 /** Cardinal + diagonal copies so the white outline stays even around the word. */
 const STROKE_OFFSETS = [
-  [-3, 0],
-  [3, 0],
-  [0, -3],
-  [0, 3],
-  [-3, -3],
-  [3, -3],
-  [-3, 3],
-  [3, 3],
-  [-4, 0],
-  [4, 0],
-  [0, -4],
-  [0, 4],
+  [-2, 0],
+  [2, 0],
+  [0, -2],
+  [0, 2],
+  [-2, -2],
+  [2, -2],
+  [-2, 2],
+  [2, 2],
 ] as const;
 
-/** Black fill with a thick white outline — same sticker treatment as the hand. */
+/** Black fill with a thin white outline — same sticker treatment as the hand. */
 function TapLabel() {
   return (
     <View style={styles.labelWrap}>
