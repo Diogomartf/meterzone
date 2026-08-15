@@ -35,6 +35,7 @@ describe('loadPersist defaults', () => {
     expect(s.unlockedSkins).toEqual(['toxic']);
     expect(s.reviewPromptStatus).toBe('none');
     expect(s.reviewPromptsShown).toBe(0);
+    expect(s.tapHintPlays).toBe(0);
   });
 
   test('corrupt JSON falls back to defaults instead of throwing', async () => {
@@ -94,6 +95,23 @@ describe('loadPersist review-prompt migration', () => {
     expect((await loadPersist()).reviewPromptsShown).toBe(REVIEW_PROMPT_MAX);
     seed({ reviewPromptsShown: -5 });
     expect((await loadPersist()).reviewPromptsShown).toBe(0);
+  });
+});
+
+describe('loadPersist tap-hint migration', () => {
+  test('a veteran save without a count skips the coach', async () => {
+    seed({ totalRuns: 6, highScore: 400 });
+    expect((await loadPersist()).tapHintPlays).toBe(3);
+  });
+
+  test('a fresh save without a count still gets the coach', async () => {
+    seed({ highScore: 0, totalRuns: 0 });
+    expect((await loadPersist()).tapHintPlays).toBe(0);
+  });
+
+  test('an explicit count is kept even for veterans', async () => {
+    seed({ tapHintPlays: 1, totalRuns: 4, highScore: 900 });
+    expect((await loadPersist()).tapHintPlays).toBe(1);
   });
 });
 
@@ -264,6 +282,27 @@ describe('commitRunResult', () => {
     expect((await loadPersist()).highScore).toBe(777);
     expect(readAsyncStorage(KEY)).toContain('777');
   });
+
+  test('attempts advance the TAP coach and cap at three', async () => {
+    const first = await commitRunResult({
+      score: 10,
+      coinsEarned: 0,
+      bestCombo: 0,
+      bestLevel: 2,
+      isDaily: false,
+      attempts: 2,
+    });
+    expect(first.tapHintPlays).toBe(2);
+    const second = await commitRunResult({
+      score: 10,
+      coinsEarned: 0,
+      bestCombo: 0,
+      bestLevel: 2,
+      isDaily: false,
+      attempts: 8,
+    });
+    expect(second.tapHintPlays).toBe(3);
+  });
 });
 
 describe('review persistence', () => {
@@ -323,6 +362,7 @@ describe('clearPersist', () => {
     expect(cleared.highScore).toBe(0);
     expect(cleared.coins).toBe(0);
     expect(cleared.totalRuns).toBe(0);
+    expect(cleared.tapHintPlays).toBe(0);
     expect(readAsyncStorage(KEY)).toBeUndefined();
     expect((await loadPersist()).highScore).toBe(0);
   });

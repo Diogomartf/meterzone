@@ -30,12 +30,14 @@ import { MenuSheet } from '@/game/MenuSheet';
 import { MissBreak } from '@/game/MissBreak';
 import { PerfectSwoosh } from '@/game/PerfectSwoosh';
 import { ReviewPromptModal } from '@/game/ReviewPromptModal';
+import { TapHint } from '@/game/TapHint';
 import { VerticalMeter } from '@/game/VerticalMeter';
 import { formatScore } from '@/game/format';
 import { gameHaptics, setGameHapticsEnabled } from '@/game/haptics';
 import { createRng, makeRound } from '@/game/levels';
 import { shouldShowReviewPrompt } from '@/game/review';
 import { comboMultiplier, scoreFill, STARTING_LIVES } from '@/game/scoring';
+import { shouldShowTapHint } from '@/game/tapHint';
 import {
   feedbackSlotFor,
   initialRunState,
@@ -186,9 +188,7 @@ function SecondaryCta({ label, subtitle, onPress }: SecondaryCtaProps) {
       accessibilityLabel={subtitle ? `${label}. ${subtitle}` : label}
     >
       <Text style={styles.secondaryCtaLabel}>{label}</Text>
-      {subtitle ? (
-        <Text style={styles.secondaryCtaSub}>{subtitle}</Text>
-      ) : null}
+      {subtitle ? <Text style={styles.secondaryCtaSub}>{subtitle}</Text> : null}
     </Pressable>
   );
 }
@@ -512,6 +512,7 @@ export function GameScreen() {
         bestCombo: session.bestCombo,
         bestLevel: stateRef.current.round.level,
         isDaily: stateRef.current.dailyMode,
+        attempts: session.attempts,
       });
       setPersist(next);
       const beatBest =
@@ -1087,6 +1088,14 @@ export function GameScreen() {
   }, [capturingShare]);
 
   const hitEnabled = phase === 'filling' && !menuOpen;
+  const showTapHint =
+    persist != null &&
+    shouldShowTapHint({
+      tapHintPlays: persist.tapHintPlays,
+      attemptsThisRun: stats.attempts,
+      phase,
+      paused: menuOpen,
+    });
   const meterScale = round.meterScale;
   const meterWrapH = METER_BASE_H * meterScale + METER_WRAP_EXTRA;
   // Pin meter base to the yellow pad in the background art
@@ -1318,6 +1327,12 @@ export function GameScreen() {
 
         <CountdownBurst value={countdown} visible={phase === 'countdown'} />
 
+        <TapHint
+          visible={showTapHint}
+          bottom={meterBottom + meterWrapH * 0.22}
+          shift={Math.min(108, Math.max(56, windowW * 0.24))}
+        />
+
         {phase === 'gameover' ? (
           <View
             style={[styles.gameOverPanel, { paddingTop: insets.top + 176 }]}
@@ -1459,6 +1474,7 @@ export function GameScreen() {
           style={styles.hitLayer}
           onPressIn={onTap}
           accessibilityRole="button"
+          accessibilityLabel="Tap to stop the meter"
           android_ripple={{ color: 'transparent' }}
         />
       ) : null}

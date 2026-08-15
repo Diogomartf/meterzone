@@ -85,4 +85,9 @@ export type PersistState = {
   reviewPromptsShown: number;
   /** totalRuns when the last soft prompt was answered (decline). */
   reviewLastPromptAtRuns: number;
+  /**
+   * Fills already coached with the on-screen TAP hint (0…TAP_HINT_PLAYS).
+   * New installs start at 0; players from before this field skip the coach.
+   */
+  tapHintPlays: number;
 };

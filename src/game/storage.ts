@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { DEFAULT_SKIN } from '@/game/skins';
 import { REVIEW_PROMPT_MAX } from '@/game/review';
+import { migrateTapHintPlays, nextTapHintPlays } from '@/game/tapHint';
 import type { PersistState, ReviewPromptStatus, SkinId } from '@/game/types';
 
 const KEY = 'zone-meter:persist-v1';
@@ -25,6 +26,7 @@ const DEFAULT_STATE: PersistState = {
   reviewPromptStatus: 'none',
   reviewPromptsShown: 0,
   reviewLastPromptAtRuns: 0,
+  tapHintPlays: 0,
 };
 
 function parseReviewPromptStatus(value: unknown): ReviewPromptStatus {
@@ -107,6 +109,7 @@ export async function loadPersist(): Promise<PersistState> {
       reviewLastPromptAtRuns: Number.isFinite(parsed.reviewLastPromptAtRuns)
         ? Math.max(0, Number(parsed.reviewLastPromptAtRuns))
         : 0,
+      tapHintPlays: migrateTapHintPlays(parsed),
     };
   } catch {
     return {
@@ -151,6 +154,8 @@ export async function commitRunResult(input: {
   bestCombo: number;
   bestLevel: number;
   isDaily: boolean;
+  /** Fills in this run — advances the first-play TAP coach. */
+  attempts?: number;
 }): Promise<PersistState> {
   const prev = await loadPersist();
   const today = todayKey();
@@ -187,6 +192,7 @@ export async function commitRunResult(input: {
     dailyBest,
     dailyRecord,
     totalRuns: (prev.totalRuns ?? 0) + 1,
+    tapHintPlays: nextTapHintPlays(prev.tapHintPlays, input.attempts ?? 0),
   };
   await savePersist(next);
   return next;
