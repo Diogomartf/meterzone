@@ -77,8 +77,41 @@ export function TapHint({ visible, bottom, shift = 108 }: Props) {
           contentFit="contain"
           cachePolicy="memory-disk"
         />
-        <Text style={styles.label}>TAP</Text>
+        <TapLabel />
       </Animated.View>
+    </View>
+  );
+}
+
+/** Cardinal + diagonal copies so the white outline stays even around the word. */
+const STROKE_OFFSETS = [
+  [-3, 0],
+  [3, 0],
+  [0, -3],
+  [0, 3],
+  [-3, -3],
+  [3, -3],
+  [-3, 3],
+  [3, 3],
+  [-4, 0],
+  [4, 0],
+  [0, -4],
+  [0, 4],
+] as const;
+
+/** Black fill with a thick white outline — same sticker treatment as the hand. */
+function TapLabel() {
+  return (
+    <View style={styles.labelWrap}>
+      {STROKE_OFFSETS.map(([x, y], i) => (
+        <Text
+          key={i}
+          style={[styles.label, styles.labelStroke, { left: x, top: y }]}
+        >
+          TAP
+        </Text>
+      ))}
+      <Text style={[styles.label, styles.labelFill]}>TAP</Text>
     </View>
   );
 }
@@ -98,15 +131,22 @@ const styles = StyleSheet.create({
     width: 92,
     height: 112,
   },
-  label: {
+  labelWrap: {
     marginTop: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  label: {
     fontFamily: GameFonts.display,
     fontSize: 36,
     lineHeight: 40,
     letterSpacing: 2,
-    color: GameColors.lemon,
-    textShadowColor: GameColors.ink,
-    textShadowOffset: { width: 0, height: 3 },
-    textShadowRadius: 0,
+  },
+  labelStroke: {
+    position: 'absolute',
+    color: GameColors.white,
+  },
+  labelFill: {
+    color: GameColors.ink,
   },
 });
