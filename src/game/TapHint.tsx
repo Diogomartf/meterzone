@@ -17,19 +17,31 @@ const TAP_HAND = require('../../assets/images/tap-hand.png');
 /** 30% transparent — the meter stays readable underneath. */
 const HAND_OPACITY = 0.7;
 
+/** Displayed size of the pointing-hand asset. */
+export const TAP_HAND_SIZE = { width: 92, height: 112 } as const;
+/**
+ * Tap-circle center in the PNG (finger + ball), as a fraction of displayed size.
+ * Measured from the baked asset: circle mid ≈ (151, 70) in a 430×512 image.
+ */
+const TAP_BALL = { x: 151 / 430, y: 70 / 512 } as const;
+/** Gap from the meter’s right edge to the tap-circle center. */
+export const TAP_BALL_GAP = 32;
+
 type Props = {
   visible: boolean;
-  /** Distance from the bottom of the screen to sit beside the meter. */
-  bottom: number;
-  /** Nudge right so the hand sits beside the meter, not on the zone. */
-  shift?: number;
+  /** Screen X of the tap-circle center. */
+  ballX: number;
+  /** Distance from the bottom of the screen to the tap-circle center. */
+  ballBottom: number;
 };
 
 /**
  * First-play coach: pointing hand + TAP, bouncing like a finger on the glass.
+ * The tap-circle sits on the Perfect line, 32px off the meter — taps work
+ * anywhere, so the hint stays out of the tube.
  * Decorative — taps fall through to the full-screen hit layer.
  */
-export function TapHint({ visible, bottom, shift = 108 }: Props) {
+export function TapHint({ visible, ballX, ballBottom }: Props) {
   const opacity = useSharedValue(0);
   const tap = useSharedValue(0);
 
@@ -56,30 +68,34 @@ export function TapHint({ visible, bottom, shift = 108 }: Props) {
     );
   }, [opacity, tap, visible]);
 
+  const originX = TAP_HAND_SIZE.width * TAP_BALL.x;
+
   const motionStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
-    transform: [
-      { translateY: tap.value * 16 },
-      { scale: 1 - tap.value * 0.06 },
-    ],
+    transform: [{ scale: 1 - tap.value * 0.08 }],
   }));
 
   if (!visible) return null;
 
+  const left = ballX - originX;
+  const bottom = ballBottom - TAP_HAND_SIZE.height * (1 - TAP_BALL.y);
+
   return (
     <View
-      style={[styles.wrap, { bottom }]}
+      style={[styles.wrap, { left, bottom }]}
       pointerEvents="none"
       accessibilityElementsHidden
     >
-      <Animated.View style={[styles.stack, { marginLeft: shift }, motionStyle]}>
+      <Animated.View style={[styles.stack, motionStyle]}>
         <Image
           source={TAP_HAND}
           style={styles.hand}
           contentFit="contain"
           cachePolicy="memory-disk"
         />
-        <TapLabel />
+        <View style={styles.labelSlot}>
+          <TapLabel />
+        </View>
       </Animated.View>
     </View>
   );
@@ -117,18 +133,26 @@ function TapLabel() {
 const styles = StyleSheet.create({
   wrap: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    alignItems: 'center',
+    width: TAP_HAND_SIZE.width,
+    height: TAP_HAND_SIZE.height,
     zIndex: 32,
   },
   stack: {
-    alignItems: 'center',
+    width: TAP_HAND_SIZE.width,
+    height: TAP_HAND_SIZE.height,
+    transformOrigin: `${TAP_HAND_SIZE.width * TAP_BALL.x}px ${TAP_HAND_SIZE.height * TAP_BALL.y}px`,
   },
   hand: {
-    width: 92,
-    height: 112,
+    width: TAP_HAND_SIZE.width,
+    height: TAP_HAND_SIZE.height,
     opacity: HAND_OPACITY,
+  },
+  labelSlot: {
+    position: 'absolute',
+    top: TAP_HAND_SIZE.height,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
   },
   labelWrap: {
     marginTop: 2,

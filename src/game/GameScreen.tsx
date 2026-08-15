@@ -30,7 +30,7 @@ import { MenuSheet } from '@/game/MenuSheet';
 import { MissBreak } from '@/game/MissBreak';
 import { PerfectSwoosh } from '@/game/PerfectSwoosh';
 import { ReviewPromptModal } from '@/game/ReviewPromptModal';
-import { TapHint } from '@/game/TapHint';
+import { TapHint, TAP_BALL_GAP } from '@/game/TapHint';
 import { VerticalMeter } from '@/game/VerticalMeter';
 import { formatScore } from '@/game/format';
 import { gameHaptics, setGameHapticsEnabled } from '@/game/haptics';
@@ -80,7 +80,12 @@ const FEEDBACK_EMAIL = 'hello@meterzone.net';
 /** Yellow pad surface in game-bg.png (fraction of image height from top). */
 const PAD_SURFACE_Y = 0.905;
 const METER_BASE_H = 340;
+const METER_BASE_W = 100;
 const METER_WRAP_EXTRA = 28;
+/** Inner tube is 20px shorter than the shell (VerticalMeter innerH). */
+const METER_INNER_INSET = 20;
+/** Shell padding + glass border under the fill, from the wrap bottom. */
+const METER_GLASS_BOTTOM = (scale: number) => 10 + 9 * scale + 3;
 
 /**
  * Run pacing, in ms. These are the knobs that decide how the game *feels*
@@ -1110,12 +1115,18 @@ export function GameScreen() {
     });
   const meterScale = round.meterScale;
   const meterWrapH = METER_BASE_H * meterScale + METER_WRAP_EXTRA;
+  const meterW = METER_BASE_W * meterScale;
+  const meterH = METER_BASE_H * meterScale;
+  const innerH = meterH - METER_INNER_INSET;
   // Pin meter base to the yellow pad in the background art
   const meterBottom = Math.max(
     insets.bottom + 4,
     windowH * (1 - PAD_SURFACE_Y),
   );
   const menuBottom = meterBottom + meterWrapH * 0.42;
+  const tapBallX = windowW / 2 + meterW / 2 + TAP_BALL_GAP;
+  const tapBallBottom =
+    meterBottom + METER_GLASS_BOTTOM(meterScale) + round.target * innerH;
   return (
     <View ref={shareRef} style={styles.root} collapsable={false}>
       <View style={styles.backdrop} pointerEvents="none">
@@ -1158,6 +1169,12 @@ export function GameScreen() {
           />
         </Animated.View>
       </View>
+
+      <TapHint
+        visible={showTapHint}
+        ballX={tapBallX}
+        ballBottom={tapBallBottom}
+      />
 
       <View
         style={[styles.content, { paddingTop: insets.top + 8 }]}
@@ -1341,12 +1358,6 @@ export function GameScreen() {
         </Animated.View>
 
         <CountdownBurst value={countdown} visible={phase === 'countdown'} />
-
-        <TapHint
-          visible={showTapHint}
-          bottom={meterBottom + meterWrapH * 0.22}
-          shift={Math.min(108, Math.max(56, windowW * 0.24))}
-        />
 
         {phase === 'gameover' ? (
           <View
