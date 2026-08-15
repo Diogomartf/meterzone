@@ -12,7 +12,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { GameColors, GameFonts } from '@/constants/gameTheme';
+import { GameFonts } from '@/constants/gameTheme';
 
 const TAP_HAND = require('../../assets/images/tap-hand.png');
 /** 30% transparent — the meter stays readable underneath. */
@@ -37,46 +37,64 @@ type Props = {
 };
 
 /**
- * First-play coach: pointing hand + TAP, bouncing like a finger on the glass.
+ * First-play coach: pointing hand + TAP.
  * The tap-circle sits on the Perfect line, 32px off the meter — taps work
  * anywhere, so the hint stays out of the tube.
+ * The hand fades in, presses, then fades out so the gesture reads as a tap.
  * Decorative — taps fall through to the full-screen hit layer.
  */
 export function TapHint({ visible, ballX, ballBottom }: Props) {
-  const opacity = useSharedValue(0);
-  const tap = useSharedValue(0);
+  const shown = useSharedValue(0);
+  const pulse = useSharedValue(0);
+  const press = useSharedValue(0);
 
   useEffect(() => {
     if (!visible) {
-      opacity.value = 0;
-      cancelAnimation(tap);
-      tap.value = 0;
+      shown.value = 0;
+      cancelAnimation(pulse);
+      cancelAnimation(press);
+      pulse.value = 0;
+      press.value = 0;
       return;
     }
 
-    opacity.value = withTiming(1, { duration: 160 });
-    tap.value = 0;
-    tap.value = withRepeat(
+    shown.value = withTiming(1, { duration: 160 });
+    pulse.value = 0;
+    press.value = 0;
+    // Appear → hold through the press → fade out → brief rest.
+    pulse.value = withRepeat(
       withSequence(
-        withTiming(1, { duration: 150, easing: Easing.in(Easing.quad) }),
-        withTiming(0, {
-          duration: 480,
-          easing: Easing.out(Easing.cubic),
-        }),
+        withTiming(1, { duration: 220, easing: Easing.out(Easing.cubic) }),
+        withTiming(1, { duration: 280 }),
+        withTiming(0, { duration: 300, easing: Easing.in(Easing.quad) }),
+        withTiming(0, { duration: 220 }),
       ),
       -1,
       false,
     );
-  }, [opacity, tap, visible]);
+    press.value = withRepeat(
+      withSequence(
+        withDelay(
+          160,
+          withTiming(1, { duration: 130, easing: Easing.in(Easing.quad) }),
+        ),
+        withTiming(0, { duration: 340, easing: Easing.out(Easing.cubic) }),
+        withTiming(0, { duration: 390 }),
+      ),
+      -1,
+      false,
+    );
+  }, [press, pulse, shown, visible]);
 
   const originX = TAP_HAND_SIZE.width * TAP_BALL.x;
 
   const fadeStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
+    opacity: shown.value,
   }));
 
-  const motionStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: 1 - tap.value * 0.08 }],
+  const handStyle = useAnimatedStyle(() => ({
+    opacity: pulse.value,
+    transform: [{ scale: 1 - press.value * 0.1 }],
   }));
 
   if (!visible) return null;
@@ -90,21 +108,21 @@ export function TapHint({ visible, ballX, ballBottom }: Props) {
       pointerEvents="none"
       accessibilityElementsHidden
     >
-      <View style={styles.ringAnchor} pointerEvents="none">
-        <TapRing visible={visible} delay={0} />
-        <TapRing visible={visible} delay={420} />
-      </View>
-      <Animated.View style={[styles.stack, motionStyle]}>
+      <Animated.View style={[styles.handLayer, handStyle]}>
+        <View style={styles.ringAnchor} pointerEvents="none">
+          <TapRing visible={visible} delay={0} />
+          <TapRing visible={visible} delay={420} />
+        </View>
         <Image
           source={TAP_HAND}
           style={styles.hand}
           contentFit="contain"
           cachePolicy="memory-disk"
         />
-        <View style={styles.labelSlot}>
-          <TapLabel />
-        </View>
       </Animated.View>
+      <View style={styles.labelSlot}>
+        <TapLabel />
+      </View>
     </Animated.View>
   );
 }
@@ -195,10 +213,9 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(200, 206, 214, 0.95)',
   },
-  stack: {
+  handLayer: {
     width: TAP_HAND_SIZE.width,
     height: TAP_HAND_SIZE.height,
-    zIndex: 2,
     transformOrigin: `${TAP_HAND_SIZE.width * TAP_BALL.x}px ${TAP_HAND_SIZE.height * TAP_BALL.y}px`,
   },
   hand: {
@@ -208,7 +225,7 @@ const styles = StyleSheet.create({
   },
   labelSlot: {
     position: 'absolute',
-    top: TAP_HAND_SIZE.height,
+    top: TAP_HAND_SIZE.height + 6,
     left: 0,
     right: 0,
     alignItems: 'center',
