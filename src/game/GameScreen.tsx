@@ -164,6 +164,35 @@ function GameCta({ label, subtitle, face, depth, onPress }: GameCtaProps) {
   );
 }
 
+type SecondaryCtaProps = {
+  label: string;
+  subtitle?: string;
+  onPress: () => void;
+};
+
+/**
+ * Quiet home-screen alternate — no 3D chrome so it cannot compete with PLAY.
+ * Daily lives here so the ready screen has one clear primary action.
+ */
+function SecondaryCta({ label, subtitle, onPress }: SecondaryCtaProps) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.secondaryCta,
+        pressed && styles.secondaryCtaPressed,
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={subtitle ? `${label}. ${subtitle}` : label}
+    >
+      <Text style={styles.secondaryCtaLabel}>{label}</Text>
+      {subtitle ? (
+        <Text style={styles.secondaryCtaSub}>{subtitle}</Text>
+      ) : null}
+    </Pressable>
+  );
+}
+
 type ScoreModuleProps = {
   best: number;
   bestLevel: number;
@@ -1390,11 +1419,9 @@ export function GameScreen() {
               depth="#D97706"
               onPress={() => startRun(false)}
             />
-            <GameCta
+            <SecondaryCta
               label="DAILY"
-              subtitle="Same sequence for everyone · updates daily"
-              face={GameColors.bubble}
-              depth={GameColors.bubbleDark}
+              subtitle="Same sequence · updates daily"
               onPress={() => startRun(true)}
             />
           </View>
@@ -1883,7 +1910,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 28,
     right: 28,
-    gap: 14,
+    gap: 10,
     zIndex: 40,
     alignItems: 'center',
   },
@@ -1943,5 +1970,38 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     color: 'rgba(255,255,255,0.92)',
     letterSpacing: 0.8,
+  },
+  // Secondary home action — flat, compact, no lip so PLAY stays the default.
+  secondaryCta: {
+    width: '100%',
+    maxWidth: 320,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 2.5,
+    borderColor: 'rgba(26,28,44,0.28)',
+    backgroundColor: 'rgba(255,255,255,0.28)',
+    gap: 2,
+  },
+  secondaryCtaPressed: {
+    backgroundColor: 'rgba(255,255,255,0.42)',
+    transform: [{ scale: 0.98 }],
+  },
+  secondaryCtaLabel: {
+    fontFamily: GameFonts.body,
+    fontSize: 15,
+    lineHeight: 18,
+    color: GameColors.ink,
+    letterSpacing: 1.2,
+  },
+  secondaryCtaSub: {
+    fontFamily: GameFonts.soft,
+    fontSize: 11,
+    lineHeight: 13,
+    color: 'rgba(26,28,44,0.72)',
+    letterSpacing: 0.3,
+    textAlign: 'center',
   },
 });
