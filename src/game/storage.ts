@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { DEFAULT_SKIN } from '@/game/skins';
 import { REVIEW_PROMPT_MAX } from '@/game/review';
-import { migrateTapHintPlays, nextTapHintPlays } from '@/game/tapHint';
+import { migrateTapHintPlays, nextTapHintPlays } from '@/game/tapCoach';
 import type { PersistState, ReviewPromptStatus, SkinId } from '@/game/types';
 
 const KEY = 'zone-meter:persist-v1';

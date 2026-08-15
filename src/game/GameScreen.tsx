@@ -37,7 +37,7 @@ import { gameHaptics, setGameHapticsEnabled } from '@/game/haptics';
 import { createRng, makeRound } from '@/game/levels';
 import { shouldShowReviewPrompt } from '@/game/review';
 import { comboMultiplier, scoreFill, STARTING_LIVES } from '@/game/scoring';
-import { shouldShowTapHint } from '@/game/tapHint';
+import { shouldShowTapHint } from '@/game/tapCoach';
 import {
   feedbackSlotFor,
   initialRunState,

@@ -6,7 +6,7 @@ import {
   migrateTapHintPlays,
   nextTapHintPlays,
   shouldShowTapHint,
-} from '@/game/tapHint';
+} from '@/game/tapCoach';
 
 function hint(
   overrides: Partial<{
