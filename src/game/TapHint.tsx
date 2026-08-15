@@ -6,6 +6,7 @@ import Animated, {
   cancelAnimation,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
   withRepeat,
   withSequence,
   withTiming,
@@ -70,8 +71,11 @@ export function TapHint({ visible, ballX, ballBottom }: Props) {
 
   const originX = TAP_HAND_SIZE.width * TAP_BALL.x;
 
-  const motionStyle = useAnimatedStyle(() => ({
+  const fadeStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
+  }));
+
+  const motionStyle = useAnimatedStyle(() => ({
     transform: [{ scale: 1 - tap.value * 0.08 }],
   }));
 
@@ -81,11 +85,15 @@ export function TapHint({ visible, ballX, ballBottom }: Props) {
   const bottom = ballBottom - TAP_HAND_SIZE.height * (1 - TAP_BALL.y);
 
   return (
-    <View
-      style={[styles.wrap, { left, bottom }]}
+    <Animated.View
+      style={[styles.wrap, { left, bottom }, fadeStyle]}
       pointerEvents="none"
       accessibilityElementsHidden
     >
+      <View style={styles.ringAnchor} pointerEvents="none">
+        <TapRing visible={visible} delay={0} />
+        <TapRing visible={visible} delay={420} />
+      </View>
       <Animated.View style={[styles.stack, motionStyle]}>
         <Image
           source={TAP_HAND}
@@ -97,8 +105,39 @@ export function TapHint({ visible, ballX, ballBottom }: Props) {
           <TapLabel />
         </View>
       </Animated.View>
-    </View>
+    </Animated.View>
   );
+}
+
+const RING_SIZE = 22;
+
+/** Expanding circle lines from the fingertip ball — reads as a tap. */
+function TapRing({ visible, delay }: { visible: boolean; delay: number }) {
+  const wave = useSharedValue(0);
+
+  useEffect(() => {
+    if (!visible) {
+      cancelAnimation(wave);
+      wave.value = 0;
+      return;
+    }
+    wave.value = 0;
+    wave.value = withDelay(
+      delay,
+      withRepeat(
+        withTiming(1, { duration: 900, easing: Easing.out(Easing.cubic) }),
+        -1,
+        false,
+      ),
+    );
+  }, [delay, visible, wave]);
+
+  const style = useAnimatedStyle(() => ({
+    opacity: (1 - wave.value) * 0.5,
+    transform: [{ scale: 0.65 + wave.value * 1.85 }],
+  }));
+
+  return <Animated.View style={[styles.ring, style]} />;
 }
 
 /** Cardinal + diagonal copies so the white outline stays even around the word. */
@@ -136,10 +175,30 @@ const styles = StyleSheet.create({
     width: TAP_HAND_SIZE.width,
     height: TAP_HAND_SIZE.height,
     zIndex: 32,
+    overflow: 'visible',
+  },
+  ringAnchor: {
+    position: 'absolute',
+    left: TAP_HAND_SIZE.width * TAP_BALL.x - RING_SIZE / 2,
+    top: TAP_HAND_SIZE.height * TAP_BALL.y - RING_SIZE / 2,
+    width: RING_SIZE,
+    height: RING_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  ring: {
+    position: 'absolute',
+    width: RING_SIZE,
+    height: RING_SIZE,
+    borderRadius: RING_SIZE / 2,
+    borderWidth: 2,
+    borderColor: 'rgba(200, 206, 214, 0.95)',
   },
   stack: {
     width: TAP_HAND_SIZE.width,
     height: TAP_HAND_SIZE.height,
+    zIndex: 2,
     transformOrigin: `${TAP_HAND_SIZE.width * TAP_BALL.x}px ${TAP_HAND_SIZE.height * TAP_BALL.y}px`,
   },
   hand: {
