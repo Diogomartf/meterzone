@@ -113,7 +113,7 @@ const STROKE_OFFSETS = [
   [2, 2],
 ] as const;
 
-/** Black fill with a thin white outline — same sticker treatment as the hand. */
+/** Gray fill + thin white outline, same 70% opacity as the hand. */
 function TapLabel() {
   return (
     <View style={styles.labelWrap}>
@@ -158,6 +158,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
     alignItems: 'center',
     justifyContent: 'center',
+    opacity: HAND_OPACITY,
   },
   label: {
     fontFamily: GameFonts.display,
@@ -167,9 +168,9 @@ const styles = StyleSheet.create({
   },
   labelStroke: {
     position: 'absolute',
-    color: GameColors.white,
+    color: 'rgba(255,255,255,0.85)',
   },
   labelFill: {
-    color: GameColors.ink,
+    color: '#7A828C',
   },
 });
