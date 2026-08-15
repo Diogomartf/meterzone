@@ -14,6 +14,8 @@ import Animated, {
 import { GameColors, GameFonts } from '@/constants/gameTheme';
 
 const TAP_HAND = require('../../assets/images/tap-hand.png');
+/** 30% transparent — the meter stays readable underneath. */
+const HAND_OPACITY = 0.7;
 
 type Props = {
   visible: boolean;
@@ -126,6 +128,7 @@ const styles = StyleSheet.create({
   hand: {
     width: 92,
     height: 112,
+    opacity: HAND_OPACITY,
   },
   labelWrap: {
     marginTop: 2,

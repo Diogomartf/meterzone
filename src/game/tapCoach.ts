@@ -3,6 +3,9 @@ import type { Phase } from '@/game/runState';
 /** How many fills a new player sees the on-screen tap coach. */
 export const TAP_HINT_PLAYS = 3;
 
+/** Copy under the level label while the first-play coach is up. */
+export const TAP_HOW_TO = 'Tap when meter hits the color zone';
+
 type HintInput = {
   tapHintPlays: number;
   attemptsThisRun: number;
@@ -18,6 +21,18 @@ export function shouldShowTapHint({
   paused,
 }: HintInput): boolean {
   if (paused || phase !== 'filling') return false;
+  return tapHintPlays + attemptsThisRun < TAP_HINT_PLAYS;
+}
+
+/** How-to line under LVL — filling and countdown, so it can be read before GO. */
+export function shouldShowTapHowTo({
+  tapHintPlays,
+  attemptsThisRun,
+  phase,
+  paused,
+}: HintInput): boolean {
+  if (paused) return false;
+  if (phase !== 'filling' && phase !== 'countdown') return false;
   return tapHintPlays + attemptsThisRun < TAP_HINT_PLAYS;
 }
 

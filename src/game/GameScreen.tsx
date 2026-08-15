@@ -37,7 +37,11 @@ import { gameHaptics, setGameHapticsEnabled } from '@/game/haptics';
 import { createRng, makeRound } from '@/game/levels';
 import { shouldShowReviewPrompt } from '@/game/review';
 import { comboMultiplier, scoreFill, STARTING_LIVES } from '@/game/scoring';
-import { shouldShowTapHint } from '@/game/tapCoach';
+import {
+  shouldShowTapHint,
+  shouldShowTapHowTo,
+  TAP_HOW_TO,
+} from '@/game/tapCoach';
 import {
   feedbackSlotFor,
   initialRunState,
@@ -1096,6 +1100,14 @@ export function GameScreen() {
       phase,
       paused: menuOpen,
     });
+  const showTapHowTo =
+    persist != null &&
+    shouldShowTapHowTo({
+      tapHintPlays: persist.tapHintPlays,
+      attemptsThisRun: stats.attempts,
+      phase,
+      paused: menuOpen,
+    });
   const meterScale = round.meterScale;
   const meterWrapH = METER_BASE_H * meterScale + METER_WRAP_EXTRA;
   // Pin meter base to the yellow pad in the background art
@@ -1233,6 +1245,9 @@ export function GameScreen() {
             ) : (
               <>
                 <Text style={styles.metaLine}>LVL {round.level}</Text>
+                {showTapHowTo ? (
+                  <Text style={styles.tapHowTo}>{TAP_HOW_TO}</Text>
+                ) : null}
                 {isNewBest ? (
                   <Animated.Text style={[styles.newBestTag, newBestStyle]}>
                     NEW BEST
@@ -1759,6 +1774,18 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 26,
     color: GameColors.ink,
+  },
+  tapHowTo: {
+    marginTop: 6,
+    maxWidth: 260,
+    fontFamily: GameFonts.body,
+    fontSize: 15,
+    lineHeight: 19,
+    textAlign: 'center',
+    color: GameColors.white,
+    textShadowColor: GameColors.ink,
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 0,
   },
   newBestTag: {
     marginTop: 4,

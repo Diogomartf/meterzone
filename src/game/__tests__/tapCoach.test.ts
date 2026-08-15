@@ -6,6 +6,7 @@ import {
   migrateTapHintPlays,
   nextTapHintPlays,
   shouldShowTapHint,
+  shouldShowTapHowTo,
 } from '@/game/tapCoach';
 
 function hint(
@@ -17,6 +18,23 @@ function hint(
   }> = {},
 ) {
   return shouldShowTapHint({
+    tapHintPlays: 0,
+    attemptsThisRun: 0,
+    phase: 'filling',
+    paused: false,
+    ...overrides,
+  });
+}
+
+function howTo(
+  overrides: Partial<{
+    tapHintPlays: number;
+    attemptsThisRun: number;
+    phase: Phase;
+    paused: boolean;
+  }> = {},
+) {
+  return shouldShowTapHowTo({
     tapHintPlays: 0,
     attemptsThisRun: 0,
     phase: 'filling',
@@ -53,6 +71,19 @@ describe('shouldShowTapHint', () => {
 
   test('hides while the menu is open', () => {
     expect(hint({ paused: true })).toBe(false);
+  });
+});
+
+describe('shouldShowTapHowTo', () => {
+  test('shows under LVL during countdown and filling', () => {
+    expect(howTo({ phase: 'countdown' })).toBe(true);
+    expect(howTo({ phase: 'filling' })).toBe(true);
+  });
+
+  test('hides on ready, result and game over', () => {
+    expect(howTo({ phase: 'ready' })).toBe(false);
+    expect(howTo({ phase: 'result' })).toBe(false);
+    expect(howTo({ phase: 'gameover' })).toBe(false);
   });
 });
 
