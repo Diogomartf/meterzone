@@ -42,18 +42,14 @@ function howTo(
 }
 
 describe('shouldShowTapHint', () => {
-  test('shows while the first fill is running', () => {
-    expect(hint()).toBe(true);
+  test('stays hidden until this fill’s slot has been persisted', () => {
+    expect(hint()).toBe(false);
+    expect(hint({ tapHintPlays: 0 })).toBe(false);
+    expect(hint({ tapHintPlays: 2 })).toBe(false);
   });
 
-  test('shows until the lifetime count is used up', () => {
-    expect(hint({ tapHintPlays: 0 })).toBe(true);
-    expect(hint({ tapHintPlays: 1 })).toBe(true);
-    expect(hint({ tapHintPlays: 2 })).toBe(true);
-    expect(hint({ tapHintPlays: TAP_HINT_PLAYS })).toBe(false);
-  });
-
-  test('the fill that consumed the last slot still shows the coach', () => {
+  test('shows only after the persisted latch is set', () => {
+    expect(hint({ coachThisFill: true })).toBe(true);
     expect(hint({ tapHintPlays: TAP_HINT_PLAYS, coachThisFill: true })).toBe(
       true,
     );
@@ -61,19 +57,24 @@ describe('shouldShowTapHint', () => {
 
   test('hides when the meter is not filling', () => {
     for (const phase of ['ready', 'countdown', 'result', 'gameover'] as const) {
-      expect(hint({ phase })).toBe(false);
+      expect(hint({ phase, coachThisFill: true })).toBe(false);
     }
   });
 
   test('hides while the menu is open', () => {
-    expect(hint({ paused: true })).toBe(false);
+    expect(hint({ paused: true, coachThisFill: true })).toBe(false);
   });
 });
 
 describe('shouldShowTapHowTo', () => {
-  test('shows under LVL during countdown and filling', () => {
+  test('shows under LVL during countdown while slots remain', () => {
     expect(howTo({ phase: 'countdown' })).toBe(true);
-    expect(howTo({ phase: 'filling' })).toBe(true);
+    expect(howTo({ tapHintPlays: 2, phase: 'countdown' })).toBe(true);
+  });
+
+  test('shows during filling only after the slot is persisted', () => {
+    expect(howTo({ phase: 'filling' })).toBe(false);
+    expect(howTo({ phase: 'filling', coachThisFill: true })).toBe(true);
   });
 
   test('hides on ready, result and game over', () => {

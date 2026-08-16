@@ -179,6 +179,17 @@ export async function clearPersist(): Promise<PersistState> {
   return freshPersist();
 }
 
+let persistChain: Promise<unknown> = Promise.resolve();
+
+function withPersistLock<T>(fn: () => Promise<T>): Promise<T> {
+  const run = persistChain.then(fn, fn);
+  persistChain = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
+}
+
 /**
  * Persist first-play TAP coach progress.
  * Writes the tiny sidecar count before the full save blob.
@@ -186,16 +197,18 @@ export async function clearPersist(): Promise<PersistState> {
  * higher of disk and that value so an in-flight write cannot go backwards.
  */
 export async function recordTapHintPlay(plays?: number): Promise<PersistState> {
-  const prev = await loadPersist();
-  const tapHintPlays =
-    plays == null
-      ? nextTapHintPlays(prev.tapHintPlays, 1)
-      : Math.max(prev.tapHintPlays, nextTapHintPlays(plays, 0));
-  if (tapHintPlays === prev.tapHintPlays) return prev;
-  await AsyncStorage.setItem(TAP_HINT_KEY, String(tapHintPlays));
-  const next = { ...prev, tapHintPlays };
-  await savePersist(next);
-  return next;
+  return withPersistLock(async () => {
+    const prev = await loadPersist();
+    const tapHintPlays =
+      plays == null
+        ? nextTapHintPlays(prev.tapHintPlays, 1)
+        : Math.max(prev.tapHintPlays, nextTapHintPlays(plays, 0));
+    if (tapHintPlays === prev.tapHintPlays) return prev;
+    await AsyncStorage.setItem(TAP_HINT_KEY, String(tapHintPlays));
+    const next = { ...prev, tapHintPlays };
+    await savePersist(next);
+    return next;
+  });
 }
 
 export async function commitRunResult(input: {
@@ -205,47 +218,49 @@ export async function commitRunResult(input: {
   bestLevel: number;
   isDaily: boolean;
 }): Promise<PersistState> {
-  const prev = await loadPersist();
-  const today = todayKey();
-  const sameDailyDay = prev.dailyBest.date === today;
+  return withPersistLock(async () => {
+    const prev = await loadPersist();
+    const today = todayKey();
+    const sameDailyDay = prev.dailyBest.date === today;
 
-  let dailyBest = prev.dailyBest;
-  let dailyRecord = prev.dailyRecord;
+    let dailyBest = prev.dailyBest;
+    let dailyRecord = prev.dailyRecord;
 
-  if (input.isDaily) {
-    dailyBest = {
-      date: today,
-      score: sameDailyDay
-        ? Math.max(prev.dailyBest.score, input.score)
-        : input.score,
-      level: sameDailyDay
-        ? Math.max(prev.dailyBest.level, input.bestLevel)
-        : input.bestLevel,
+    if (input.isDaily) {
+      dailyBest = {
+        date: today,
+        score: sameDailyDay
+          ? Math.max(prev.dailyBest.score, input.score)
+          : input.score,
+        level: sameDailyDay
+          ? Math.max(prev.dailyBest.level, input.bestLevel)
+          : input.bestLevel,
+      };
+      dailyRecord = betterDaily(prev.dailyRecord, dailyBest);
+    }
+
+    const next: PersistState = {
+      ...prev,
+      // Coins kept in save data but not surfaced in UI for now
+      coins: prev.coins + input.coinsEarned,
+      bestComboAllTime: Math.max(prev.bestComboAllTime, input.bestCombo),
+      // Normal and daily bests are tracked separately
+      highScore: input.isDaily
+        ? prev.highScore
+        : Math.max(prev.highScore, input.score),
+      bestLevel: input.isDaily
+        ? prev.bestLevel
+        : Math.max(prev.bestLevel, input.bestLevel),
+      dailyBest,
+      dailyRecord,
+      totalRuns: (prev.totalRuns ?? 0) + 1,
+      // Coach progress is recorded per fill — do not fold this run's attempts
+      // here or an abandoned run's fills would be forgotten, then double-counted.
+      tapHintPlays: prev.tapHintPlays,
     };
-    dailyRecord = betterDaily(prev.dailyRecord, dailyBest);
-  }
-
-  const next: PersistState = {
-    ...prev,
-    // Coins kept in save data but not surfaced in UI for now
-    coins: prev.coins + input.coinsEarned,
-    bestComboAllTime: Math.max(prev.bestComboAllTime, input.bestCombo),
-    // Normal and daily bests are tracked separately
-    highScore: input.isDaily
-      ? prev.highScore
-      : Math.max(prev.highScore, input.score),
-    bestLevel: input.isDaily
-      ? prev.bestLevel
-      : Math.max(prev.bestLevel, input.bestLevel),
-    dailyBest,
-    dailyRecord,
-    totalRuns: (prev.totalRuns ?? 0) + 1,
-    // Coach progress is recorded per fill — do not fold this run's attempts
-    // here or an abandoned run's fills would be forgotten, then double-counted.
-    tapHintPlays: prev.tapHintPlays,
-  };
-  await savePersist(next);
-  return next;
+    await savePersist(next);
+    return next;
+  });
 }
 
 export async function setReviewPromptStatus(

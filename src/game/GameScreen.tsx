@@ -320,6 +320,8 @@ export function GameScreen() {
   const persistRef = useRef(persist);
   persistRef.current = persist;
   const [coachThisFill, setCoachThisFill] = useState(false);
+  const coachReservedRef = useRef(false);
+  const fillStartGen = useRef(0);
   const muted = Boolean(persist?.soundMuted);
   const { play } = useSounds(muted);
 
@@ -430,7 +432,10 @@ export function GameScreen() {
       if (next === 'active') return;
       const plays = persistRef.current?.tapHintPlays;
       if (plays == null) return;
-      void recordTapHintPlay(plays).then(setPersist);
+      void (async () => {
+        const nextPersist = await recordTapHintPlay(plays);
+        setPersist(nextPersist);
+      })();
     });
     return () => {
       appState.remove();
@@ -613,6 +618,7 @@ export function GameScreen() {
         },
       });
       const after = stateRef.current;
+      coachReservedRef.current = false;
       setCoachThisFill(false);
 
       showFeedback({
@@ -655,18 +661,23 @@ export function GameScreen() {
   );
 
   /**
-   * Count this fill the moment the coach appears. The AsyncStorage write then
-   * has the whole fill (and any backgrounding) to land, not the instant after
-   * a tap — so killing the app cannot replay a displayed hint.
+   * Persist a coach slot, then show the hand. SIGKILL can still interrupt a
+   * native write, but JS will not display the hint until setItem has resolved.
    */
-  const consumeCoachFill = useCallback(() => {
+  const consumeCoachFill = useCallback(async () => {
     const shown = persistRef.current?.tapHintPlays ?? 0;
-    const remaining = shown < TAP_HINT_PLAYS;
-    setCoachThisFill(remaining);
-    if (!remaining) return;
-    const nextPlays = nextTapHintPlays(shown, 1);
-    setPersist((prev) => (prev ? { ...prev, tapHintPlays: nextPlays } : prev));
-    void recordTapHintPlay(nextPlays).then(setPersist);
+    if (shown >= TAP_HINT_PLAYS) {
+      coachReservedRef.current = false;
+      setCoachThisFill(false);
+      return;
+    }
+    if (!coachReservedRef.current) {
+      coachReservedRef.current = true;
+      const nextPlays = nextTapHintPlays(shown, 1);
+      const next = await recordTapHintPlay(nextPlays);
+      persistRef.current = next;
+      setPersist(next);
+    }
   }, []);
 
   const startFill = useCallback(() => {
@@ -674,33 +685,65 @@ export function GameScreen() {
       dispatch({ type: 'park', resume: { kind: 'startFill' } });
       return;
     }
-    consumeCoachFill();
     const current = stateRef.current.round;
-    dispatch({ type: 'clearFeedback' });
-    feedbackOpacity.set(0);
-    dispatch({ type: 'phase', phase: 'filling' });
-    isFilling.set(1);
-    syncZoneMotion(current);
-    fill.set(0);
-    play('start');
-    void gameHaptics.start();
+    const gen = ++fillStartGen.current;
+    const beginMeter = () => {
+      if (gen !== fillStartGen.current) return;
+      if (stateRef.current.paused) {
+        dispatch({ type: 'park', resume: { kind: 'startFill' } });
+        return;
+      }
+      dispatch({ type: 'clearFeedback' });
+      feedbackOpacity.set(0);
+      dispatch({ type: 'phase', phase: 'filling' });
+      isFilling.set(1);
+      syncZoneMotion(current);
+      fill.set(0);
+      play('start');
+      void gameHaptics.start();
+      fill.set(
+        withTiming(
+          1,
+          {
+            duration: current.fillMs,
+            easing: Easing.bezier(0.2, 0.05, 0.35, 1),
+          },
+          (finished) => {
+            if (finished) runOnJS(finishRound)(1);
+          },
+        ),
+      );
+    };
 
-    // Zone position/size follow fill via useAnimatedReaction (matches scoreFill)
-    fill.set(
-      withTiming(
-        1,
-        { duration: current.fillMs, easing: Easing.bezier(0.2, 0.05, 0.35, 1) },
-        (finished) => {
-          if (finished) runOnJS(finishRound)(1);
-        },
-      ),
-    );
+    const shown = persistRef.current?.tapHintPlays ?? 0;
+    if (shown >= TAP_HINT_PLAYS) {
+      setCoachThisFill(false);
+      beginMeter();
+      return;
+    }
+
+    void (async () => {
+      try {
+        await consumeCoachFill();
+      } catch {
+        coachReservedRef.current = false;
+        setCoachThisFill(false);
+        beginMeter();
+        return;
+      }
+      if (stateRef.current.paused) {
+        beginMeter();
+        return;
+      }
+      setCoachThisFill(true);
+      beginMeter();
+    })();
   }, [
+    consumeCoachFill,
     dispatch,
     fill,
     feedbackOpacity,
     finishRound,
-    consumeCoachFill,
     isFilling,
     play,
     stateRef,
@@ -867,6 +910,7 @@ export function GameScreen() {
    * so nothing queued from the previous run can fire into the next one.
    */
   const haltRun = useCallback(() => {
+    fillStartGen.current += 1;
     if (countTimer.current) clearTimeout(countTimer.current);
     if (autoTimer.current) clearTimeout(autoTimer.current);
     countTimer.current = null;
@@ -897,12 +941,14 @@ export function GameScreen() {
     const idle = makeRound(1);
     dispatch({ type: 'idle', round: idle });
     syncZoneMotion(idle);
+    coachReservedRef.current = false;
     setCoachThisFill(false);
   }, [dispatch, fill, haltRun, resetRunVisuals, syncZoneMotion]);
 
   const startRun = (daily: boolean) => {
     haltRun();
     resetRunVisuals();
+    coachReservedRef.current = false;
     setCoachThisFill(false);
     dispatch({ type: 'startRun', daily });
     rngRef.current = daily ? createRng(dailySeed()) : Math.random;

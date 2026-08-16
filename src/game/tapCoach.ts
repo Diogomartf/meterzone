@@ -8,7 +8,7 @@ export const TAP_HOW_TO = 'Tap when meter hits the color zone';
 
 type HintInput = {
   tapHintPlays: number;
-  /** This fill already consumed a coach slot — keep showing through the tap. */
+  /** True only after this fill's coach slot has been persisted. */
   coachThisFill?: boolean;
   phase: Phase;
   paused: boolean;
@@ -16,13 +16,12 @@ type HintInput = {
 
 /** True while the meter is filling for a new player's first few taps. */
 export function shouldShowTapHint({
-  tapHintPlays,
   coachThisFill = false,
   phase,
   paused,
 }: HintInput): boolean {
   if (paused || phase !== 'filling') return false;
-  return coachThisFill || tapHintPlays < TAP_HINT_PLAYS;
+  return coachThisFill;
 }
 
 /** How-to line under LVL — filling and countdown, so it can be read before GO. */
@@ -33,8 +32,9 @@ export function shouldShowTapHowTo({
   paused,
 }: HintInput): boolean {
   if (paused) return false;
-  if (phase !== 'filling' && phase !== 'countdown') return false;
-  return coachThisFill || tapHintPlays < TAP_HINT_PLAYS;
+  if (phase === 'countdown') return tapHintPlays < TAP_HINT_PLAYS;
+  if (phase === 'filling') return coachThisFill;
+  return false;
 }
 
 /** Fold this run's fills into the lifetime coach count, capped. */
