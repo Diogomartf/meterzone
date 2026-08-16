@@ -215,39 +215,32 @@ export async function clearPersist(): Promise<PersistState> {
  * Writes the tiny sidecar count before the full save blob.
  * With no argument, counts one more coached fill. With a count, keeps the
  * higher of disk and that value so an in-flight write cannot go backwards.
- * `keepIf` runs after the write; if it returns false the previous count is
- * restored so an invalidated fill does not consume a slot.
  */
-export async function recordTapHintPlay(
-  plays?: number,
-  options?: { keepIf?: () => boolean },
-): Promise<PersistState> {
+export async function recordTapHintPlay(plays?: number): Promise<PersistState> {
   return withPersistLock(async () => {
     const prev = await loadPersist();
     const tapHintPlays =
       plays == null
         ? nextTapHintPlays(prev.tapHintPlays, 1)
         : Math.max(prev.tapHintPlays, nextTapHintPlays(plays, 0));
-    if (tapHintPlays !== prev.tapHintPlays) {
-      const next = { ...prev, tapHintPlays };
-      await savePersist(next);
-      if (options?.keepIf && !options.keepIf()) {
-        await savePersist(prev);
-        return prev;
-      }
-      return next;
-    }
-    if (options?.keepIf && !options.keepIf()) return prev;
-    return prev;
+    if (tapHintPlays === prev.tapHintPlays) return prev;
+    const next = { ...prev, tapHintPlays };
+    await savePersist(next);
+    return next;
   });
 }
 
-/** Set the TAP coach count, including lowering it to release an unused slot. */
+/**
+ * Set the TAP coach count, including lowering it to release an unused slot.
+ * Pass `expected` to no-op when disk has already moved on (a newer fill).
+ */
 export async function restoreTapHintPlays(
   plays: number,
+  expected?: number,
 ): Promise<PersistState> {
   return withPersistLock(async () => {
     const prev = await loadPersist();
+    if (expected != null && prev.tapHintPlays !== expected) return prev;
     const tapHintPlays = nextTapHintPlays(plays, 0);
     if (tapHintPlays === prev.tapHintPlays) return prev;
     const next = { ...prev, tapHintPlays };

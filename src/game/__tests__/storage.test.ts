@@ -353,12 +353,6 @@ describe('recordTapHintPlay', () => {
     expect(readAsyncStorage(TAP_HINT_KEY)).toBe('1');
     expect((await loadPersist()).tapHintPlays).toBe(1);
   });
-
-  test('keepIf false rolls the count back so an invalidated fill is not charged', async () => {
-    const kept = await recordTapHintPlay(1, { keepIf: () => false });
-    expect(kept.tapHintPlays).toBe(0);
-    expect((await loadPersist()).tapHintPlays).toBe(0);
-  });
 });
 
 describe('restoreTapHintPlays', () => {
@@ -367,6 +361,12 @@ describe('restoreTapHintPlays', () => {
     expect((await restoreTapHintPlays(1)).tapHintPlays).toBe(1);
     expect((await loadPersist()).tapHintPlays).toBe(1);
     expect(readAsyncStorage(TAP_HINT_KEY)).toBe('1');
+  });
+
+  test('does not lower the count when disk has already moved on', async () => {
+    await recordTapHintPlay(2);
+    expect((await restoreTapHintPlays(0, 1)).tapHintPlays).toBe(2);
+    expect((await loadPersist()).tapHintPlays).toBe(2);
   });
 });
 

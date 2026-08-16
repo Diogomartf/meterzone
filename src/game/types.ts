@@ -87,8 +87,7 @@ export type PersistState = {
   reviewLastPromptAtRuns: number;
   /**
    * Fills already coached with the on-screen TAP hint (0…TAP_HINT_PLAYS).
-   * Advances when a coached fill is about to show, and the hand is withheld
-   * until that write resolves — so a kill cannot replay a displayed hint.
+   * Advances after a hint is on screen so an unseen fill is not charged.
    * New installs start at 0; players from before this field skip the coach.
    */
   tapHintPlays: number;

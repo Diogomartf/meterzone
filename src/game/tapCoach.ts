@@ -8,7 +8,7 @@ export const TAP_HOW_TO = 'Tap when meter hits the color zone';
 
 type HintInput = {
   tapHintPlays: number;
-  /** True only after this fill's coach slot has been persisted. */
+  /** True while this fill is showing the TAP coach. */
   coachThisFill?: boolean;
   phase: Phase;
   paused: boolean;
