@@ -3,8 +3,10 @@ import { describe, expect, test } from 'bun:test';
 import type { Phase } from '@/game/runState';
 import {
   TAP_HINT_PLAYS,
+  mergeLiveTapHintPlays,
   migrateTapHintPlays,
   nextTapHintPlays,
+  rollbackLiveTapHintPlays,
   shouldShowTapHint,
   shouldShowTapHowTo,
 } from '@/game/tapCoach';
@@ -108,6 +110,26 @@ describe('nextTapHintPlays', () => {
     expect(nextTapHintPlays(-4, 2)).toBe(2);
     expect(nextTapHintPlays(1, -8)).toBe(1);
     expect(nextTapHintPlays(Number.NaN, 2)).toBe(2);
+  });
+});
+
+describe('mergeLiveTapHintPlays', () => {
+  test('keeps the higher of live and incoming', () => {
+    expect(mergeLiveTapHintPlays(1, 2)).toBe(2);
+    expect(mergeLiveTapHintPlays(2, 1)).toBe(2);
+    expect(mergeLiveTapHintPlays(0, 1)).toBe(1);
+  });
+});
+
+describe('rollbackLiveTapHintPlays', () => {
+  test('rolls back this fill when live still matches the optimistic count', () => {
+    expect(rollbackLiveTapHintPlays(1, 1, 0)).toBe(0);
+    expect(rollbackLiveTapHintPlays(2, 2, 1)).toBe(1);
+  });
+
+  test('does not lower a newer fill’s optimistic count', () => {
+    expect(rollbackLiveTapHintPlays(2, 1, 0)).toBe(2);
+    expect(rollbackLiveTapHintPlays(3, 2, 0)).toBe(3);
   });
 });
 

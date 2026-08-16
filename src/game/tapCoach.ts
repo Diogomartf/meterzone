@@ -44,6 +44,25 @@ export function nextTapHintPlays(prev: number, attempts: number): number {
   return Math.min(TAP_HINT_PLAYS, shown + extra);
 }
 
+/** Raise the in-memory coach count. Never lower it over a newer fill. */
+export function mergeLiveTapHintPlays(live: number, incoming: number): number {
+  return Math.max(nextTapHintPlays(live, 0), nextTapHintPlays(incoming, 0));
+}
+
+/**
+ * Undo this fill's optimistic increment only if live still equals `expected`.
+ * A newer fill's count is left untouched so the coach cannot be shown extra times.
+ */
+export function rollbackLiveTapHintPlays(
+  live: number,
+  expected: number,
+  disk: number,
+): number {
+  const current = nextTapHintPlays(live, 0);
+  if (current !== nextTapHintPlays(expected, 0)) return current;
+  return nextTapHintPlays(disk, 0);
+}
+
 /**
  * Saves from before the tap coach: anyone who already played skips it.
  * An explicit count always wins.

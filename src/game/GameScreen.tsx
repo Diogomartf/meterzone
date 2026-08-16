@@ -39,7 +39,9 @@ import { createRng, makeRound } from '@/game/levels';
 import { shouldShowReviewPrompt } from '@/game/review';
 import { comboMultiplier, scoreFill, STARTING_LIVES } from '@/game/scoring';
 import {
+  mergeLiveTapHintPlays,
   nextTapHintPlays,
+  rollbackLiveTapHintPlays,
   shouldShowTapHint,
   shouldShowTapHowTo,
   TAP_HINT_PLAYS,
@@ -330,10 +332,8 @@ export function GameScreen() {
     () => coachWriteRef.current.catch(() => undefined),
     [],
   );
-  const enqueueCoachWrite = useCallback((write: Promise<unknown>) => {
-    const chained = coachWriteRef.current
-      .catch(() => undefined)
-      .then(() => write);
+  const enqueueCoachWrite = useCallback((write: () => Promise<unknown>) => {
+    const chained = coachWriteRef.current.catch(() => undefined).then(write);
     coachWriteRef.current = chained;
     return chained;
   }, []);
@@ -341,8 +341,10 @@ export function GameScreen() {
   const mergeTapHintPlays = useCallback(
     (plays: number) => {
       const current = persistRef.current;
-      if (!current || current.tapHintPlays === plays) return;
-      applyPersist({ ...current, tapHintPlays: plays });
+      if (!current) return;
+      const next = mergeLiveTapHintPlays(current.tapHintPlays, plays);
+      if (next === current.tapHintPlays) return;
+      applyPersist({ ...current, tapHintPlays: next });
     },
     [applyPersist],
   );
@@ -677,8 +679,9 @@ export function GameScreen() {
   /**
    * Persist a displayed hint only after it is on screen (this effect runs
    * after paint). Counting earlier charged a slot the player never saw.
-   * The write is tracked so halt/background/unmount cannot drop it, and only
-   * tapHintPlays is merged so a failure cannot restore a stale whole snapshot.
+   * The write is tracked so halt/background/unmount cannot drop it. Only
+   * tapHintPlays is merged, and a failed write rolls back only if this fill
+   * still owns the live count — a newer fill is never lowered.
    */
   useEffect(() => {
     if (!persist || !coachThisFill || phase !== 'filling' || menuOpen) return;
@@ -689,24 +692,36 @@ export function GameScreen() {
     coachRecordedGenRef.current = gen;
     const nextPlays = nextTapHintPlays(shown, 1);
     mergeTapHintPlays(nextPlays);
-    const write = (async () => {
+    void enqueueCoachWrite(async () => {
       try {
         const saved = await recordTapHintPlay(nextPlays);
         mergeTapHintPlays(saved.tapHintPlays);
       } catch {
+        // A newer fill may have already raised the live count. Never lower it.
+        if (fillStartGen.current !== gen) return;
+        let diskPlays = Math.max(0, nextPlays - 1);
         try {
-          const disk = await loadPersist();
-          mergeTapHintPlays(disk.tapHintPlays);
+          diskPlays = (await loadPersist()).tapHintPlays;
         } catch {
-          mergeTapHintPlays(Math.max(0, nextPlays - 1));
+          // Keep the local fallback when disk cannot be read.
         }
+        if (fillStartGen.current !== gen) return;
+        const current = persistRef.current;
+        if (!current) return;
+        const rolled = rollbackLiveTapHintPlays(
+          current.tapHintPlays,
+          nextPlays,
+          diskPlays,
+        );
+        if (rolled === current.tapHintPlays) return;
+        applyPersist({ ...current, tapHintPlays: rolled });
         if (coachRecordedGenRef.current === gen) {
           coachRecordedGenRef.current = null;
         }
       }
-    })();
-    void enqueueCoachWrite(write);
+    });
   }, [
+    applyPersist,
     coachThisFill,
     enqueueCoachWrite,
     menuOpen,
