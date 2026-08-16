@@ -3,7 +3,6 @@ import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import {
   Alert,
-  AppState,
   Linking,
   Pressable,
   StyleSheet,
@@ -318,8 +317,11 @@ export function GameScreen() {
   const insets = useSafeAreaInsets();
   const { height: windowH, width: windowW } = useWindowDimensions();
   const [persist, setPersist] = useState<PersistState | null>(null);
-  const persistRef = useRef(persist);
-  persistRef.current = persist;
+  const persistRef = useRef<PersistState | null>(null);
+  const applyPersist = useCallback((next: PersistState) => {
+    persistRef.current = next;
+    setPersist(next);
+  }, []);
   const [coachThisFill, setCoachThisFill] = useState(false);
   const coachReservedRef = useRef(false);
   const coachReservedFromRef = useRef<number | null>(null);
@@ -427,24 +429,14 @@ export function GameScreen() {
   );
   useEffect(() => {
     void loadPersist().then((state) => {
-      setPersist(state);
+      applyPersist(state);
       setGameHapticsEnabled(state.hapticsEnabled !== false);
     });
-    const appState = AppState.addEventListener('change', (next) => {
-      if (next === 'active') return;
-      const plays = persistRef.current?.tapHintPlays;
-      if (plays == null) return;
-      void (async () => {
-        const nextPersist = await recordTapHintPlay(plays);
-        setPersist(nextPersist);
-      })();
-    });
     return () => {
-      appState.remove();
       if (autoTimer.current) clearTimeout(autoTimer.current);
       if (countTimer.current) clearTimeout(countTimer.current);
     };
-  }, []);
+  }, [applyPersist]);
 
   /** Animation side of a judged round — the chip itself lives in run state. */
   const showFeedback = useCallback((next: Omit<Feedback, 'slot'>) => {
@@ -543,7 +535,7 @@ export function GameScreen() {
         bestLevel: stateRef.current.round.level,
         isDaily: stateRef.current.dailyMode,
       });
-      setPersist(next);
+      applyPersist(next);
       const beatBest =
         finalScore > 0 && finalScore >= runBestBaselineRef.current;
       dispatch({ type: 'gameOver', isNewBest: beatBest });
@@ -557,7 +549,7 @@ export function GameScreen() {
         }, TIMING.reviewPromptDelay);
       }
     },
-    [dispatch, stateRef],
+    [applyPersist, dispatch, stateRef],
   );
 
   useEffect(() => {
@@ -569,12 +561,12 @@ export function GameScreen() {
   const onReviewAccept = useCallback(() => {
     setReviewPromptVisible(false);
     // Persist before native UI so we never re-prompt even if they bounce.
-    void markReviewAccepted().then(setPersist);
+    void markReviewAccepted().then(applyPersist);
   }, []);
 
   const onReviewDecline = useCallback(() => {
     setReviewPromptVisible(false);
-    void recordReviewPromptDecline().then(setPersist);
+    void recordReviewPromptDecline().then(applyPersist);
   }, []);
 
   /**
@@ -673,11 +665,8 @@ export function GameScreen() {
     coachReservedRef.current = false;
     coachReservedFromRef.current = null;
     setCoachThisFill(false);
-    void restoreTapHintPlays(releaseTo).then((next) => {
-      persistRef.current = next;
-      setPersist(next);
-    });
-  }, []);
+    void restoreTapHintPlays(releaseTo).then(applyPersist);
+  }, [applyPersist]);
 
   /**
    * Persist a coach slot, then show the hand. If this fill is halted before
@@ -697,15 +686,13 @@ export function GameScreen() {
         coachReservedFromRef.current = shown;
         const nextPlays = nextTapHintPlays(shown, 1);
         const next = await recordTapHintPlay(nextPlays, { keepIf });
-        persistRef.current = next;
-        setPersist(next);
+        applyPersist(next);
       }
       if (!keepIf()) {
         const restored = await restoreTapHintPlays(
           coachReservedFromRef.current ?? releaseTo,
         );
-        persistRef.current = restored;
-        setPersist(restored);
+        applyPersist(restored);
         coachReservedRef.current = false;
         coachReservedFromRef.current = null;
         setCoachThisFill(false);
@@ -713,7 +700,7 @@ export function GameScreen() {
       }
       return true;
     },
-    [],
+    [applyPersist],
   );
 
   const startFill = useCallback(() => {
@@ -1093,7 +1080,7 @@ export function GameScreen() {
 
   const toggleSound = async () => {
     const next = await setSoundMuted(!(persist?.soundMuted ?? false));
-    setPersist(next);
+    applyPersist(next);
     void gameHaptics.next();
   };
 
@@ -1101,7 +1088,7 @@ export function GameScreen() {
     const enabled = !(persist?.hapticsEnabled !== false);
     setGameHapticsEnabled(enabled);
     const next = await setHapticsEnabled(enabled);
-    setPersist(next);
+    applyPersist(next);
     if (enabled) void gameHaptics.next();
   };
 
@@ -1131,7 +1118,7 @@ export function GameScreen() {
   const deleteData = async () => {
     void gameHaptics.next();
     const next = await clearPersist();
-    setPersist(next);
+    applyPersist(next);
     setGameHapticsEnabled(next.hapticsEnabled !== false);
     resetToIdle();
   };

@@ -149,20 +149,35 @@ export async function loadPersist(): Promise<PersistState> {
   }
 }
 
+let persistChain: Promise<unknown> = Promise.resolve();
+
+function withPersistLock<T>(fn: () => Promise<T>): Promise<T> {
+  const run = persistChain.then(fn, fn);
+  persistChain = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
+}
+
 export async function setSoundMuted(muted: boolean): Promise<PersistState> {
-  const prev = await loadPersist();
-  const next = { ...prev, soundMuted: muted };
-  await savePersist(next);
-  return next;
+  return withPersistLock(async () => {
+    const prev = await loadPersist();
+    const next = { ...prev, soundMuted: muted };
+    await savePersist(next);
+    return next;
+  });
 }
 
 export async function setHapticsEnabled(
   enabled: boolean,
 ): Promise<PersistState> {
-  const prev = await loadPersist();
-  const next = { ...prev, hapticsEnabled: enabled };
-  await savePersist(next);
-  return next;
+  return withPersistLock(async () => {
+    const prev = await loadPersist();
+    const next = { ...prev, hapticsEnabled: enabled };
+    await savePersist(next);
+    return next;
+  });
 }
 
 export async function savePersist(state: PersistState): Promise<void> {
@@ -188,20 +203,11 @@ export async function savePersist(state: PersistState): Promise<void> {
 
 /** Wipe all saved progress and return fresh defaults. */
 export async function clearPersist(): Promise<PersistState> {
-  await AsyncStorage.removeItem(TAP_HINT_KEY);
-  await AsyncStorage.removeItem(KEY);
-  return freshPersist();
-}
-
-let persistChain: Promise<unknown> = Promise.resolve();
-
-function withPersistLock<T>(fn: () => Promise<T>): Promise<T> {
-  const run = persistChain.then(fn, fn);
-  persistChain = run.then(
-    () => undefined,
-    () => undefined,
-  );
-  return run;
+  return withPersistLock(async () => {
+    await AsyncStorage.removeItem(TAP_HINT_KEY);
+    await AsyncStorage.removeItem(KEY);
+    return freshPersist();
+  });
 }
 
 /**
@@ -305,13 +311,15 @@ export async function commitRunResult(input: {
 export async function setReviewPromptStatus(
   status: ReviewPromptStatus,
 ): Promise<PersistState> {
-  const prev = await loadPersist();
-  if (status === 'accepted' && prev.reviewPromptStatus === 'accepted') {
-    return prev;
-  }
-  const next = { ...prev, reviewPromptStatus: status };
-  await savePersist(next);
-  return next;
+  return withPersistLock(async () => {
+    const prev = await loadPersist();
+    if (status === 'accepted' && prev.reviewPromptStatus === 'accepted') {
+      return prev;
+    }
+    const next = { ...prev, reviewPromptStatus: status };
+    await savePersist(next);
+    return next;
+  });
 }
 
 /**
@@ -325,44 +333,50 @@ export async function markReviewAccepted(): Promise<PersistState> {
 
 /** Record a "Not now" — advances ladder and starts the inter-prompt cooldown. */
 export async function recordReviewPromptDecline(): Promise<PersistState> {
-  const prev = await loadPersist();
-  if (prev.reviewPromptStatus === 'accepted') return prev;
-  const next: PersistState = {
-    ...prev,
-    reviewPromptStatus: 'none',
-    reviewPromptsShown: Math.min(
-      REVIEW_PROMPT_MAX,
-      (prev.reviewPromptsShown ?? 0) + 1,
-    ),
-    reviewLastPromptAtRuns: prev.totalRuns,
-  };
-  await savePersist(next);
-  return next;
+  return withPersistLock(async () => {
+    const prev = await loadPersist();
+    if (prev.reviewPromptStatus === 'accepted') return prev;
+    const next: PersistState = {
+      ...prev,
+      reviewPromptStatus: 'none',
+      reviewPromptsShown: Math.min(
+        REVIEW_PROMPT_MAX,
+        (prev.reviewPromptsShown ?? 0) + 1,
+      ),
+      reviewLastPromptAtRuns: prev.totalRuns,
+    };
+    await savePersist(next);
+    return next;
+  });
 }
 
 export async function unlockSkin(
   skin: SkinId,
   cost: number,
 ): Promise<PersistState | null> {
-  const prev = await loadPersist();
-  if (prev.unlockedSkins.includes(skin)) return prev;
-  if (prev.coins < cost) return null;
-  const next: PersistState = {
-    ...prev,
-    coins: prev.coins - cost,
-    unlockedSkins: [...prev.unlockedSkins, skin],
-    equippedSkin: skin,
-  };
-  await savePersist(next);
-  return next;
+  return withPersistLock(async () => {
+    const prev = await loadPersist();
+    if (prev.unlockedSkins.includes(skin)) return prev;
+    if (prev.coins < cost) return null;
+    const next: PersistState = {
+      ...prev,
+      coins: prev.coins - cost,
+      unlockedSkins: [...prev.unlockedSkins, skin],
+      equippedSkin: skin,
+    };
+    await savePersist(next);
+    return next;
+  });
 }
 
 export async function equipSkin(skin: SkinId): Promise<PersistState | null> {
-  const prev = await loadPersist();
-  if (!prev.unlockedSkins.includes(skin)) return null;
-  const next = { ...prev, equippedSkin: skin };
-  await savePersist(next);
-  return next;
+  return withPersistLock(async () => {
+    const prev = await loadPersist();
+    if (!prev.unlockedSkins.includes(skin)) return null;
+    const next = { ...prev, equippedSkin: skin };
+    await savePersist(next);
+    return next;
+  });
 }
 
 export function dailySeed(): number {
