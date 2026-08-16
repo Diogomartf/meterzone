@@ -195,16 +195,41 @@ function withPersistLock<T>(fn: () => Promise<T>): Promise<T> {
  * Writes the tiny sidecar count before the full save blob.
  * With no argument, counts one more coached fill. With a count, keeps the
  * higher of disk and that value so an in-flight write cannot go backwards.
+ * `keepIf` runs after the write; if it returns false the previous count is
+ * restored so an invalidated fill does not consume a slot.
  */
-export async function recordTapHintPlay(plays?: number): Promise<PersistState> {
+export async function recordTapHintPlay(
+  plays?: number,
+  options?: { keepIf?: () => boolean },
+): Promise<PersistState> {
   return withPersistLock(async () => {
     const prev = await loadPersist();
     const tapHintPlays =
       plays == null
         ? nextTapHintPlays(prev.tapHintPlays, 1)
         : Math.max(prev.tapHintPlays, nextTapHintPlays(plays, 0));
+    if (tapHintPlays !== prev.tapHintPlays) {
+      const next = { ...prev, tapHintPlays };
+      await savePersist(next);
+      if (options?.keepIf && !options.keepIf()) {
+        await savePersist(prev);
+        return prev;
+      }
+      return next;
+    }
+    if (options?.keepIf && !options.keepIf()) return prev;
+    return prev;
+  });
+}
+
+/** Set the TAP coach count, including lowering it to release an unused slot. */
+export async function restoreTapHintPlays(
+  plays: number,
+): Promise<PersistState> {
+  return withPersistLock(async () => {
+    const prev = await loadPersist();
+    const tapHintPlays = nextTapHintPlays(plays, 0);
     if (tapHintPlays === prev.tapHintPlays) return prev;
-    await AsyncStorage.setItem(TAP_HINT_KEY, String(tapHintPlays));
     const next = { ...prev, tapHintPlays };
     await savePersist(next);
     return next;

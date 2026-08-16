@@ -64,6 +64,7 @@ import {
   markReviewAccepted,
   recordReviewPromptDecline,
   recordTapHintPlay,
+  restoreTapHintPlays,
   setHapticsEnabled,
   setSoundMuted,
   todayKey,
@@ -321,6 +322,7 @@ export function GameScreen() {
   persistRef.current = persist;
   const [coachThisFill, setCoachThisFill] = useState(false);
   const coachReservedRef = useRef(false);
+  const coachReservedFromRef = useRef<number | null>(null);
   const fillStartGen = useRef(0);
   const muted = Boolean(persist?.soundMuted);
   const { play } = useSounds(muted);
@@ -619,6 +621,7 @@ export function GameScreen() {
       });
       const after = stateRef.current;
       coachReservedRef.current = false;
+      coachReservedFromRef.current = null;
       setCoachThisFill(false);
 
       showFeedback({
@@ -660,25 +663,58 @@ export function GameScreen() {
     ],
   );
 
-  /**
-   * Persist a coach slot, then show the hand. SIGKILL can still interrupt a
-   * native write, but JS will not display the hint until setItem has resolved.
-   */
-  const consumeCoachFill = useCallback(async () => {
-    const shown = persistRef.current?.tapHintPlays ?? 0;
-    if (shown >= TAP_HINT_PLAYS) {
+  const releaseUnusedCoachSlot = useCallback(() => {
+    const releaseTo = coachReservedFromRef.current;
+    if (releaseTo == null) {
       coachReservedRef.current = false;
       setCoachThisFill(false);
       return;
     }
-    if (!coachReservedRef.current) {
-      coachReservedRef.current = true;
-      const nextPlays = nextTapHintPlays(shown, 1);
-      const next = await recordTapHintPlay(nextPlays);
+    coachReservedRef.current = false;
+    coachReservedFromRef.current = null;
+    setCoachThisFill(false);
+    void restoreTapHintPlays(releaseTo).then((next) => {
       persistRef.current = next;
       setPersist(next);
-    }
+    });
   }, []);
+
+  /**
+   * Persist a coach slot, then show the hand. If this fill is halted before
+   * the meter starts, the slot is restored so the player still gets three hints.
+   */
+  const consumeCoachFill = useCallback(
+    async (keepIf: () => boolean, releaseTo: number) => {
+      const shown = persistRef.current?.tapHintPlays ?? 0;
+      if (shown >= TAP_HINT_PLAYS) {
+        coachReservedRef.current = false;
+        coachReservedFromRef.current = null;
+        setCoachThisFill(false);
+        return false;
+      }
+      if (!coachReservedRef.current) {
+        coachReservedRef.current = true;
+        coachReservedFromRef.current = shown;
+        const nextPlays = nextTapHintPlays(shown, 1);
+        const next = await recordTapHintPlay(nextPlays, { keepIf });
+        persistRef.current = next;
+        setPersist(next);
+      }
+      if (!keepIf()) {
+        const restored = await restoreTapHintPlays(
+          coachReservedFromRef.current ?? releaseTo,
+        );
+        persistRef.current = restored;
+        setPersist(restored);
+        coachReservedRef.current = false;
+        coachReservedFromRef.current = null;
+        setCoachThisFill(false);
+        return false;
+      }
+      return true;
+    },
+    [],
+  );
 
   const startFill = useCallback(() => {
     if (stateRef.current.paused) {
@@ -722,20 +758,25 @@ export function GameScreen() {
       return;
     }
 
+    const fillStillLive = () => gen === fillStartGen.current;
+
     void (async () => {
       try {
-        await consumeCoachFill();
+        const kept = await consumeCoachFill(fillStillLive, shown);
+        if (!kept) return;
       } catch {
         coachReservedRef.current = false;
         setCoachThisFill(false);
         beginMeter();
         return;
       }
+      if (!fillStillLive()) return;
       if (stateRef.current.paused) {
         beginMeter();
         return;
       }
       setCoachThisFill(true);
+      coachReservedFromRef.current = null;
       beginMeter();
     })();
   }, [
@@ -941,15 +982,20 @@ export function GameScreen() {
     const idle = makeRound(1);
     dispatch({ type: 'idle', round: idle });
     syncZoneMotion(idle);
-    coachReservedRef.current = false;
-    setCoachThisFill(false);
-  }, [dispatch, fill, haltRun, resetRunVisuals, syncZoneMotion]);
+    releaseUnusedCoachSlot();
+  }, [
+    dispatch,
+    fill,
+    haltRun,
+    releaseUnusedCoachSlot,
+    resetRunVisuals,
+    syncZoneMotion,
+  ]);
 
   const startRun = (daily: boolean) => {
     haltRun();
     resetRunVisuals();
-    coachReservedRef.current = false;
-    setCoachThisFill(false);
+    releaseUnusedCoachSlot();
     dispatch({ type: 'startRun', daily });
     rngRef.current = daily ? createRng(dailySeed()) : Math.random;
     runBestBaselineRef.current = daily

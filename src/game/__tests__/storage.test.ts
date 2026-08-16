@@ -9,6 +9,7 @@ import {
   markReviewAccepted,
   recordReviewPromptDecline,
   recordTapHintPlay,
+  restoreTapHintPlays,
   savePersist,
   setHapticsEnabled,
   setSoundMuted,
@@ -327,6 +328,21 @@ describe('recordTapHintPlay', () => {
     resetAsyncStorage();
     seedAsyncStorage(TAP_HINT_KEY, '2');
     expect((await loadPersist()).tapHintPlays).toBe(2);
+  });
+
+  test('keepIf false rolls the count back so an invalidated fill is not charged', async () => {
+    const kept = await recordTapHintPlay(1, { keepIf: () => false });
+    expect(kept.tapHintPlays).toBe(0);
+    expect((await loadPersist()).tapHintPlays).toBe(0);
+  });
+});
+
+describe('restoreTapHintPlays', () => {
+  test('can lower the count to release an unused slot', async () => {
+    await recordTapHintPlay(2);
+    expect((await restoreTapHintPlays(1)).tapHintPlays).toBe(1);
+    expect((await loadPersist()).tapHintPlays).toBe(1);
+    expect(readAsyncStorage(TAP_HINT_KEY)).toBe('1');
   });
 });
 
