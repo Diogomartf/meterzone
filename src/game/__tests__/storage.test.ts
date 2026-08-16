@@ -8,16 +8,24 @@ import {
   loadPersist,
   markReviewAccepted,
   recordReviewPromptDecline,
+  recordTapHintPlay,
+  restoreTapHintPlays,
   savePersist,
   setHapticsEnabled,
   setSoundMuted,
   todayKey,
 } from '@/game/storage';
 
-import { readAsyncStorage, resetAsyncStorage, seedAsyncStorage } from './setup';
+import {
+  readAsyncStorage,
+  resetAsyncStorage,
+  seedAsyncStorage,
+  failNextAsyncStorageSetItem,
+} from './setup';
 
-/** Must match the key in storage.ts. */
+/** Must match the keys in storage.ts. */
 const KEY = 'zone-meter:persist-v1';
+const TAP_HINT_KEY = 'zone-meter:tap-hint-plays';
 
 const seed = (value: unknown) => seedAsyncStorage(KEY, JSON.stringify(value));
 
@@ -35,6 +43,7 @@ describe('loadPersist defaults', () => {
     expect(s.unlockedSkins).toEqual(['toxic']);
     expect(s.reviewPromptStatus).toBe('none');
     expect(s.reviewPromptsShown).toBe(0);
+    expect(s.tapHintPlays).toBe(0);
   });
 
   test('corrupt JSON falls back to defaults instead of throwing', async () => {
@@ -42,6 +51,12 @@ describe('loadPersist defaults', () => {
     const s = await loadPersist();
     expect(s.highScore).toBe(0);
     expect(s.unlockedSkins).toEqual(['toxic']);
+  });
+
+  test('an unreadable blob still recovers the sidecar coach count', async () => {
+    seedAsyncStorage(KEY, '{ this is not json');
+    seedAsyncStorage(TAP_HINT_KEY, '2');
+    expect((await loadPersist()).tapHintPlays).toBe(2);
   });
 
   test('defaults are not shared between loads', async () => {
@@ -94,6 +109,23 @@ describe('loadPersist review-prompt migration', () => {
     expect((await loadPersist()).reviewPromptsShown).toBe(REVIEW_PROMPT_MAX);
     seed({ reviewPromptsShown: -5 });
     expect((await loadPersist()).reviewPromptsShown).toBe(0);
+  });
+});
+
+describe('loadPersist tap-hint migration', () => {
+  test('a veteran save without a count skips the coach', async () => {
+    seed({ totalRuns: 6, highScore: 400 });
+    expect((await loadPersist()).tapHintPlays).toBe(3);
+  });
+
+  test('a fresh save without a count still gets the coach', async () => {
+    seed({ highScore: 0, totalRuns: 0 });
+    expect((await loadPersist()).tapHintPlays).toBe(0);
+  });
+
+  test('an explicit count is kept even for veterans', async () => {
+    seed({ tapHintPlays: 1, totalRuns: 4, highScore: 900 });
+    expect((await loadPersist()).tapHintPlays).toBe(1);
   });
 });
 
@@ -264,6 +296,101 @@ describe('commitRunResult', () => {
     expect((await loadPersist()).highScore).toBe(777);
     expect(readAsyncStorage(KEY)).toContain('777');
   });
+
+  test('does not fold this run into the TAP coach count', async () => {
+    await recordTapHintPlay();
+    await recordTapHintPlay();
+    const ended = await commitRunResult({
+      score: 10,
+      coinsEarned: 0,
+      bestCombo: 0,
+      bestLevel: 2,
+      isDaily: false,
+    });
+    expect(ended.tapHintPlays).toBe(2);
+  });
+});
+
+describe('recordTapHintPlay', () => {
+  test('advances one fill at a time and caps at three', async () => {
+    expect((await recordTapHintPlay()).tapHintPlays).toBe(1);
+    expect((await recordTapHintPlay()).tapHintPlays).toBe(2);
+    expect((await recordTapHintPlay()).tapHintPlays).toBe(3);
+    expect((await recordTapHintPlay()).tapHintPlays).toBe(3);
+  });
+
+  test('survives an abandoned run that never reaches game over', async () => {
+    await recordTapHintPlay();
+    await recordTapHintPlay();
+    expect((await loadPersist()).tapHintPlays).toBe(2);
+    expect(readAsyncStorage(KEY)).toContain('"tapHintPlays":2');
+  });
+
+  test('an explicit count never lowers a higher disk value', async () => {
+    await recordTapHintPlay(2);
+    expect((await recordTapHintPlay(1)).tapHintPlays).toBe(2);
+    expect((await recordTapHintPlay(5)).tapHintPlays).toBe(3);
+  });
+
+  test('a sidecar count survives if the full save blob never lands', async () => {
+    await recordTapHintPlay();
+    await recordTapHintPlay();
+    expect(readAsyncStorage(TAP_HINT_KEY)).toBe('2');
+    resetAsyncStorage();
+    seedAsyncStorage(TAP_HINT_KEY, '2');
+    expect((await loadPersist()).tapHintPlays).toBe(2);
+  });
+
+  test('a failed blob write never advances the sidecar', async () => {
+    failNextAsyncStorageSetItem(KEY);
+    await expect(recordTapHintPlay()).rejects.toThrow(
+      'AsyncStorage setItem failed',
+    );
+    expect(readAsyncStorage(TAP_HINT_KEY)).toBeUndefined();
+    expect((await loadPersist()).tapHintPlays).toBe(0);
+  });
+
+  test('a failed blob write leaves the previous sidecar count in place', async () => {
+    await recordTapHintPlay();
+    failNextAsyncStorageSetItem(KEY);
+    await expect(recordTapHintPlay()).rejects.toThrow(
+      'AsyncStorage setItem failed',
+    );
+    expect(readAsyncStorage(TAP_HINT_KEY)).toBe('1');
+    expect((await loadPersist()).tapHintPlays).toBe(1);
+  });
+
+  test('a parseable blob wins over a higher stale sidecar', async () => {
+    await recordTapHintPlay();
+    await recordTapHintPlay();
+    seedAsyncStorage(TAP_HINT_KEY, '3');
+    expect((await loadPersist()).tapHintPlays).toBe(2);
+  });
+
+  test('a failed sidecar write does not drop a durable blob count', async () => {
+    await recordTapHintPlay();
+    failNextAsyncStorageSetItem(TAP_HINT_KEY);
+    const saved = await recordTapHintPlay();
+    expect(saved.tapHintPlays).toBe(2);
+    expect(JSON.parse(readAsyncStorage(KEY)!).tapHintPlays).toBe(2);
+    expect(readAsyncStorage(TAP_HINT_KEY)).toBe('1');
+    expect((await loadPersist()).tapHintPlays).toBe(2);
+  });
+});
+
+describe('restoreTapHintPlays', () => {
+  test('can lower the count to release an unused slot', async () => {
+    await recordTapHintPlay(2);
+    expect((await restoreTapHintPlays(1)).tapHintPlays).toBe(1);
+    expect((await loadPersist()).tapHintPlays).toBe(1);
+    expect(readAsyncStorage(TAP_HINT_KEY)).toBe('1');
+  });
+
+  test('does not lower the count when disk has already moved on', async () => {
+    await recordTapHintPlay(2);
+    expect((await restoreTapHintPlays(0, 1)).tapHintPlays).toBe(2);
+    expect((await loadPersist()).tapHintPlays).toBe(2);
+  });
 });
 
 describe('review persistence', () => {
@@ -323,7 +450,9 @@ describe('clearPersist', () => {
     expect(cleared.highScore).toBe(0);
     expect(cleared.coins).toBe(0);
     expect(cleared.totalRuns).toBe(0);
+    expect(cleared.tapHintPlays).toBe(0);
     expect(readAsyncStorage(KEY)).toBeUndefined();
+    expect(readAsyncStorage(TAP_HINT_KEY)).toBeUndefined();
     expect((await loadPersist()).highScore).toBe(0);
   });
 });

@@ -2,9 +2,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { DEFAULT_SKIN } from '@/game/skins';
 import { REVIEW_PROMPT_MAX } from '@/game/review';
+import { migrateTapHintPlays, nextTapHintPlays } from '@/game/tapCoach';
 import type { PersistState, ReviewPromptStatus, SkinId } from '@/game/types';
 
 const KEY = 'zone-meter:persist-v1';
+/**
+ * Crash-recovery copy of the TAP coach count. Written after the full blob.
+ * Used only when the blob is missing or unreadable — never to raise a
+ * parseable blob, or a failed sidecar rollback could permanently keep a
+ * higher count.
+ */
+const TAP_HINT_KEY = 'zone-meter:tap-hint-plays';
 
 type DailyScore = PersistState['dailyBest'];
 
@@ -25,6 +33,7 @@ const DEFAULT_STATE: PersistState = {
   reviewPromptStatus: 'none',
   reviewPromptsShown: 0,
   reviewLastPromptAtRuns: 0,
+  tapHintPlays: 0,
 };
 
 function parseReviewPromptStatus(value: unknown): ReviewPromptStatus {
@@ -67,14 +76,41 @@ function betterDaily(a: DailyScore, b: DailyScore): DailyScore {
   return a;
 }
 
+function freshPersist(): PersistState {
+  return {
+    ...DEFAULT_STATE,
+    unlockedSkins: [...DEFAULT_STATE.unlockedSkins],
+  };
+}
+
+async function readTapHintSidecar(): Promise<number | null> {
+  try {
+    const raw = await AsyncStorage.getItem(TAP_HINT_KEY);
+    if (raw == null || raw === '') return null;
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return null;
+    return nextTapHintPlays(n, 0);
+  } catch {
+    return null;
+  }
+}
+
+/** Sidecar only recovers a missing blob. A present blob is the source of truth. */
+async function recoverTapHintPlaysFromSidecar(): Promise<number> {
+  const sidecar = await readTapHintSidecar();
+  return sidecar ?? 0;
+}
+
 export async function loadPersist(): Promise<PersistState> {
   try {
     const raw = await AsyncStorage.getItem(KEY);
-    if (!raw)
+    if (!raw) {
+      const base = freshPersist();
       return {
-        ...DEFAULT_STATE,
-        unlockedSkins: [...DEFAULT_STATE.unlockedSkins],
+        ...base,
+        tapHintPlays: await recoverTapHintPlaysFromSidecar(),
       };
+    }
     const parsed = JSON.parse(raw) as Partial<PersistState>;
     const dailyBest = parseDailyScore(parsed.dailyBest);
     // Migrate older saves that only had dailyBest
@@ -107,42 +143,107 @@ export async function loadPersist(): Promise<PersistState> {
       reviewLastPromptAtRuns: Number.isFinite(parsed.reviewLastPromptAtRuns)
         ? Math.max(0, Number(parsed.reviewLastPromptAtRuns))
         : 0,
+      tapHintPlays: migrateTapHintPlays(parsed),
     };
   } catch {
+    const base = freshPersist();
     return {
-      ...DEFAULT_STATE,
-      unlockedSkins: [...DEFAULT_STATE.unlockedSkins],
+      ...base,
+      tapHintPlays: await recoverTapHintPlaysFromSidecar(),
     };
   }
 }
 
+let persistChain: Promise<unknown> = Promise.resolve();
+
+function withPersistLock<T>(fn: () => Promise<T>): Promise<T> {
+  const run = persistChain.then(fn, fn);
+  persistChain = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
+}
+
 export async function setSoundMuted(muted: boolean): Promise<PersistState> {
-  const prev = await loadPersist();
-  const next = { ...prev, soundMuted: muted };
-  await savePersist(next);
-  return next;
+  return withPersistLock(async () => {
+    const prev = await loadPersist();
+    const next = { ...prev, soundMuted: muted };
+    await savePersist(next);
+    return next;
+  });
 }
 
 export async function setHapticsEnabled(
   enabled: boolean,
 ): Promise<PersistState> {
-  const prev = await loadPersist();
-  const next = { ...prev, hapticsEnabled: enabled };
-  await savePersist(next);
-  return next;
+  return withPersistLock(async () => {
+    const prev = await loadPersist();
+    const next = { ...prev, hapticsEnabled: enabled };
+    await savePersist(next);
+    return next;
+  });
 }
 
 export async function savePersist(state: PersistState): Promise<void> {
-  await AsyncStorage.setItem(KEY, JSON.stringify(state));
+  const tapHintPlays = nextTapHintPlays(state.tapHintPlays, 0);
+  // Blob first: the blob is the source of truth. The sidecar is only a
+  // crash-recovery copy for a missing blob. Writing the sidecar first let a
+  // failed blob + failed rollback permanently keep a higher count.
+  await AsyncStorage.setItem(KEY, JSON.stringify({ ...state, tapHintPlays }));
+  try {
+    await AsyncStorage.setItem(TAP_HINT_KEY, String(tapHintPlays));
+  } catch {
+    // Sidecar is optional once the blob is durable. The next save retries it.
+  }
 }
 
 /** Wipe all saved progress and return fresh defaults. */
 export async function clearPersist(): Promise<PersistState> {
-  await AsyncStorage.removeItem(KEY);
-  return {
-    ...DEFAULT_STATE,
-    unlockedSkins: [...DEFAULT_STATE.unlockedSkins],
-  };
+  return withPersistLock(async () => {
+    await AsyncStorage.removeItem(TAP_HINT_KEY);
+    await AsyncStorage.removeItem(KEY);
+    return freshPersist();
+  });
+}
+
+/**
+ * Persist first-play TAP coach progress.
+ * Writes the full save blob first, then a crash-recovery sidecar.
+ * With no argument, counts one more coached fill. With a count, keeps the
+ * higher of disk and that value so an in-flight write cannot go backwards.
+ */
+export async function recordTapHintPlay(plays?: number): Promise<PersistState> {
+  return withPersistLock(async () => {
+    const prev = await loadPersist();
+    const tapHintPlays =
+      plays == null
+        ? nextTapHintPlays(prev.tapHintPlays, 1)
+        : Math.max(prev.tapHintPlays, nextTapHintPlays(plays, 0));
+    if (tapHintPlays === prev.tapHintPlays) return prev;
+    const next = { ...prev, tapHintPlays };
+    await savePersist(next);
+    return next;
+  });
+}
+
+/**
+ * Set the TAP coach count, including lowering it to release an unused slot.
+ * Pass `expected` to no-op when disk has already moved on (a newer fill).
+ */
+export async function restoreTapHintPlays(
+  plays: number,
+  expected?: number,
+): Promise<PersistState> {
+  return withPersistLock(async () => {
+    const prev = await loadPersist();
+    if (expected != null && prev.tapHintPlays !== expected) return prev;
+    const tapHintPlays = nextTapHintPlays(plays, 0);
+    if (tapHintPlays === prev.tapHintPlays) return prev;
+    const next = { ...prev, tapHintPlays };
+    await savePersist(next);
+    return next;
+  });
 }
 
 export async function commitRunResult(input: {
@@ -152,56 +253,63 @@ export async function commitRunResult(input: {
   bestLevel: number;
   isDaily: boolean;
 }): Promise<PersistState> {
-  const prev = await loadPersist();
-  const today = todayKey();
-  const sameDailyDay = prev.dailyBest.date === today;
+  return withPersistLock(async () => {
+    const prev = await loadPersist();
+    const today = todayKey();
+    const sameDailyDay = prev.dailyBest.date === today;
 
-  let dailyBest = prev.dailyBest;
-  let dailyRecord = prev.dailyRecord;
+    let dailyBest = prev.dailyBest;
+    let dailyRecord = prev.dailyRecord;
 
-  if (input.isDaily) {
-    dailyBest = {
-      date: today,
-      score: sameDailyDay
-        ? Math.max(prev.dailyBest.score, input.score)
-        : input.score,
-      level: sameDailyDay
-        ? Math.max(prev.dailyBest.level, input.bestLevel)
-        : input.bestLevel,
+    if (input.isDaily) {
+      dailyBest = {
+        date: today,
+        score: sameDailyDay
+          ? Math.max(prev.dailyBest.score, input.score)
+          : input.score,
+        level: sameDailyDay
+          ? Math.max(prev.dailyBest.level, input.bestLevel)
+          : input.bestLevel,
+      };
+      dailyRecord = betterDaily(prev.dailyRecord, dailyBest);
+    }
+
+    const next: PersistState = {
+      ...prev,
+      // Coins kept in save data but not surfaced in UI for now
+      coins: prev.coins + input.coinsEarned,
+      bestComboAllTime: Math.max(prev.bestComboAllTime, input.bestCombo),
+      // Normal and daily bests are tracked separately
+      highScore: input.isDaily
+        ? prev.highScore
+        : Math.max(prev.highScore, input.score),
+      bestLevel: input.isDaily
+        ? prev.bestLevel
+        : Math.max(prev.bestLevel, input.bestLevel),
+      dailyBest,
+      dailyRecord,
+      totalRuns: (prev.totalRuns ?? 0) + 1,
+      // Coach progress is recorded per fill — do not fold this run's attempts
+      // here or an abandoned run's fills would be forgotten, then double-counted.
+      tapHintPlays: prev.tapHintPlays,
     };
-    dailyRecord = betterDaily(prev.dailyRecord, dailyBest);
-  }
-
-  const next: PersistState = {
-    ...prev,
-    // Coins kept in save data but not surfaced in UI for now
-    coins: prev.coins + input.coinsEarned,
-    bestComboAllTime: Math.max(prev.bestComboAllTime, input.bestCombo),
-    // Normal and daily bests are tracked separately
-    highScore: input.isDaily
-      ? prev.highScore
-      : Math.max(prev.highScore, input.score),
-    bestLevel: input.isDaily
-      ? prev.bestLevel
-      : Math.max(prev.bestLevel, input.bestLevel),
-    dailyBest,
-    dailyRecord,
-    totalRuns: (prev.totalRuns ?? 0) + 1,
-  };
-  await savePersist(next);
-  return next;
+    await savePersist(next);
+    return next;
+  });
 }
 
 export async function setReviewPromptStatus(
   status: ReviewPromptStatus,
 ): Promise<PersistState> {
-  const prev = await loadPersist();
-  if (status === 'accepted' && prev.reviewPromptStatus === 'accepted') {
-    return prev;
-  }
-  const next = { ...prev, reviewPromptStatus: status };
-  await savePersist(next);
-  return next;
+  return withPersistLock(async () => {
+    const prev = await loadPersist();
+    if (status === 'accepted' && prev.reviewPromptStatus === 'accepted') {
+      return prev;
+    }
+    const next = { ...prev, reviewPromptStatus: status };
+    await savePersist(next);
+    return next;
+  });
 }
 
 /**
@@ -215,44 +323,50 @@ export async function markReviewAccepted(): Promise<PersistState> {
 
 /** Record a "Not now" — advances ladder and starts the inter-prompt cooldown. */
 export async function recordReviewPromptDecline(): Promise<PersistState> {
-  const prev = await loadPersist();
-  if (prev.reviewPromptStatus === 'accepted') return prev;
-  const next: PersistState = {
-    ...prev,
-    reviewPromptStatus: 'none',
-    reviewPromptsShown: Math.min(
-      REVIEW_PROMPT_MAX,
-      (prev.reviewPromptsShown ?? 0) + 1,
-    ),
-    reviewLastPromptAtRuns: prev.totalRuns,
-  };
-  await savePersist(next);
-  return next;
+  return withPersistLock(async () => {
+    const prev = await loadPersist();
+    if (prev.reviewPromptStatus === 'accepted') return prev;
+    const next: PersistState = {
+      ...prev,
+      reviewPromptStatus: 'none',
+      reviewPromptsShown: Math.min(
+        REVIEW_PROMPT_MAX,
+        (prev.reviewPromptsShown ?? 0) + 1,
+      ),
+      reviewLastPromptAtRuns: prev.totalRuns,
+    };
+    await savePersist(next);
+    return next;
+  });
 }
 
 export async function unlockSkin(
   skin: SkinId,
   cost: number,
 ): Promise<PersistState | null> {
-  const prev = await loadPersist();
-  if (prev.unlockedSkins.includes(skin)) return prev;
-  if (prev.coins < cost) return null;
-  const next: PersistState = {
-    ...prev,
-    coins: prev.coins - cost,
-    unlockedSkins: [...prev.unlockedSkins, skin],
-    equippedSkin: skin,
-  };
-  await savePersist(next);
-  return next;
+  return withPersistLock(async () => {
+    const prev = await loadPersist();
+    if (prev.unlockedSkins.includes(skin)) return prev;
+    if (prev.coins < cost) return null;
+    const next: PersistState = {
+      ...prev,
+      coins: prev.coins - cost,
+      unlockedSkins: [...prev.unlockedSkins, skin],
+      equippedSkin: skin,
+    };
+    await savePersist(next);
+    return next;
+  });
 }
 
 export async function equipSkin(skin: SkinId): Promise<PersistState | null> {
-  const prev = await loadPersist();
-  if (!prev.unlockedSkins.includes(skin)) return null;
-  const next = { ...prev, equippedSkin: skin };
-  await savePersist(next);
-  return next;
+  return withPersistLock(async () => {
+    const prev = await loadPersist();
+    if (!prev.unlockedSkins.includes(skin)) return null;
+    const next = { ...prev, equippedSkin: skin };
+    await savePersist(next);
+    return next;
+  });
 }
 
 export function dailySeed(): number {

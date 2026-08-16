@@ -3,6 +3,7 @@ import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import {
   Alert,
+  AppState,
   Linking,
   Pressable,
   StyleSheet,
@@ -30,12 +31,22 @@ import { MenuSheet } from '@/game/MenuSheet';
 import { MissBreak } from '@/game/MissBreak';
 import { PerfectSwoosh } from '@/game/PerfectSwoosh';
 import { ReviewPromptModal } from '@/game/ReviewPromptModal';
+import { TapHint, TAP_BALL_GAP } from '@/game/TapHint';
 import { VerticalMeter } from '@/game/VerticalMeter';
 import { formatScore } from '@/game/format';
 import { gameHaptics, setGameHapticsEnabled } from '@/game/haptics';
 import { createRng, makeRound } from '@/game/levels';
 import { shouldShowReviewPrompt } from '@/game/review';
 import { comboMultiplier, scoreFill, STARTING_LIVES } from '@/game/scoring';
+import {
+  mergeLiveTapHintPlays,
+  nextTapHintPlays,
+  rollbackLiveTapHintPlays,
+  shouldShowTapHint,
+  shouldShowTapHowTo,
+  TAP_HINT_PLAYS,
+  TAP_HOW_TO,
+} from '@/game/tapCoach';
 import {
   feedbackSlotFor,
   initialRunState,
@@ -54,6 +65,7 @@ import {
   loadPersist,
   markReviewAccepted,
   recordReviewPromptDecline,
+  recordTapHintPlay,
   setHapticsEnabled,
   setSoundMuted,
   todayKey,
@@ -74,7 +86,12 @@ const FEEDBACK_EMAIL = 'hello@meterzone.net';
 /** Yellow pad surface in game-bg.png (fraction of image height from top). */
 const PAD_SURFACE_Y = 0.905;
 const METER_BASE_H = 340;
+const METER_BASE_W = 100;
 const METER_WRAP_EXTRA = 28;
+/** Inner tube is 20px shorter than the shell (VerticalMeter innerH). */
+const METER_INNER_INSET = 20;
+/** Shell padding + glass border under the fill, from the wrap bottom. */
+const METER_GLASS_BOTTOM = (scale: number) => 10 + 9 * scale + 3;
 
 /**
  * Run pacing, in ms. These are the knobs that decide how the game *feels*
@@ -186,9 +203,7 @@ function SecondaryCta({ label, subtitle, onPress }: SecondaryCtaProps) {
       accessibilityLabel={subtitle ? `${label}. ${subtitle}` : label}
     >
       <Text style={styles.secondaryCtaLabel}>{label}</Text>
-      {subtitle ? (
-        <Text style={styles.secondaryCtaSub}>{subtitle}</Text>
-      ) : null}
+      {subtitle ? <Text style={styles.secondaryCtaSub}>{subtitle}</Text> : null}
     </Pressable>
   );
 }
@@ -304,6 +319,35 @@ export function GameScreen() {
   const insets = useSafeAreaInsets();
   const { height: windowH, width: windowW } = useWindowDimensions();
   const [persist, setPersist] = useState<PersistState | null>(null);
+  const persistRef = useRef<PersistState | null>(null);
+  const applyPersist = useCallback((next: PersistState) => {
+    persistRef.current = next;
+    setPersist(next);
+  }, []);
+  const [coachThisFill, setCoachThisFill] = useState(false);
+  const fillStartGen = useRef(0);
+  const coachRecordedGenRef = useRef<number | null>(null);
+  const coachWriteRef = useRef(Promise.resolve());
+  const flushCoachWrite = useCallback(
+    () => coachWriteRef.current.catch(() => undefined),
+    [],
+  );
+  const enqueueCoachWrite = useCallback((write: () => Promise<unknown>) => {
+    const chained = coachWriteRef.current.catch(() => undefined).then(write);
+    coachWriteRef.current = chained;
+    return chained;
+  }, []);
+  /** Overlay only tapHintPlays — never replace the live persist snapshot. */
+  const mergeTapHintPlays = useCallback(
+    (plays: number) => {
+      const current = persistRef.current;
+      if (!current) return;
+      const next = mergeLiveTapHintPlays(current.tapHintPlays, plays);
+      if (next === current.tapHintPlays) return;
+      applyPersist({ ...current, tapHintPlays: next });
+    },
+    [applyPersist],
+  );
   const muted = Boolean(persist?.soundMuted);
   const { play } = useSounds(muted);
 
@@ -407,14 +451,14 @@ export function GameScreen() {
   );
   useEffect(() => {
     void loadPersist().then((state) => {
-      setPersist(state);
+      applyPersist(state);
       setGameHapticsEnabled(state.hapticsEnabled !== false);
     });
     return () => {
       if (autoTimer.current) clearTimeout(autoTimer.current);
       if (countTimer.current) clearTimeout(countTimer.current);
     };
-  }, []);
+  }, [applyPersist]);
 
   /** Animation side of a judged round — the chip itself lives in run state. */
   const showFeedback = useCallback((next: Omit<Feedback, 'slot'>) => {
@@ -506,6 +550,7 @@ export function GameScreen() {
       // Snapshot the pre-run best so the results screen can show the record
       // that was standing (previous score / difference from it).
       setPreviousBest(runBestBaselineRef.current);
+      await flushCoachWrite();
       const next = await commitRunResult({
         score: finalScore,
         coinsEarned: session.coinsEarned,
@@ -513,7 +558,7 @@ export function GameScreen() {
         bestLevel: stateRef.current.round.level,
         isDaily: stateRef.current.dailyMode,
       });
-      setPersist(next);
+      applyPersist(next);
       const beatBest =
         finalScore > 0 && finalScore >= runBestBaselineRef.current;
       dispatch({ type: 'gameOver', isNewBest: beatBest });
@@ -527,7 +572,7 @@ export function GameScreen() {
         }, TIMING.reviewPromptDelay);
       }
     },
-    [dispatch, stateRef],
+    [applyPersist, dispatch, flushCoachWrite, stateRef],
   );
 
   useEffect(() => {
@@ -539,12 +584,12 @@ export function GameScreen() {
   const onReviewAccept = useCallback(() => {
     setReviewPromptVisible(false);
     // Persist before native UI so we never re-prompt even if they bounce.
-    void markReviewAccepted().then(setPersist);
+    void markReviewAccepted().then(applyPersist);
   }, []);
 
   const onReviewDecline = useCallback(() => {
     setReviewPromptVisible(false);
-    void recordReviewPromptDecline().then(setPersist);
+    void recordReviewPromptDecline().then(applyPersist);
   }, []);
 
   /**
@@ -590,6 +635,7 @@ export function GameScreen() {
         },
       });
       const after = stateRef.current;
+      setCoachThisFill(false);
 
       showFeedback({
         label: result.label,
@@ -630,12 +676,82 @@ export function GameScreen() {
     ],
   );
 
+  /**
+   * Persist a displayed hint only after it is on screen (this effect runs
+   * after paint). Counting earlier charged a slot the player never saw.
+   * The write is tracked so halt/background/unmount cannot drop it. Only
+   * tapHintPlays is merged, and a failed write rolls back only if this fill
+   * still owns the live count — a newer fill is never lowered.
+   */
+  useEffect(() => {
+    if (!persist || !coachThisFill || phase !== 'filling' || menuOpen) return;
+    const gen = fillStartGen.current;
+    if (coachRecordedGenRef.current === gen) return;
+    const shown = persist?.tapHintPlays ?? persistRef.current?.tapHintPlays ?? 0;
+    if (shown >= TAP_HINT_PLAYS) return;
+    coachRecordedGenRef.current = gen;
+    const nextPlays = nextTapHintPlays(shown, 1);
+    mergeTapHintPlays(nextPlays);
+    void enqueueCoachWrite(async () => {
+      try {
+        const saved = await recordTapHintPlay(nextPlays);
+        mergeTapHintPlays(saved.tapHintPlays);
+      } catch {
+        // A newer fill may have already raised the live count. Never lower it.
+        if (fillStartGen.current !== gen) return;
+        let diskPlays = Math.max(0, nextPlays - 1);
+        try {
+          diskPlays = (await loadPersist()).tapHintPlays;
+        } catch {
+          // Keep the local fallback when disk cannot be read.
+        }
+        if (fillStartGen.current !== gen) return;
+        const current = persistRef.current;
+        if (!current) return;
+        const rolled = rollbackLiveTapHintPlays(
+          current.tapHintPlays,
+          nextPlays,
+          diskPlays,
+        );
+        if (rolled === current.tapHintPlays) return;
+        applyPersist({ ...current, tapHintPlays: rolled });
+        if (coachRecordedGenRef.current === gen) {
+          coachRecordedGenRef.current = null;
+        }
+      }
+    });
+  }, [
+    applyPersist,
+    coachThisFill,
+    enqueueCoachWrite,
+    menuOpen,
+    mergeTapHintPlays,
+    persist,
+    phase,
+  ]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (status) => {
+      if (status === 'background' || status === 'inactive') {
+        void flushCoachWrite();
+      }
+    });
+    return () => {
+      sub.remove();
+      void flushCoachWrite();
+    };
+  }, [flushCoachWrite]);
+
   const startFill = useCallback(() => {
     if (stateRef.current.paused) {
       dispatch({ type: 'park', resume: { kind: 'startFill' } });
       return;
     }
     const current = stateRef.current.round;
+    fillStartGen.current += 1;
+    const shown = persistRef.current?.tapHintPlays ?? 0;
+    setCoachThisFill(shown < TAP_HINT_PLAYS);
+
     dispatch({ type: 'clearFeedback' });
     feedbackOpacity.set(0);
     dispatch({ type: 'phase', phase: 'filling' });
@@ -644,12 +760,13 @@ export function GameScreen() {
     fill.set(0);
     play('start');
     void gameHaptics.start();
-
-    // Zone position/size follow fill via useAnimatedReaction (matches scoreFill)
     fill.set(
       withTiming(
         1,
-        { duration: current.fillMs, easing: Easing.bezier(0.2, 0.05, 0.35, 1) },
+        {
+          duration: current.fillMs,
+          easing: Easing.bezier(0.2, 0.05, 0.35, 1),
+        },
         (finished) => {
           if (finished) runOnJS(finishRound)(1);
         },
@@ -826,6 +943,10 @@ export function GameScreen() {
    * so nothing queued from the previous run can fire into the next one.
    */
   const haltRun = useCallback(() => {
+    fillStartGen.current += 1;
+    setCoachThisFill(false);
+    // Do not cancel an in-flight coach write — the player already saw this fill.
+    void flushCoachWrite();
     if (countTimer.current) clearTimeout(countTimer.current);
     if (autoTimer.current) clearTimeout(autoTimer.current);
     countTimer.current = null;
@@ -835,7 +956,7 @@ export function GameScreen() {
     dispatch({ type: 'pendingTimer', pending: null });
     cancelAnimation(meterX);
     cancelAnimation(fill);
-  }, [dispatch, fill, meterX]);
+  }, [dispatch, fill, flushCoachWrite, meterX]);
 
   /** Reset the animation layer that sits alongside run state. */
   const resetRunVisuals = useCallback(() => {
@@ -958,7 +1079,7 @@ export function GameScreen() {
 
   const toggleSound = async () => {
     const next = await setSoundMuted(!(persist?.soundMuted ?? false));
-    setPersist(next);
+    applyPersist(next);
     void gameHaptics.next();
   };
 
@@ -966,7 +1087,7 @@ export function GameScreen() {
     const enabled = !(persist?.hapticsEnabled !== false);
     setGameHapticsEnabled(enabled);
     const next = await setHapticsEnabled(enabled);
-    setPersist(next);
+    applyPersist(next);
     if (enabled) void gameHaptics.next();
   };
 
@@ -996,7 +1117,7 @@ export function GameScreen() {
   const deleteData = async () => {
     void gameHaptics.next();
     const next = await clearPersist();
-    setPersist(next);
+    applyPersist(next);
     setGameHapticsEnabled(next.hapticsEnabled !== false);
     resetToIdle();
   };
@@ -1087,14 +1208,36 @@ export function GameScreen() {
   }, [capturingShare]);
 
   const hitEnabled = phase === 'filling' && !menuOpen;
+  const showTapHint =
+    persist != null &&
+    shouldShowTapHint({
+      tapHintPlays: persist.tapHintPlays,
+      coachThisFill,
+      phase,
+      paused: menuOpen,
+    });
+  const showTapHowTo =
+    persist != null &&
+    shouldShowTapHowTo({
+      tapHintPlays: persist.tapHintPlays,
+      coachThisFill,
+      phase,
+      paused: menuOpen,
+    });
   const meterScale = round.meterScale;
   const meterWrapH = METER_BASE_H * meterScale + METER_WRAP_EXTRA;
+  const meterW = METER_BASE_W * meterScale;
+  const meterH = METER_BASE_H * meterScale;
+  const innerH = meterH - METER_INNER_INSET;
   // Pin meter base to the yellow pad in the background art
   const meterBottom = Math.max(
     insets.bottom + 4,
     windowH * (1 - PAD_SURFACE_Y),
   );
   const menuBottom = meterBottom + meterWrapH * 0.42;
+  const tapBallX = windowW / 2 + meterW / 2 + TAP_BALL_GAP;
+  const tapBallBottom =
+    meterBottom + METER_GLASS_BOTTOM(meterScale) + round.target * innerH;
   return (
     <View ref={shareRef} style={styles.root} collapsable={false}>
       <View style={styles.backdrop} pointerEvents="none">
@@ -1137,6 +1280,12 @@ export function GameScreen() {
           />
         </Animated.View>
       </View>
+
+      <TapHint
+        visible={showTapHint}
+        ballX={tapBallX}
+        ballBottom={tapBallBottom}
+      />
 
       <View
         style={[styles.content, { paddingTop: insets.top + 8 }]}
@@ -1224,6 +1373,9 @@ export function GameScreen() {
             ) : (
               <>
                 <Text style={styles.metaLine}>LVL {round.level}</Text>
+                {showTapHowTo ? (
+                  <Text style={styles.tapHowTo}>{TAP_HOW_TO}</Text>
+                ) : null}
                 {isNewBest ? (
                   <Animated.Text style={[styles.newBestTag, newBestStyle]}>
                     NEW BEST
@@ -1459,6 +1611,7 @@ export function GameScreen() {
           style={styles.hitLayer}
           onPressIn={onTap}
           accessibilityRole="button"
+          accessibilityLabel="Tap to stop the meter"
           android_ripple={{ color: 'transparent' }}
         />
       ) : null}
@@ -1743,6 +1896,18 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 26,
     color: GameColors.ink,
+  },
+  tapHowTo: {
+    marginTop: 6,
+    maxWidth: 260,
+    fontFamily: GameFonts.body,
+    fontSize: 15,
+    lineHeight: 19,
+    textAlign: 'center',
+    color: 'rgba(255,255,255,0.7)',
+    textShadowColor: 'rgba(26,28,44,0.35)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 0,
   },
   newBestTag: {
     marginTop: 4,
