@@ -167,9 +167,23 @@ export async function setHapticsEnabled(
 
 export async function savePersist(state: PersistState): Promise<void> {
   const tapHintPlays = nextTapHintPlays(state.tapHintPlays, 0);
+  const previousSidecar = await AsyncStorage.getItem(TAP_HINT_KEY);
   // Sidecar first — a kill mid-write still keeps the coach count.
   await AsyncStorage.setItem(TAP_HINT_KEY, String(tapHintPlays));
-  await AsyncStorage.setItem(KEY, JSON.stringify({ ...state, tapHintPlays }));
+  try {
+    await AsyncStorage.setItem(KEY, JSON.stringify({ ...state, tapHintPlays }));
+  } catch (error) {
+    try {
+      if (previousSidecar == null) {
+        await AsyncStorage.removeItem(TAP_HINT_KEY);
+      } else {
+        await AsyncStorage.setItem(TAP_HINT_KEY, previousSidecar);
+      }
+    } catch {
+      // Best-effort rollback; the blob write is the error to surface.
+    }
+    throw error;
+  }
 }
 
 /** Wipe all saved progress and return fresh defaults. */

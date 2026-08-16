@@ -16,7 +16,12 @@ import {
   todayKey,
 } from '@/game/storage';
 
-import { readAsyncStorage, resetAsyncStorage, seedAsyncStorage } from './setup';
+import {
+  readAsyncStorage,
+  resetAsyncStorage,
+  seedAsyncStorage,
+  failNextAsyncStorageSetItem,
+} from './setup';
 
 /** Must match the keys in storage.ts. */
 const KEY = 'zone-meter:persist-v1';
@@ -328,6 +333,25 @@ describe('recordTapHintPlay', () => {
     resetAsyncStorage();
     seedAsyncStorage(TAP_HINT_KEY, '2');
     expect((await loadPersist()).tapHintPlays).toBe(2);
+  });
+
+  test('a failed blob write rolls the sidecar back so a slot is not charged', async () => {
+    failNextAsyncStorageSetItem(KEY);
+    await expect(recordTapHintPlay()).rejects.toThrow(
+      'AsyncStorage setItem failed',
+    );
+    expect(readAsyncStorage(TAP_HINT_KEY)).toBeUndefined();
+    expect((await loadPersist()).tapHintPlays).toBe(0);
+  });
+
+  test('a failed blob write restores the previous sidecar count', async () => {
+    await recordTapHintPlay();
+    failNextAsyncStorageSetItem(KEY);
+    await expect(recordTapHintPlay()).rejects.toThrow(
+      'AsyncStorage setItem failed',
+    );
+    expect(readAsyncStorage(TAP_HINT_KEY)).toBe('1');
+    expect((await loadPersist()).tapHintPlays).toBe(1);
   });
 
   test('keepIf false rolls the count back so an invalidated fill is not charged', async () => {
