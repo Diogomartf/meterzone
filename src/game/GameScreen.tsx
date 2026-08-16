@@ -3,6 +3,7 @@ import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import {
   Alert,
+  AppState,
   Linking,
   Pressable,
   StyleSheet,
@@ -324,6 +325,27 @@ export function GameScreen() {
   const [coachThisFill, setCoachThisFill] = useState(false);
   const fillStartGen = useRef(0);
   const coachRecordedGenRef = useRef<number | null>(null);
+  const coachWriteRef = useRef(Promise.resolve());
+  const flushCoachWrite = useCallback(
+    () => coachWriteRef.current.catch(() => undefined),
+    [],
+  );
+  const enqueueCoachWrite = useCallback((write: Promise<unknown>) => {
+    const chained = coachWriteRef.current
+      .catch(() => undefined)
+      .then(() => write);
+    coachWriteRef.current = chained;
+    return chained;
+  }, []);
+  /** Overlay only tapHintPlays — never replace the live persist snapshot. */
+  const mergeTapHintPlays = useCallback(
+    (plays: number) => {
+      const current = persistRef.current;
+      if (!current || current.tapHintPlays === plays) return;
+      applyPersist({ ...current, tapHintPlays: plays });
+    },
+    [applyPersist],
+  );
   const muted = Boolean(persist?.soundMuted);
   const { play } = useSounds(muted);
 
@@ -526,6 +548,7 @@ export function GameScreen() {
       // Snapshot the pre-run best so the results screen can show the record
       // that was standing (previous score / difference from it).
       setPreviousBest(runBestBaselineRef.current);
+      await flushCoachWrite();
       const next = await commitRunResult({
         score: finalScore,
         coinsEarned: session.coinsEarned,
@@ -547,7 +570,7 @@ export function GameScreen() {
         }, TIMING.reviewPromptDelay);
       }
     },
-    [applyPersist, dispatch, stateRef],
+    [applyPersist, dispatch, flushCoachWrite, stateRef],
   );
 
   useEffect(() => {
@@ -654,23 +677,55 @@ export function GameScreen() {
   /**
    * Persist a displayed hint only after it is on screen (this effect runs
    * after paint). Counting earlier charged a slot the player never saw.
+   * The write is tracked so halt/background/unmount cannot drop it, and only
+   * tapHintPlays is merged so a failure cannot restore a stale whole snapshot.
    */
   useEffect(() => {
-    if (!coachThisFill || phase !== 'filling' || menuOpen) return;
+    if (!persist || !coachThisFill || phase !== 'filling' || menuOpen) return;
     const gen = fillStartGen.current;
     if (coachRecordedGenRef.current === gen) return;
-    const shown = persistRef.current?.tapHintPlays ?? 0;
+    const shown = persist?.tapHintPlays ?? persistRef.current?.tapHintPlays ?? 0;
     if (shown >= TAP_HINT_PLAYS) return;
     coachRecordedGenRef.current = gen;
-    const snapshot = persistRef.current;
     const nextPlays = nextTapHintPlays(shown, 1);
-    if (snapshot) applyPersist({ ...snapshot, tapHintPlays: nextPlays });
-    void recordTapHintPlay(nextPlays).then(applyPersist, () => {
-      if (snapshot) applyPersist(snapshot);
-      if (coachRecordedGenRef.current === gen)
-        coachRecordedGenRef.current = null;
+    mergeTapHintPlays(nextPlays);
+    const write = (async () => {
+      try {
+        const saved = await recordTapHintPlay(nextPlays);
+        mergeTapHintPlays(saved.tapHintPlays);
+      } catch {
+        try {
+          const disk = await loadPersist();
+          mergeTapHintPlays(disk.tapHintPlays);
+        } catch {
+          mergeTapHintPlays(Math.max(0, nextPlays - 1));
+        }
+        if (coachRecordedGenRef.current === gen) {
+          coachRecordedGenRef.current = null;
+        }
+      }
+    })();
+    void enqueueCoachWrite(write);
+  }, [
+    coachThisFill,
+    enqueueCoachWrite,
+    menuOpen,
+    mergeTapHintPlays,
+    persist,
+    phase,
+  ]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (status) => {
+      if (status === 'background' || status === 'inactive') {
+        void flushCoachWrite();
+      }
     });
-  }, [applyPersist, coachThisFill, menuOpen, phase]);
+    return () => {
+      sub.remove();
+      void flushCoachWrite();
+    };
+  }, [flushCoachWrite]);
 
   const startFill = useCallback(() => {
     if (stateRef.current.paused) {
@@ -875,6 +930,8 @@ export function GameScreen() {
   const haltRun = useCallback(() => {
     fillStartGen.current += 1;
     setCoachThisFill(false);
+    // Do not cancel an in-flight coach write — the player already saw this fill.
+    void flushCoachWrite();
     if (countTimer.current) clearTimeout(countTimer.current);
     if (autoTimer.current) clearTimeout(autoTimer.current);
     countTimer.current = null;
@@ -884,7 +941,7 @@ export function GameScreen() {
     dispatch({ type: 'pendingTimer', pending: null });
     cancelAnimation(meterX);
     cancelAnimation(fill);
-  }, [dispatch, fill, meterX]);
+  }, [dispatch, fill, flushCoachWrite, meterX]);
 
   /** Reset the animation layer that sits alongside run state. */
   const resetRunVisuals = useCallback(() => {

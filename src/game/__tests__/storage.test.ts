@@ -53,6 +53,12 @@ describe('loadPersist defaults', () => {
     expect(s.unlockedSkins).toEqual(['toxic']);
   });
 
+  test('an unreadable blob still recovers the sidecar coach count', async () => {
+    seedAsyncStorage(KEY, '{ this is not json');
+    seedAsyncStorage(TAP_HINT_KEY, '2');
+    expect((await loadPersist()).tapHintPlays).toBe(2);
+  });
+
   test('defaults are not shared between loads', async () => {
     const a = await loadPersist();
     a.unlockedSkins.push('lava');
@@ -335,7 +341,7 @@ describe('recordTapHintPlay', () => {
     expect((await loadPersist()).tapHintPlays).toBe(2);
   });
 
-  test('a failed blob write rolls the sidecar back so a slot is not charged', async () => {
+  test('a failed blob write never advances the sidecar', async () => {
     failNextAsyncStorageSetItem(KEY);
     await expect(recordTapHintPlay()).rejects.toThrow(
       'AsyncStorage setItem failed',
@@ -344,7 +350,7 @@ describe('recordTapHintPlay', () => {
     expect((await loadPersist()).tapHintPlays).toBe(0);
   });
 
-  test('a failed blob write restores the previous sidecar count', async () => {
+  test('a failed blob write leaves the previous sidecar count in place', async () => {
     await recordTapHintPlay();
     failNextAsyncStorageSetItem(KEY);
     await expect(recordTapHintPlay()).rejects.toThrow(
@@ -352,6 +358,23 @@ describe('recordTapHintPlay', () => {
     );
     expect(readAsyncStorage(TAP_HINT_KEY)).toBe('1');
     expect((await loadPersist()).tapHintPlays).toBe(1);
+  });
+
+  test('a parseable blob wins over a higher stale sidecar', async () => {
+    await recordTapHintPlay();
+    await recordTapHintPlay();
+    seedAsyncStorage(TAP_HINT_KEY, '3');
+    expect((await loadPersist()).tapHintPlays).toBe(2);
+  });
+
+  test('a failed sidecar write does not drop a durable blob count', async () => {
+    await recordTapHintPlay();
+    failNextAsyncStorageSetItem(TAP_HINT_KEY);
+    const saved = await recordTapHintPlay();
+    expect(saved.tapHintPlays).toBe(2);
+    expect(JSON.parse(readAsyncStorage(KEY)!).tapHintPlays).toBe(2);
+    expect(readAsyncStorage(TAP_HINT_KEY)).toBe('1');
+    expect((await loadPersist()).tapHintPlays).toBe(2);
   });
 });
 
