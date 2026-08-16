@@ -12,6 +12,7 @@ import {
 function hint(
   overrides: Partial<{
     tapHintPlays: number;
+    coachThisFill: boolean;
     phase: Phase;
     paused: boolean;
   }> = {},
@@ -27,6 +28,7 @@ function hint(
 function howTo(
   overrides: Partial<{
     tapHintPlays: number;
+    coachThisFill: boolean;
     phase: Phase;
     paused: boolean;
   }> = {},
@@ -49,6 +51,12 @@ describe('shouldShowTapHint', () => {
     expect(hint({ tapHintPlays: 1 })).toBe(true);
     expect(hint({ tapHintPlays: 2 })).toBe(true);
     expect(hint({ tapHintPlays: TAP_HINT_PLAYS })).toBe(false);
+  });
+
+  test('the fill that consumed the last slot still shows the coach', () => {
+    expect(hint({ tapHintPlays: TAP_HINT_PLAYS, coachThisFill: true })).toBe(
+      true,
+    );
   });
 
   test('hides when the meter is not filling', () => {
@@ -77,6 +85,12 @@ describe('shouldShowTapHowTo', () => {
   test('hides once the lifetime count is used up', () => {
     expect(howTo({ tapHintPlays: TAP_HINT_PLAYS, phase: 'countdown' })).toBe(
       false,
+    );
+  });
+
+  test('the fill that consumed the last slot still shows how-to', () => {
+    expect(howTo({ tapHintPlays: TAP_HINT_PLAYS, coachThisFill: true })).toBe(
+      true,
     );
   });
 });

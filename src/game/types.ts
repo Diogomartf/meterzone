@@ -87,7 +87,7 @@ export type PersistState = {
   reviewLastPromptAtRuns: number;
   /**
    * Fills already coached with the on-screen TAP hint (0…TAP_HINT_PLAYS).
-   * Advances as each fill completes so an abandoned run still counts.
+   * Advances when a coached fill starts so a kill after the tap still counts.
    * New installs start at 0; players from before this field skip the coach.
    */
   tapHintPlays: number;

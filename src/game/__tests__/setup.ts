@@ -10,6 +10,10 @@ import { mock } from 'bun:test';
 
 mock.module('react-native', () => ({
   Platform: { OS: 'ios', select: (spec: Record<string, unknown>) => spec.ios },
+  AppState: {
+    currentState: 'active',
+    addEventListener: () => ({ remove: () => undefined }),
+  },
   Linking: {
     canOpenURL: async () => true,
     openURL: async () => undefined,

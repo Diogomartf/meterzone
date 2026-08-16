@@ -17,8 +17,9 @@ import {
 
 import { readAsyncStorage, resetAsyncStorage, seedAsyncStorage } from './setup';
 
-/** Must match the key in storage.ts. */
+/** Must match the keys in storage.ts. */
 const KEY = 'zone-meter:persist-v1';
+const TAP_HINT_KEY = 'zone-meter:tap-hint-plays';
 
 const seed = (value: unknown) => seedAsyncStorage(KEY, JSON.stringify(value));
 
@@ -318,6 +319,15 @@ describe('recordTapHintPlay', () => {
     expect((await recordTapHintPlay(1)).tapHintPlays).toBe(2);
     expect((await recordTapHintPlay(5)).tapHintPlays).toBe(3);
   });
+
+  test('a sidecar count survives if the full save blob never lands', async () => {
+    await recordTapHintPlay();
+    await recordTapHintPlay();
+    expect(readAsyncStorage(TAP_HINT_KEY)).toBe('2');
+    resetAsyncStorage();
+    seedAsyncStorage(TAP_HINT_KEY, '2');
+    expect((await loadPersist()).tapHintPlays).toBe(2);
+  });
 });
 
 describe('review persistence', () => {
@@ -379,6 +389,7 @@ describe('clearPersist', () => {
     expect(cleared.totalRuns).toBe(0);
     expect(cleared.tapHintPlays).toBe(0);
     expect(readAsyncStorage(KEY)).toBeUndefined();
+    expect(readAsyncStorage(TAP_HINT_KEY)).toBeUndefined();
     expect((await loadPersist()).highScore).toBe(0);
   });
 });

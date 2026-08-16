@@ -3,6 +3,7 @@ import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import {
   Alert,
+  AppState,
   Linking,
   Pressable,
   StyleSheet,
@@ -318,6 +319,7 @@ export function GameScreen() {
   const [persist, setPersist] = useState<PersistState | null>(null);
   const persistRef = useRef(persist);
   persistRef.current = persist;
+  const [coachThisFill, setCoachThisFill] = useState(false);
   const muted = Boolean(persist?.soundMuted);
   const { play } = useSounds(muted);
 
@@ -424,7 +426,14 @@ export function GameScreen() {
       setPersist(state);
       setGameHapticsEnabled(state.hapticsEnabled !== false);
     });
+    const appState = AppState.addEventListener('change', (next) => {
+      if (next === 'active') return;
+      const plays = persistRef.current?.tapHintPlays;
+      if (plays == null) return;
+      void recordTapHintPlay(plays).then(setPersist);
+    });
     return () => {
+      appState.remove();
       if (autoTimer.current) clearTimeout(autoTimer.current);
       if (countTimer.current) clearTimeout(countTimer.current);
     };
@@ -604,23 +613,7 @@ export function GameScreen() {
         },
       });
       const after = stateRef.current;
-
-      // Count this fill toward the coach now — not at game over — so going
-      // home or killing the app still consumes one of the three hints.
-      const coachLive =
-        (persistRef.current?.tapHintPlays ?? 0) < TAP_HINT_PLAYS;
-      const nextPlays = nextTapHintPlays(
-        persistRef.current?.tapHintPlays ?? 0,
-        1,
-      );
-      if (coachLive) {
-        setPersist((prev) =>
-          prev ? { ...prev, tapHintPlays: nextPlays } : prev,
-        );
-      }
-      const persistCoach = coachLive
-        ? recordTapHintPlay(nextPlays)
-        : Promise.resolve(null);
+      setCoachThisFill(false);
 
       showFeedback({
         label: result.label,
@@ -632,14 +625,8 @@ export function GameScreen() {
       if (result.costsLife) {
         play('miss');
         if (after.lives <= 0) {
-          void persistCoach.then((next) => {
-            if (next) setPersist(next);
-            void endRun(after.score, after.stats);
-          });
+          void endRun(after.score, after.stats);
         } else {
-          void persistCoach.then((next) => {
-            if (next) setPersist(next);
-          });
           scheduleAdvance(TIMING.advanceAfterMiss);
         }
         return;
@@ -649,9 +636,6 @@ export function GameScreen() {
       if (after.score > runBestBaselineRef.current) {
         announceNewBest();
       }
-      void persistCoach.then((next) => {
-        if (next) setPersist(next);
-      });
       scheduleAdvance(
         result.result === 'perfect'
           ? TIMING.advanceAfterPerfect
@@ -670,11 +654,27 @@ export function GameScreen() {
     ],
   );
 
+  /**
+   * Count this fill the moment the coach appears. The AsyncStorage write then
+   * has the whole fill (and any backgrounding) to land, not the instant after
+   * a tap — so killing the app cannot replay a displayed hint.
+   */
+  const consumeCoachFill = useCallback(() => {
+    const shown = persistRef.current?.tapHintPlays ?? 0;
+    const remaining = shown < TAP_HINT_PLAYS;
+    setCoachThisFill(remaining);
+    if (!remaining) return;
+    const nextPlays = nextTapHintPlays(shown, 1);
+    setPersist((prev) => (prev ? { ...prev, tapHintPlays: nextPlays } : prev));
+    void recordTapHintPlay(nextPlays).then(setPersist);
+  }, []);
+
   const startFill = useCallback(() => {
     if (stateRef.current.paused) {
       dispatch({ type: 'park', resume: { kind: 'startFill' } });
       return;
     }
+    consumeCoachFill();
     const current = stateRef.current.round;
     dispatch({ type: 'clearFeedback' });
     feedbackOpacity.set(0);
@@ -700,6 +700,7 @@ export function GameScreen() {
     fill,
     feedbackOpacity,
     finishRound,
+    consumeCoachFill,
     isFilling,
     play,
     stateRef,
@@ -896,11 +897,13 @@ export function GameScreen() {
     const idle = makeRound(1);
     dispatch({ type: 'idle', round: idle });
     syncZoneMotion(idle);
+    setCoachThisFill(false);
   }, [dispatch, fill, haltRun, resetRunVisuals, syncZoneMotion]);
 
   const startRun = (daily: boolean) => {
     haltRun();
     resetRunVisuals();
+    setCoachThisFill(false);
     dispatch({ type: 'startRun', daily });
     rngRef.current = daily ? createRng(dailySeed()) : Math.random;
     runBestBaselineRef.current = daily
@@ -1131,6 +1134,7 @@ export function GameScreen() {
     persist != null &&
     shouldShowTapHint({
       tapHintPlays: persist.tapHintPlays,
+      coachThisFill,
       phase,
       paused: menuOpen,
     });
@@ -1138,6 +1142,7 @@ export function GameScreen() {
     persist != null &&
     shouldShowTapHowTo({
       tapHintPlays: persist.tapHintPlays,
+      coachThisFill,
       phase,
       paused: menuOpen,
     });

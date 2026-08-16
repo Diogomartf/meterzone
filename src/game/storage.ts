@@ -6,6 +6,8 @@ import { migrateTapHintPlays, nextTapHintPlays } from '@/game/tapCoach';
 import type { PersistState, ReviewPromptStatus, SkinId } from '@/game/types';
 
 const KEY = 'zone-meter:persist-v1';
+/** Tiny sidecar written before the full blob so a kill cannot drop coach progress. */
+const TAP_HINT_KEY = 'zone-meter:tap-hint-plays';
 
 type DailyScore = PersistState['dailyBest'];
 
@@ -69,14 +71,41 @@ function betterDaily(a: DailyScore, b: DailyScore): DailyScore {
   return a;
 }
 
+function freshPersist(): PersistState {
+  return {
+    ...DEFAULT_STATE,
+    unlockedSkins: [...DEFAULT_STATE.unlockedSkins],
+  };
+}
+
+async function readTapHintSidecar(): Promise<number | null> {
+  try {
+    const raw = await AsyncStorage.getItem(TAP_HINT_KEY);
+    if (raw == null || raw === '') return null;
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return null;
+    return nextTapHintPlays(n, 0);
+  } catch {
+    return null;
+  }
+}
+
+async function applyTapHintSidecar(plays: number): Promise<number> {
+  const sidecar = await readTapHintSidecar();
+  if (sidecar == null) return plays;
+  return Math.max(plays, sidecar);
+}
+
 export async function loadPersist(): Promise<PersistState> {
   try {
     const raw = await AsyncStorage.getItem(KEY);
-    if (!raw)
+    if (!raw) {
+      const base = freshPersist();
       return {
-        ...DEFAULT_STATE,
-        unlockedSkins: [...DEFAULT_STATE.unlockedSkins],
+        ...base,
+        tapHintPlays: await applyTapHintSidecar(base.tapHintPlays),
       };
+    }
     const parsed = JSON.parse(raw) as Partial<PersistState>;
     const dailyBest = parseDailyScore(parsed.dailyBest);
     // Migrate older saves that only had dailyBest
@@ -109,12 +138,13 @@ export async function loadPersist(): Promise<PersistState> {
       reviewLastPromptAtRuns: Number.isFinite(parsed.reviewLastPromptAtRuns)
         ? Math.max(0, Number(parsed.reviewLastPromptAtRuns))
         : 0,
-      tapHintPlays: migrateTapHintPlays(parsed),
+      tapHintPlays: await applyTapHintSidecar(migrateTapHintPlays(parsed)),
     };
   } catch {
+    const base = freshPersist();
     return {
-      ...DEFAULT_STATE,
-      unlockedSkins: [...DEFAULT_STATE.unlockedSkins],
+      ...base,
+      tapHintPlays: await applyTapHintSidecar(base.tapHintPlays),
     };
   }
 }
@@ -136,21 +166,23 @@ export async function setHapticsEnabled(
 }
 
 export async function savePersist(state: PersistState): Promise<void> {
-  await AsyncStorage.setItem(KEY, JSON.stringify(state));
+  const tapHintPlays = nextTapHintPlays(state.tapHintPlays, 0);
+  // Sidecar first — a kill mid-write still keeps the coach count.
+  await AsyncStorage.setItem(TAP_HINT_KEY, String(tapHintPlays));
+  await AsyncStorage.setItem(KEY, JSON.stringify({ ...state, tapHintPlays }));
 }
 
 /** Wipe all saved progress and return fresh defaults. */
 export async function clearPersist(): Promise<PersistState> {
+  await AsyncStorage.removeItem(TAP_HINT_KEY);
   await AsyncStorage.removeItem(KEY);
-  return {
-    ...DEFAULT_STATE,
-    unlockedSkins: [...DEFAULT_STATE.unlockedSkins],
-  };
+  return freshPersist();
 }
 
 /**
  * Persist first-play TAP coach progress.
- * With no argument, counts one more completed fill. With a count, keeps the
+ * Writes the tiny sidecar count before the full save blob.
+ * With no argument, counts one more coached fill. With a count, keeps the
  * higher of disk and that value so an in-flight write cannot go backwards.
  */
 export async function recordTapHintPlay(plays?: number): Promise<PersistState> {
@@ -160,6 +192,7 @@ export async function recordTapHintPlay(plays?: number): Promise<PersistState> {
       ? nextTapHintPlays(prev.tapHintPlays, 1)
       : Math.max(prev.tapHintPlays, nextTapHintPlays(plays, 0));
   if (tapHintPlays === prev.tapHintPlays) return prev;
+  await AsyncStorage.setItem(TAP_HINT_KEY, String(tapHintPlays));
   const next = { ...prev, tapHintPlays };
   await savePersist(next);
   return next;
