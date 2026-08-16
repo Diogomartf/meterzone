@@ -23,6 +23,7 @@
         "backgroundColor": "#0053ED"
       },
       "predictiveBackGestureEnabled": false,
+      "permissions": ["android.permission.VIBRATE"],
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ]
