@@ -154,6 +154,7 @@ const styles = StyleSheet.create({
     zIndex: 50,
     alignItems: 'center',
     justifyContent: 'center',
+    transform: [{ translateY: -20 }],
   },
   streak: {
     position: 'absolute',

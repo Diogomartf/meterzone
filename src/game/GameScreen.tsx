@@ -44,8 +44,12 @@ import {
   rollbackLiveTapHintPlays,
   shouldShowTapHint,
   shouldShowTapHowTo,
+  tapHintAppearDelay,
   TAP_HINT_PLAYS,
+  TAP_HINT_PER_GAME,
+  TAP_HINT_GAMES,
   TAP_HOW_TO,
+  TAP_HOW_TO_PLAYS,
 } from '@/game/tapCoach';
 import {
   feedbackSlotFor,
@@ -85,6 +89,8 @@ const FEEDBACK_EMAIL = 'hello@meterzone.net';
 
 /** Yellow pad surface in game-bg.png (fraction of image height from top). */
 const PAD_SURFACE_Y = 0.905;
+/** Extra lift so the meter sits above the pad. */
+const METER_LIFT = 16;
 const METER_BASE_H = 340;
 const METER_BASE_W = 100;
 const METER_WRAP_EXTRA = 28;
@@ -183,28 +189,98 @@ function GameCta({ label, subtitle, face, depth, onPress }: GameCtaProps) {
 
 type SecondaryCtaProps = {
   label: string;
-  subtitle?: string;
   onPress: () => void;
 };
 
 /**
- * Quiet home-screen alternate — no 3D chrome so it cannot compete with PLAY.
- * Daily lives here so the ready screen has one clear primary action.
+ * Compact home-screen alternate, paired with the menu button.
+ * Full-opacity 3D chrome like PLAY, but shorter so PLAY stays the default.
  */
-function SecondaryCta({ label, subtitle, onPress }: SecondaryCtaProps) {
+function SecondaryCta({ label, onPress }: SecondaryCtaProps) {
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
-        styles.secondaryCta,
-        pressed && styles.secondaryCtaPressed,
+        styles.secondaryCtaPressable,
+        pressed && styles.ctaPressableDown,
       ]}
       accessibilityRole="button"
-      accessibilityLabel={subtitle ? `${label}. ${subtitle}` : label}
+      accessibilityLabel={label}
     >
-      <Text style={styles.secondaryCtaLabel}>{label}</Text>
-      {subtitle ? <Text style={styles.secondaryCtaSub}>{subtitle}</Text> : null}
+      {({ pressed }) => (
+        <View
+          style={[
+            styles.secondaryCtaShell,
+            { backgroundColor: GameColors.bubbleDark },
+          ]}
+        >
+          <View
+            style={[
+              styles.secondaryCtaFace,
+              pressed ? styles.secondaryCtaFaceDown : styles.secondaryCtaFaceUp,
+            ]}
+          >
+            <Text style={styles.secondaryCtaLabel}>{label}</Text>
+          </View>
+        </View>
+      )}
     </Pressable>
+  );
+}
+
+const HOW_TO_DELAY = 500;
+const HOW_TO_FADE_IN = 400;
+const HOW_TO_HOLD = 4000;
+const HOW_TO_FADE_OUT = 400;
+
+/**
+ * First-play how-to under LVL. Waits 0.5s after the game starts, fades in,
+ * then fades out 4s later. Stays mounted across levels so the timer is not reset.
+ */
+function TapHowToLine({ visible }: { visible: boolean }) {
+  const opacity = useSharedValue(0);
+  const [held, setHeld] = useState(false);
+
+  useEffect(() => {
+    if (!visible) {
+      cancelAnimation(opacity);
+      opacity.value = withTiming(0, {
+        duration: HOW_TO_FADE_OUT,
+        easing: Easing.in(Easing.quad),
+      });
+      const hide = setTimeout(() => setHeld(false), HOW_TO_FADE_OUT);
+      return () => clearTimeout(hide);
+    }
+
+    setHeld(true);
+    opacity.value = 0;
+    opacity.value = withDelay(
+      HOW_TO_DELAY,
+      withSequence(
+        withTiming(1, {
+          duration: HOW_TO_FADE_IN,
+          easing: Easing.out(Easing.cubic),
+        }),
+        withDelay(
+          HOW_TO_HOLD,
+          withTiming(0, {
+            duration: HOW_TO_FADE_OUT,
+            easing: Easing.in(Easing.quad),
+          }),
+        ),
+      ),
+    );
+    const done = HOW_TO_DELAY + HOW_TO_FADE_IN + HOW_TO_HOLD + HOW_TO_FADE_OUT;
+    const hide = setTimeout(() => setHeld(false), done);
+    return () => clearTimeout(hide);
+  }, [opacity, visible]);
+
+  const fadeStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  if (!held) return null;
+  return (
+    <Animated.Text style={[styles.tapHowTo, fadeStyle]}>
+      {TAP_HOW_TO}
+    </Animated.Text>
   );
 }
 
@@ -325,7 +401,11 @@ export function GameScreen() {
     setPersist(next);
   }, []);
   const [coachThisFill, setCoachThisFill] = useState(false);
+  const [howToThisRun, setHowToThisRun] = useState(false);
+  const [hintThisRun, setHintThisRun] = useState(false);
   const fillStartGen = useRef(0);
+  const tapHintsThisRunRef = useRef(0);
+  const hintThisRunRef = useRef(false);
   const coachRecordedGenRef = useRef<number | null>(null);
   const coachWriteRef = useRef(Promise.resolve());
   const flushCoachWrite = useCallback(
@@ -749,8 +829,11 @@ export function GameScreen() {
     }
     const current = stateRef.current.round;
     fillStartGen.current += 1;
-    const shown = persistRef.current?.tapHintPlays ?? 0;
-    setCoachThisFill(shown < TAP_HINT_PLAYS);
+    // Count a play only after the hand actually fades in (TapHint onPlay).
+    setCoachThisFill(
+      hintThisRunRef.current &&
+        tapHintsThisRunRef.current < TAP_HINT_PER_GAME,
+    );
 
     dispatch({ type: 'clearFeedback' });
     feedbackOpacity.set(0);
@@ -945,6 +1028,10 @@ export function GameScreen() {
   const haltRun = useCallback(() => {
     fillStartGen.current += 1;
     setCoachThisFill(false);
+    setHowToThisRun(false);
+    hintThisRunRef.current = false;
+    setHintThisRun(false);
+    tapHintsThisRunRef.current = 0;
     // Do not cancel an in-flight coach write — the player already saw this fill.
     void flushCoachWrite();
     if (countTimer.current) clearTimeout(countTimer.current);
@@ -955,6 +1042,7 @@ export function GameScreen() {
     dispatch({ type: 'resume' });
     dispatch({ type: 'pendingTimer', pending: null });
     cancelAnimation(meterX);
+    meterX.set(0);
     cancelAnimation(fill);
   }, [dispatch, fill, flushCoachWrite, meterX]);
 
@@ -965,6 +1053,7 @@ export function GameScreen() {
     newBestPulse.set(1);
     feedbackOpacity.set(0);
     isFilling.set(0);
+    meterX.set(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -982,6 +1071,13 @@ export function GameScreen() {
   const startRun = (daily: boolean) => {
     haltRun();
     resetRunVisuals();
+    tapHintsThisRunRef.current = 0;
+    const finishedGames =
+      persistRef.current?.totalRuns ?? persist?.totalRuns ?? 0;
+    const coachThisGame = finishedGames < TAP_HINT_GAMES;
+    hintThisRunRef.current = coachThisGame;
+    setHintThisRun(coachThisGame);
+    setHowToThisRun(finishedGames < TAP_HOW_TO_PLAYS);
     dispatch({ type: 'startRun', daily });
     rngRef.current = daily ? createRng(dailySeed()) : Math.random;
     runBestBaselineRef.current = daily
@@ -1213,6 +1309,8 @@ export function GameScreen() {
     shouldShowTapHint({
       tapHintPlays: persist.tapHintPlays,
       coachThisFill,
+      hintThisRun,
+      totalRuns: persist.totalRuns,
       phase,
       paused: menuOpen,
     });
@@ -1220,7 +1318,8 @@ export function GameScreen() {
     persist != null &&
     shouldShowTapHowTo({
       tapHintPlays: persist.tapHintPlays,
-      coachThisFill,
+      totalRuns: persist.totalRuns,
+      howToThisRun,
       phase,
       paused: menuOpen,
     });
@@ -1230,10 +1329,8 @@ export function GameScreen() {
   const meterH = METER_BASE_H * meterScale;
   const innerH = meterH - METER_INNER_INSET;
   // Pin meter base to the yellow pad in the background art
-  const meterBottom = Math.max(
-    insets.bottom + 4,
-    windowH * (1 - PAD_SURFACE_Y),
-  );
+  const meterBottom =
+    Math.max(insets.bottom + 4, windowH * (1 - PAD_SURFACE_Y)) + METER_LIFT;
   const menuBottom = meterBottom + meterWrapH * 0.42;
   const tapBallX = windowW / 2 + meterW / 2 + TAP_BALL_GAP;
   const tapBallBottom =
@@ -1283,8 +1380,15 @@ export function GameScreen() {
 
       <TapHint
         visible={showTapHint}
+        cycleKey={fillStartGen.current}
+        appearDelay={tapHintAppearDelay(round.fillMs, round.target)}
         ballX={tapBallX}
         ballBottom={tapBallBottom}
+        onPlay={() => {
+          if (tapHintsThisRunRef.current < TAP_HINT_PER_GAME) {
+            tapHintsThisRunRef.current += 1;
+          }
+        }}
       />
 
       <View
@@ -1373,9 +1477,7 @@ export function GameScreen() {
             ) : (
               <>
                 <Text style={styles.metaLine}>LVL {round.level}</Text>
-                {showTapHowTo ? (
-                  <Text style={styles.tapHowTo}>{TAP_HOW_TO}</Text>
-                ) : null}
+                <TapHowToLine visible={showTapHowTo} />
                 {isNewBest ? (
                   <Animated.Text style={[styles.newBestTag, newBestStyle]}>
                     NEW BEST
@@ -1571,39 +1673,44 @@ export function GameScreen() {
               depth="#D97706"
               onPress={() => startRun(false)}
             />
-            <SecondaryCta
-              label="DAILY"
-              subtitle="Same sequence · updates daily"
-              onPress={() => startRun(true)}
-            />
           </View>
         ) : null}
 
-        <Pressable
+        <View
           style={[
-            styles.menuBtn,
+            styles.bottomBar,
             { bottom: insets.bottom + 16 },
             capturingShare && styles.hidden,
           ]}
-          onPress={() => {
-            setMenuInitialView('menu');
-            openMenu();
-          }}
-          hitSlop={10}
-          pointerEvents={capturingShare ? 'none' : 'auto'}
-          accessibilityLabel="Menu"
+          pointerEvents={capturingShare ? 'none' : 'box-none'}
         >
-          <SymbolView
-            name={{
-              ios: 'line.3.horizontal',
-              android: 'menu',
-              web: 'menu',
+          <Pressable
+            style={styles.menuBtn}
+            onPress={() => {
+              setMenuInitialView('menu');
+              openMenu();
             }}
-            size={22}
-            tintColor={GameColors.white}
-            weight="bold"
-          />
-        </Pressable>
+            hitSlop={10}
+            accessibilityLabel="Menu"
+          >
+            <SymbolView
+              name={{
+                ios: 'line.3.horizontal',
+                android: 'menu',
+                web: 'menu',
+              }}
+              size={22}
+              tintColor={GameColors.white}
+              weight="bold"
+            />
+          </Pressable>
+          {phase === 'ready' ? (
+            <SecondaryCta
+              label="Daily challenge"
+              onPress={() => startRun(true)}
+            />
+          ) : null}
+        </View>
       </View>
 
       {hitEnabled ? (
@@ -1696,10 +1803,16 @@ const styles = StyleSheet.create({
     height: 66,
     marginLeft: -4,
   },
-  menuBtn: {
+  bottomBar: {
     position: 'absolute',
     left: 16,
+    right: 16,
     zIndex: 45,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  menuBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
@@ -1708,6 +1821,7 @@ const styles = StyleSheet.create({
     borderColor: GameColors.ink,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   bestPill: {
     paddingHorizontal: 12,
@@ -2136,37 +2250,40 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.92)',
     letterSpacing: 0.8,
   },
-  // Secondary home action — flat, compact, no lip so PLAY stays the default.
-  secondaryCta: {
-    width: '100%',
-    maxWidth: 320,
+  // Compact daily CTA — same row as the menu button, smaller than PLAY.
+  secondaryCtaPressable: {
+    flexShrink: 1,
+  },
+  secondaryCtaShell: {
+    borderRadius: 16,
+    borderWidth: 3,
+    borderColor: GameColors.ink,
+    overflow: 'hidden',
+  },
+  secondaryCtaFace: {
+    minHeight: 36,
+    paddingHorizontal: 14,
+    paddingTop: 6,
+    paddingBottom: 7,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    borderWidth: 2.5,
-    borderColor: 'rgba(26,28,44,0.28)',
-    backgroundColor: 'rgba(255,255,255,0.28)',
-    gap: 2,
+    backgroundColor: GameColors.bubble,
   },
-  secondaryCtaPressed: {
-    backgroundColor: 'rgba(255,255,255,0.42)',
-    transform: [{ scale: 0.98 }],
+  secondaryCtaFaceUp: {
+    marginBottom: 3,
+  },
+  secondaryCtaFaceDown: {
+    marginBottom: 0,
+    marginTop: 3,
   },
   secondaryCtaLabel: {
-    fontFamily: GameFonts.body,
+    fontFamily: GameFonts.display,
     fontSize: 15,
     lineHeight: 18,
-    color: GameColors.ink,
-    letterSpacing: 1.2,
-  },
-  secondaryCtaSub: {
-    fontFamily: GameFonts.soft,
-    fontSize: 11,
-    lineHeight: 13,
-    color: 'rgba(26,28,44,0.72)',
-    letterSpacing: 0.3,
-    textAlign: 'center',
+    color: GameColors.white,
+    letterSpacing: 0.2,
+    textShadowColor: 'rgba(26,28,44,0.35)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 0,
   },
 });

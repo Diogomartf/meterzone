@@ -2,19 +2,25 @@ import { describe, expect, test } from 'bun:test';
 
 import type { Phase } from '@/game/runState';
 import {
+  TAP_HINT_GAMES,
+  TAP_HINT_LEAD_MS,
   TAP_HINT_PLAYS,
+  TAP_HOW_TO_PLAYS,
   mergeLiveTapHintPlays,
   migrateTapHintPlays,
   nextTapHintPlays,
   rollbackLiveTapHintPlays,
   shouldShowTapHint,
   shouldShowTapHowTo,
+  tapHintAppearDelay,
 } from '@/game/tapCoach';
 
 function hint(
   overrides: Partial<{
     tapHintPlays: number;
     coachThisFill: boolean;
+    hintThisRun: boolean;
+    totalRuns: number;
     phase: Phase;
     paused: boolean;
   }> = {},
@@ -30,13 +36,15 @@ function hint(
 function howTo(
   overrides: Partial<{
     tapHintPlays: number;
-    coachThisFill: boolean;
+    totalRuns: number;
+    howToThisRun: boolean;
     phase: Phase;
     paused: boolean;
   }> = {},
 ) {
   return shouldShowTapHowTo({
     tapHintPlays: 0,
+    totalRuns: 0,
     phase: 'filling',
     paused: false,
     ...overrides,
@@ -66,35 +74,54 @@ describe('shouldShowTapHint', () => {
   test('hides while the menu is open', () => {
     expect(hint({ paused: true, coachThisFill: true })).toBe(false);
   });
-});
 
-describe('shouldShowTapHowTo', () => {
-  test('shows under LVL during countdown while slots remain', () => {
-    expect(howTo({ phase: 'countdown' })).toBe(true);
-    expect(howTo({ tapHintPlays: 2, phase: 'countdown' })).toBe(true);
-  });
-
-  test('shows during filling only after the slot is persisted', () => {
-    expect(howTo({ phase: 'filling' })).toBe(false);
-    expect(howTo({ phase: 'filling', coachThisFill: true })).toBe(true);
-  });
-
-  test('hides on ready, result and game over', () => {
-    expect(howTo({ phase: 'ready' })).toBe(false);
-    expect(howTo({ phase: 'result' })).toBe(false);
-    expect(howTo({ phase: 'gameover' })).toBe(false);
-  });
-
-  test('hides once the lifetime count is used up', () => {
-    expect(howTo({ tapHintPlays: TAP_HINT_PLAYS, phase: 'countdown' })).toBe(
+  test('shows during the first TAP_HINT_GAMES games', () => {
+    expect(hint({ coachThisFill: true, totalRuns: 0 })).toBe(true);
+    expect(hint({ coachThisFill: true, totalRuns: TAP_HINT_GAMES - 1 })).toBe(
+      true,
+    );
+    expect(hint({ coachThisFill: true, totalRuns: TAP_HINT_GAMES })).toBe(
       false,
     );
   });
 
-  test('the fill that consumed the last slot still shows how-to', () => {
-    expect(howTo({ tapHintPlays: TAP_HINT_PLAYS, coachThisFill: true })).toBe(
-      true,
-    );
+  test('stays eligible across a run latched as a new-user game', () => {
+    expect(
+      hint({
+        coachThisFill: true,
+        hintThisRun: true,
+        totalRuns: TAP_HINT_GAMES,
+      }),
+    ).toBe(true);
+  });
+});
+
+describe('shouldShowTapHowTo', () => {
+  test('shows during the first TAP_HOW_TO_PLAYS games', () => {
+    expect(howTo({ phase: 'countdown', totalRuns: 0 })).toBe(true);
+    expect(howTo({ phase: 'filling', totalRuns: 9 })).toBe(true);
+    expect(howTo({ phase: 'result', totalRuns: 9 })).toBe(true);
+  });
+
+  test('stays eligible across levels when this run was latched', () => {
+    expect(
+      howTo({
+        totalRuns: TAP_HOW_TO_PLAYS,
+        howToThisRun: true,
+        phase: 'result',
+      }),
+    ).toBe(true);
+  });
+
+  test('hides on ready and game over', () => {
+    expect(howTo({ phase: 'ready' })).toBe(false);
+    expect(howTo({ phase: 'gameover', howToThisRun: true })).toBe(false);
+  });
+
+  test('hides after 10 finished games', () => {
+    expect(
+      howTo({ totalRuns: TAP_HOW_TO_PLAYS, phase: 'countdown' }),
+    ).toBe(false);
   });
 });
 
@@ -148,5 +175,17 @@ describe('migrateTapHintPlays', () => {
       migrateTapHintPlays({ tapHintPlays: 1, totalRuns: 9, highScore: 500 }),
     ).toBe(1);
     expect(migrateTapHintPlays({ tapHintPlays: 0, totalRuns: 9 })).toBe(0);
+  });
+});
+
+describe('tapHintAppearDelay', () => {
+  test('lands TAP_HINT_LEAD_MS before the fill reaches the zone', () => {
+    expect(tapHintAppearDelay(3000, 0.8)).toBe(2400 - TAP_HINT_LEAD_MS);
+    expect(tapHintAppearDelay(3100, 0.6)).toBe(1860 - TAP_HINT_LEAD_MS);
+  });
+
+  test('starts immediately when the zone is closer than the lead', () => {
+    expect(tapHintAppearDelay(800, 0.4)).toBe(0);
+    expect(tapHintAppearDelay(900, 0.5)).toBe(0);
   });
 });

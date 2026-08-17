@@ -15,6 +15,7 @@ import {
   setSoundMuted,
   todayKey,
 } from '@/game/storage';
+import { TAP_HINT_PLAYS } from '@/game/tapCoach';
 
 import {
   readAsyncStorage,
@@ -115,7 +116,7 @@ describe('loadPersist review-prompt migration', () => {
 describe('loadPersist tap-hint migration', () => {
   test('a veteran save without a count skips the coach', async () => {
     seed({ totalRuns: 6, highScore: 400 });
-    expect((await loadPersist()).tapHintPlays).toBe(3);
+    expect((await loadPersist()).tapHintPlays).toBe(TAP_HINT_PLAYS);
   });
 
   test('a fresh save without a count still gets the coach', async () => {
@@ -312,11 +313,11 @@ describe('commitRunResult', () => {
 });
 
 describe('recordTapHintPlay', () => {
-  test('advances one fill at a time and caps at three', async () => {
+  test('advances one fill at a time and caps at TAP_HINT_PLAYS', async () => {
     expect((await recordTapHintPlay()).tapHintPlays).toBe(1);
     expect((await recordTapHintPlay()).tapHintPlays).toBe(2);
-    expect((await recordTapHintPlay()).tapHintPlays).toBe(3);
-    expect((await recordTapHintPlay()).tapHintPlays).toBe(3);
+    expect((await recordTapHintPlay()).tapHintPlays).toBe(TAP_HINT_PLAYS);
+    expect((await recordTapHintPlay()).tapHintPlays).toBe(TAP_HINT_PLAYS);
   });
 
   test('survives an abandoned run that never reaches game over', async () => {
@@ -329,7 +330,8 @@ describe('recordTapHintPlay', () => {
   test('an explicit count never lowers a higher disk value', async () => {
     await recordTapHintPlay(2);
     expect((await recordTapHintPlay(1)).tapHintPlays).toBe(2);
-    expect((await recordTapHintPlay(5)).tapHintPlays).toBe(3);
+    expect((await recordTapHintPlay(5)).tapHintPlays).toBe(TAP_HINT_PLAYS);
+    expect((await recordTapHintPlay(99)).tapHintPlays).toBe(TAP_HINT_PLAYS);
   });
 
   test('a sidecar count survives if the full save blob never lands', async () => {

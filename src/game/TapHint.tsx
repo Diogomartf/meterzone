@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
@@ -7,7 +7,6 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withDelay,
-  withRepeat,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
@@ -28,100 +27,134 @@ const TAP_BALL = { x: 151 / 430, y: 70 / 512 } as const;
 /** Gap from the meter’s right edge to the tap-circle center. */
 export const TAP_BALL_GAP = 32;
 
+/** One appearance per coached meter: fade in, hold ~1s, fade out. */
+const PULSE = {
+  fadeIn: 400,
+  hold: 1200,
+  fadeOut: 450,
+  pressIn: 260,
+  pressOut: 380,
+} as const;
+
 type Props = {
   visible: boolean;
+  /** Changes each fill so the gesture plays once per level, never on pause/resume. */
+  cycleKey: number;
+  /** Wait this many ms after the fill starts (timed to land 1.5s before the zone). */
+  appearDelay: number;
   /** Screen X of the tap-circle center. */
   ballX: number;
   /** Distance from the bottom of the screen to the tap-circle center. */
   ballBottom: number;
+  /** Fires when the fade actually starts — not when the fill begins. */
+  onPlay?: () => void;
 };
 
 /**
  * First-play coach: pointing hand + TAP.
  * The tap-circle sits on the Perfect line, 32px off the meter — taps work
  * anywhere, so the hint stays out of the tube.
- * The hand fades in, presses, then fades out so the gesture reads as a tap.
- * Decorative — taps fall through to the full-screen hit layer.
+ * The hand and TAP label fade in and out together, once per meter.
  */
-export function TapHint({ visible, ballX, ballBottom }: Props) {
-  const shown = useSharedValue(0);
+export function TapHint({
+  visible,
+  cycleKey,
+  appearDelay,
+  ballX,
+  ballBottom,
+  onPlay,
+}: Props) {
   const pulse = useSharedValue(0);
   const press = useSharedValue(0);
+  const playedKey = useRef<number | null>(null);
+  const onPlayRef = useRef(onPlay);
+  onPlayRef.current = onPlay;
 
   useEffect(() => {
     if (!visible) {
-      shown.value = 0;
       cancelAnimation(pulse);
       cancelAnimation(press);
       pulse.value = 0;
       press.value = 0;
       return;
     }
+    if (playedKey.current === cycleKey) return;
 
-    shown.value = withTiming(1, { duration: 160 });
-    pulse.value = 0;
-    press.value = 0;
-    // Appear → hold through the press → fade out → brief rest.
-    pulse.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 220, easing: Easing.out(Easing.cubic) }),
-        withTiming(1, { duration: 280 }),
-        withTiming(0, { duration: 300, easing: Easing.in(Easing.quad) }),
-        withTiming(0, { duration: 220 }),
-      ),
-      -1,
-      false,
-    );
-    press.value = withRepeat(
-      withSequence(
-        withDelay(
-          160,
-          withTiming(1, { duration: 130, easing: Easing.in(Easing.quad) }),
+    const timer = setTimeout(() => {
+      if (playedKey.current === cycleKey) return;
+      playedKey.current = cycleKey;
+      onPlayRef.current?.();
+      pulse.value = 0;
+      press.value = 0;
+      pulse.value = withSequence(
+        withTiming(1, {
+          duration: PULSE.fadeIn,
+          easing: Easing.out(Easing.cubic),
+        }),
+        withTiming(1, { duration: PULSE.hold }),
+        withTiming(0, {
+          duration: PULSE.fadeOut,
+          easing: Easing.in(Easing.quad),
+        }),
+      );
+      press.value = withDelay(
+        PULSE.fadeIn,
+        withSequence(
+          withTiming(1, {
+            duration: PULSE.pressIn,
+            easing: Easing.in(Easing.quad),
+          }),
+          withTiming(0, {
+            duration: PULSE.pressOut,
+            easing: Easing.out(Easing.cubic),
+          }),
         ),
-        withTiming(0, { duration: 340, easing: Easing.out(Easing.cubic) }),
-        withTiming(0, { duration: 390 }),
-      ),
-      -1,
-      false,
-    );
-  }, [press, pulse, shown, visible]);
+      );
+    }, appearDelay);
+
+    return () => clearTimeout(timer);
+  }, [appearDelay, cycleKey, press, pulse, visible]);
 
   const originX = TAP_HAND_SIZE.width * TAP_BALL.x;
-
-  const fadeStyle = useAnimatedStyle(() => ({
-    opacity: shown.value,
-  }));
-
-  const handStyle = useAnimatedStyle(() => ({
-    opacity: pulse.value,
-    transform: [{ scale: 1 - press.value * 0.1 }],
-  }));
-
-  if (!visible) return null;
-
   const left = ballX - originX;
   const bottom = ballBottom - TAP_HAND_SIZE.height * (1 - TAP_BALL.y);
 
+  const iconStyle = useAnimatedStyle(() => ({
+    opacity: pulse.value * HAND_OPACITY,
+    transform: [{ scale: 1 - press.value * 0.1 }],
+  }));
+
   return (
     <Animated.View
-      style={[styles.wrap, { left, bottom }, fadeStyle]}
+      style={[styles.wrap, { left, bottom }, iconStyle]}
       pointerEvents="none"
       accessibilityElementsHidden
+      collapsable={false}
     >
-      <Animated.View style={[styles.handLayer, handStyle]}>
-        <View style={styles.ringAnchor} pointerEvents="none">
-          <TapRing visible={visible} delay={0} />
-          <TapRing visible={visible} delay={420} />
+      <View style={styles.iconGroup} collapsable={false}>
+        <View style={styles.handLayer}>
+          <View style={styles.ringAnchor} pointerEvents="none">
+            <TapRing
+              playKey={cycleKey}
+              active={visible}
+              delay={appearDelay + PULSE.fadeIn}
+            />
+            <TapRing
+              playKey={cycleKey}
+              active={visible}
+              delay={appearDelay + PULSE.fadeIn + 400}
+            />
+          </View>
+          <Image
+            source={TAP_HAND}
+            style={styles.hand}
+            contentFit="contain"
+            cachePolicy="memory-disk"
+          />
         </View>
-        <Image
-          source={TAP_HAND}
-          style={styles.hand}
-          contentFit="contain"
-          cachePolicy="memory-disk"
-        />
-      </Animated.View>
-      <View style={styles.labelSlot}>
-        <TapLabel />
+        <View style={styles.labelSlot}>
+          <TapLabel />
+        </View>
       </View>
     </Animated.View>
   );
@@ -130,11 +163,19 @@ export function TapHint({ visible, ballX, ballBottom }: Props) {
 const RING_SIZE = 22;
 
 /** Expanding circle lines from the fingertip ball — reads as a tap. */
-function TapRing({ visible, delay }: { visible: boolean; delay: number }) {
+function TapRing({
+  playKey,
+  active,
+  delay,
+}: {
+  playKey: number;
+  active: boolean;
+  delay: number;
+}) {
   const wave = useSharedValue(0);
 
   useEffect(() => {
-    if (!visible) {
+    if (!active) {
       cancelAnimation(wave);
       wave.value = 0;
       return;
@@ -142,13 +183,12 @@ function TapRing({ visible, delay }: { visible: boolean; delay: number }) {
     wave.value = 0;
     wave.value = withDelay(
       delay,
-      withRepeat(
-        withTiming(1, { duration: 900, easing: Easing.out(Easing.cubic) }),
-        -1,
-        false,
-      ),
+      withTiming(1, {
+        duration: 1200,
+        easing: Easing.out(Easing.cubic),
+      }),
     );
-  }, [delay, visible, wave]);
+  }, [active, delay, playKey, wave]);
 
   const style = useAnimatedStyle(() => ({
     opacity: (1 - wave.value) * 0.5,
@@ -191,9 +231,13 @@ const styles = StyleSheet.create({
   wrap: {
     position: 'absolute',
     width: TAP_HAND_SIZE.width,
-    height: TAP_HAND_SIZE.height,
-    zIndex: 32,
+    zIndex: 50,
+    elevation: 50,
     overflow: 'visible',
+  },
+  iconGroup: {
+    alignItems: 'center',
+    transformOrigin: `${TAP_HAND_SIZE.width * TAP_BALL.x}px ${TAP_HAND_SIZE.height * TAP_BALL.y}px`,
   },
   ringAnchor: {
     position: 'absolute',
@@ -216,25 +260,19 @@ const styles = StyleSheet.create({
   handLayer: {
     width: TAP_HAND_SIZE.width,
     height: TAP_HAND_SIZE.height,
-    transformOrigin: `${TAP_HAND_SIZE.width * TAP_BALL.x}px ${TAP_HAND_SIZE.height * TAP_BALL.y}px`,
   },
   hand: {
     width: TAP_HAND_SIZE.width,
     height: TAP_HAND_SIZE.height,
-    opacity: HAND_OPACITY,
   },
   labelSlot: {
-    position: 'absolute',
-    top: TAP_HAND_SIZE.height + 6,
-    left: 0,
-    right: 0,
+    marginTop: 6,
     alignItems: 'center',
   },
   labelWrap: {
     marginTop: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    opacity: HAND_OPACITY,
   },
   label: {
     fontFamily: GameFonts.display,
