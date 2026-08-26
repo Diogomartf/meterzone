@@ -36,7 +36,12 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build
-        run: bun run build
+        # Rolldown walks up to the Expo app tsconfig; hide it so CI (website-only
+        # install) does not try to resolve expo/tsconfig.base.
+        run: |
+          trap 'mv ../tsconfig.json.ci-bak ../tsconfig.json 2>/dev/null || true' EXIT
+          mv ../tsconfig.json ../tsconfig.json.ci-bak
+          bun run build
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3

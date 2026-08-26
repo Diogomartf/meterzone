@@ -5,5 +5,14 @@
     "paths": {
       "@/*": ["src/*"]
     }
-  }
+  },
+  "include": [
+    ".astro/types.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.astro",
+    "**/*.mjs",
+    "**/*.js"
+  ],
+  "exclude": ["dist"]
 }

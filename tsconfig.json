@@ -13,9 +13,15 @@
     }
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "assets/**/*.ts",
+    "assets/**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
+  ],
+  "exclude": [
+    "website",
+    "node_modules"
   ]
 }
