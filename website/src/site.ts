@@ -21,7 +21,7 @@ export const OG_IMAGE = {
 /** Matches top of hero `web-bg.png` — tints mobile browser chrome / status bar. */
 export const THEME_COLOR = '#0009C1';
 
-/** Set real store URLs when available; null shows "Coming soon" CTAs. */
+/** Set store URLs when live. Null App Store shows "Coming soon"; Play Store button only appears when set. */
 export const APP_STORE_URL: string | null =
   'https://apps.apple.com/pt/app/meterzone/id6794744179';
 export const PLAY_STORE_URL: string | null = null;

@@ -56,8 +56,12 @@ const faqs = [
   },
   {
     question: 'Is MeterZone free?',
+    answer: 'Yes. MeterZone is free to download and play on the App Store.',
+  },
+  {
+    question: 'Is MeterZone on Android?',
     answer:
-      'Yes. MeterZone is free to download and play. Store availability will open when the app ships on the App Store.',
+      'Not yet. MeterZone is available on iPhone via the App Store. A Google Play version may follow later.',
   },
   {
     question: 'Do I need an account?',
@@ -66,8 +70,7 @@ const faqs = [
   },
   {
     question: 'What devices does it support?',
-    answer:
-      'MeterZone is built for iPhone. Google Play availability may follow later.',
+    answer: 'MeterZone is built for iPhone.',
   },
 ];
 
@@ -154,14 +157,10 @@ const jsonLd = [
                 </span>
               )}
 
-              {PLAY_STORE_URL ? (
+              {PLAY_STORE_URL && (
                 <a class="store-btn store-btn--android" href={PLAY_STORE_URL} rel="noopener">
                   Get it on Google Play
                 </a>
-              ) : (
-                <span class="store-btn store-btn--android store-btn--soon" aria-disabled="true">
-                  Google Play — Coming soon
-                </span>
               )}
             </div>
 
