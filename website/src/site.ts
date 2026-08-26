@@ -4,7 +4,7 @@ export const CONTACT_EMAIL = 'hello@meterzone.net';
 export const APP_NAME = 'MeterZone';
 
 /** Default SEO copy — keep under ~155 chars for meta descriptions. */
-export const SITE_TAGLINE = 'One-tap timing challenge';
+export const SITE_TAGLINE = 'Free one-tap timing challenge';
 export const SITE_DESCRIPTION =
   'MeterZone is a free casual one-tap timing game. Stop the rising meter in the zone, stack combos, chase high scores, and beat the daily challenge.';
 export const SITE_TITLE = `${APP_NAME} — One-Tap Timing Game | Casual Arcade`;
