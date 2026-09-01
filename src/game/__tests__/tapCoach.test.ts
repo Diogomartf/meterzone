@@ -119,9 +119,9 @@ describe('shouldShowTapHowTo', () => {
   });
 
   test('hides after 10 finished games', () => {
-    expect(
-      howTo({ totalRuns: TAP_HOW_TO_PLAYS, phase: 'countdown' }),
-    ).toBe(false);
+    expect(howTo({ totalRuns: TAP_HOW_TO_PLAYS, phase: 'countdown' })).toBe(
+      false,
+    );
   });
 });
 

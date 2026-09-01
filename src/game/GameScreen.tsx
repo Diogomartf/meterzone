@@ -1,12 +1,10 @@
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
-import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
-  AppState,
   Linking,
   Pressable,
-  StyleSheet,
   Text,
   useWindowDimensions,
   View,
@@ -24,14 +22,18 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { GameColors, GameFonts, fillParent } from '@/constants/gameTheme';
+import { GameColors } from '@/constants/gameTheme';
+import { styles } from '@/game/gameScreenStyles';
 import { CountdownBurst } from '@/game/CountdownBurst';
+import { GameCta, SecondaryCta } from '@/game/GameCta';
 import { Hearts } from '@/game/Hearts';
 import { MenuSheet } from '@/game/MenuSheet';
 import { MissBreak } from '@/game/MissBreak';
 import { PerfectSwoosh } from '@/game/PerfectSwoosh';
 import { ReviewPromptModal } from '@/game/ReviewPromptModal';
+import { ScoreModule } from '@/game/ScoreModule';
 import { TapHint, TAP_BALL_GAP } from '@/game/TapHint';
+import { TapHowToLine } from '@/game/TapHowToLine';
 import { VerticalMeter } from '@/game/VerticalMeter';
 import { formatScore } from '@/game/format';
 import { gameHaptics, setGameHapticsEnabled } from '@/game/haptics';
@@ -39,26 +41,15 @@ import { createRng, makeRound } from '@/game/levels';
 import { shouldShowReviewPrompt } from '@/game/review';
 import { comboMultiplier, scoreFill, STARTING_LIVES } from '@/game/scoring';
 import {
-  mergeLiveTapHintPlays,
-  nextTapHintPlays,
-  rollbackLiveTapHintPlays,
   shouldShowTapHint,
   shouldShowTapHowTo,
   tapHintAppearDelay,
-  TAP_HINT_PLAYS,
-  TAP_HINT_PER_GAME,
-  TAP_HINT_GAMES,
-  TAP_HOW_TO,
-  TAP_HOW_TO_PLAYS,
 } from '@/game/tapCoach';
 import {
   feedbackSlotFor,
-  initialRunState,
   INITIAL_COUNTDOWN,
-  runReducer,
   type Feedback,
   type FeedbackSlot,
-  type RunAction,
 } from '@/game/runState';
 import { captureAndShare, SHARE_SCORE_CAPTION } from '@/game/share';
 import { DEFAULT_SKIN, SKINS } from '@/game/skins';
@@ -66,21 +57,17 @@ import {
   clearPersist,
   commitRunResult,
   dailySeed,
-  loadPersist,
   markReviewAccepted,
   recordReviewPromptDecline,
-  recordTapHintPlay,
   setHapticsEnabled,
   setSoundMuted,
   todayKey,
 } from '@/game/storage';
-import type {
-  PersistState,
-  RoundConfig,
-  RoundLabel,
-  SessionStats,
-} from '@/game/types';
+import type { RoundConfig, RoundLabel, SessionStats } from '@/game/types';
+import { useRunState } from '@/game/useRunState';
+import { usePersistState } from '@/game/usePersistState';
 import { useSounds } from '@/game/useSounds';
+import { useTapCoach } from '@/game/useTapCoach';
 
 const LOGO = require('../../assets/images/zone-meter-logo.png');
 const GAME_BG = require('../../assets/images/game-bg.png');
@@ -150,284 +137,10 @@ const LABEL_COLORS: Record<RoundLabel, string> = {
   Miss: '#6B7280',
 };
 
-type GameCtaProps = {
-  label: string;
-  subtitle?: string;
-  face: string;
-  depth: string;
-  onPress: () => void;
-};
-
-/** Chunky casual-game CTA — 3D lip + press squash */
-function GameCta({ label, subtitle, face, depth, onPress }: GameCtaProps) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.ctaPressable,
-        pressed && styles.ctaPressableDown,
-      ]}
-    >
-      {({ pressed }) => (
-        <View style={[styles.ctaShell, { backgroundColor: depth }]}>
-          <View
-            style={[
-              styles.ctaFace,
-              { backgroundColor: face },
-              pressed ? styles.ctaFaceDown : styles.ctaFaceUp,
-            ]}
-          >
-            <View style={styles.ctaShine} />
-            <Text style={styles.ctaText}>{label}</Text>
-            {subtitle ? <Text style={styles.ctaSub}>{subtitle}</Text> : null}
-          </View>
-        </View>
-      )}
-    </Pressable>
-  );
-}
-
-type SecondaryCtaProps = {
-  label: string;
-  onPress: () => void;
-};
-
-/**
- * Compact home-screen alternate, paired with the menu button.
- * Full-opacity 3D chrome like PLAY, but shorter so PLAY stays the default.
- */
-function SecondaryCta({ label, onPress }: SecondaryCtaProps) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.secondaryCtaPressable,
-        pressed && styles.ctaPressableDown,
-      ]}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-    >
-      {({ pressed }) => (
-        <View
-          style={[
-            styles.secondaryCtaShell,
-            { backgroundColor: GameColors.bubbleDark },
-          ]}
-        >
-          <View
-            style={[
-              styles.secondaryCtaFace,
-              pressed ? styles.secondaryCtaFaceDown : styles.secondaryCtaFaceUp,
-            ]}
-          >
-            <Text style={styles.secondaryCtaLabel}>{label}</Text>
-          </View>
-        </View>
-      )}
-    </Pressable>
-  );
-}
-
-const HOW_TO_DELAY = 500;
-const HOW_TO_FADE_IN = 400;
-const HOW_TO_HOLD = 4000;
-const HOW_TO_FADE_OUT = 400;
-
-/**
- * First-play how-to under LVL. Waits 0.5s after the game starts, fades in,
- * then fades out 4s later. Stays mounted across levels so the timer is not reset.
- */
-function TapHowToLine({ visible }: { visible: boolean }) {
-  const opacity = useSharedValue(0);
-  const [held, setHeld] = useState(false);
-
-  useEffect(() => {
-    if (!visible) {
-      cancelAnimation(opacity);
-      opacity.value = withTiming(0, {
-        duration: HOW_TO_FADE_OUT,
-        easing: Easing.in(Easing.quad),
-      });
-      const hide = setTimeout(() => setHeld(false), HOW_TO_FADE_OUT);
-      return () => clearTimeout(hide);
-    }
-
-    setHeld(true);
-    opacity.value = 0;
-    opacity.value = withDelay(
-      HOW_TO_DELAY,
-      withSequence(
-        withTiming(1, {
-          duration: HOW_TO_FADE_IN,
-          easing: Easing.out(Easing.cubic),
-        }),
-        withDelay(
-          HOW_TO_HOLD,
-          withTiming(0, {
-            duration: HOW_TO_FADE_OUT,
-            easing: Easing.in(Easing.quad),
-          }),
-        ),
-      ),
-    );
-    const done = HOW_TO_DELAY + HOW_TO_FADE_IN + HOW_TO_HOLD + HOW_TO_FADE_OUT;
-    const hide = setTimeout(() => setHeld(false), done);
-    return () => clearTimeout(hide);
-  }, [opacity, visible]);
-
-  const fadeStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
-  if (!held) return null;
-  return (
-    <Animated.Text style={[styles.tapHowTo, fadeStyle]}>
-      {TAP_HOW_TO}
-    </Animated.Text>
-  );
-}
-
-type ScoreModuleProps = {
-  best: number;
-  bestLevel: number;
-  dailyScore: number;
-  dailyLevel: number;
-  dailyPlayed: boolean;
-  onOpen: () => void;
-};
-
-/** Home-screen score module: dominant all-time BEST over a shorter Daily Best. */
-function ScoreModule({
-  best,
-  bestLevel,
-  dailyScore,
-  dailyLevel,
-  dailyPlayed,
-  onOpen,
-}: ScoreModuleProps) {
-  return (
-    <View style={styles.scoreModule}>
-      <Pressable
-        onPress={onOpen}
-        style={({ pressed }) => [
-          styles.scoreMain,
-          pressed && styles.scoreSectionPressed,
-        ]}
-        accessibilityRole="button"
-        accessibilityLabel={`All-time best ${best}, level ${bestLevel}. Open scores.`}
-      >
-        <View style={styles.scoreMainHead}>
-          <Image
-            source={TROPHY}
-            style={styles.trophyIcon}
-            contentFit="contain"
-          />
-          <Text style={styles.scoreBestLabel}>BEST</Text>
-        </View>
-        <Text
-          style={styles.scoreBestValue}
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.6}
-        >
-          {formatScore(best)}
-        </Text>
-        <View style={styles.scoreLevelPill}>
-          <Text style={styles.scoreLevelText}>Level {bestLevel}</Text>
-        </View>
-      </Pressable>
-      <View style={styles.scoreDivider} />
-      <Pressable
-        onPress={onOpen}
-        style={({ pressed }) => [
-          styles.scoreDaily,
-          pressed && styles.scoreSectionPressed,
-        ]}
-        accessibilityRole="button"
-        accessibilityLabel={
-          dailyPlayed
-            ? `Daily best ${dailyScore}, level ${dailyLevel}. Open scores.`
-            : 'Daily best not set yet. Play today.'
-        }
-      >
-        <Text style={styles.scoreDailyLabel}>DAILY</Text>
-        {dailyPlayed ? (
-          <Text style={styles.scoreDailyValue} numberOfLines={1}>
-            {formatScore(dailyScore)}
-          </Text>
-        ) : (
-          <View style={styles.scoreDailyRow}>
-            <Text style={styles.scoreDailyValue}>—</Text>
-            <Text style={styles.scoreDailyEmpty}>Play today</Text>
-          </View>
-        )}
-      </Pressable>
-    </View>
-  );
-}
-
-/**
- * Run state plus a ref that always holds the latest value.
- *
- * Timers and Reanimated callbacks fire outside render and would otherwise read
- * a stale closure, which is why this component used to carry a hand-written
- * `useRef` mirror beside every piece of state. Here the ref is advanced by the
- * same pure reducer React uses, so the two cannot drift: both are
- * `actions.reduce(runReducer, initial)`.
- *
- * StrictMode caveat: React double-invokes the reducer in development, so
- * `state` and `stateRef.current` briefly hold different object identities for
- * the same logical value while stepping through a dispatch. Production keeps
- * them in lockstep; do not treat the identity mismatch as a drift bug.
- */
-function useRunState() {
-  const [state, baseDispatch] = useReducer(runReducer, undefined, () =>
-    initialRunState(),
-  );
-  const stateRef = useRef(state);
-
-  const dispatch = useCallback((action: RunAction) => {
-    stateRef.current = runReducer(stateRef.current, action);
-    baseDispatch(action);
-  }, []);
-
-  return [state, dispatch, stateRef] as const;
-}
-
 export function GameScreen() {
   const insets = useSafeAreaInsets();
   const { height: windowH, width: windowW } = useWindowDimensions();
-  const [persist, setPersist] = useState<PersistState | null>(null);
-  const persistRef = useRef<PersistState | null>(null);
-  const applyPersist = useCallback((next: PersistState) => {
-    persistRef.current = next;
-    setPersist(next);
-  }, []);
-  const [coachThisFill, setCoachThisFill] = useState(false);
-  const [howToThisRun, setHowToThisRun] = useState(false);
-  const [hintThisRun, setHintThisRun] = useState(false);
-  const fillStartGen = useRef(0);
-  const tapHintsThisRunRef = useRef(0);
-  const hintThisRunRef = useRef(false);
-  const coachRecordedGenRef = useRef<number | null>(null);
-  const coachWriteRef = useRef(Promise.resolve());
-  const flushCoachWrite = useCallback(
-    () => coachWriteRef.current.catch(() => undefined),
-    [],
-  );
-  const enqueueCoachWrite = useCallback((write: () => Promise<unknown>) => {
-    const chained = coachWriteRef.current.catch(() => undefined).then(write);
-    coachWriteRef.current = chained;
-    return chained;
-  }, []);
-  /** Overlay only tapHintPlays — never replace the live persist snapshot. */
-  const mergeTapHintPlays = useCallback(
-    (plays: number) => {
-      const current = persistRef.current;
-      if (!current) return;
-      const next = mergeLiveTapHintPlays(current.tapHintPlays, plays);
-      if (next === current.tapHintPlays) return;
-      applyPersist({ ...current, tapHintPlays: next });
-    },
-    [applyPersist],
-  );
+  const { persist, persistRef, applyPersist } = usePersistState();
   const muted = Boolean(persist?.soundMuted);
   const { play } = useSounds(muted);
 
@@ -445,6 +158,25 @@ export function GameScreen() {
     feedback,
     paused: menuOpen,
   } = state;
+
+  const {
+    coachThisFill,
+    howToThisRun,
+    hintThisRun,
+    fillCycle,
+    beginFill,
+    endFill,
+    beginRun: beginCoachRun,
+    haltCoach,
+    onHintPlayed,
+    flushCoachWrite,
+  } = useTapCoach({
+    persist,
+    persistRef,
+    applyPersist,
+    phase,
+    paused: menuOpen,
+  });
 
   /** Best (for the played mode) at the moment a finished run is committed. */
   const [previousBest, setPreviousBest] = useState(0);
@@ -530,15 +262,11 @@ export function GameScreen() {
     [],
   );
   useEffect(() => {
-    void loadPersist().then((state) => {
-      applyPersist(state);
-      setGameHapticsEnabled(state.hapticsEnabled !== false);
-    });
     return () => {
       if (autoTimer.current) clearTimeout(autoTimer.current);
       if (countTimer.current) clearTimeout(countTimer.current);
     };
-  }, [applyPersist]);
+  }, []);
 
   /** Animation side of a judged round — the chip itself lives in run state. */
   const showFeedback = useCallback((next: Omit<Feedback, 'slot'>) => {
@@ -665,12 +393,12 @@ export function GameScreen() {
     setReviewPromptVisible(false);
     // Persist before native UI so we never re-prompt even if they bounce.
     void markReviewAccepted().then(applyPersist);
-  }, []);
+  }, [applyPersist]);
 
   const onReviewDecline = useCallback(() => {
     setReviewPromptVisible(false);
     void recordReviewPromptDecline().then(applyPersist);
-  }, []);
+  }, [applyPersist]);
 
   /**
    * Queue the move to the next meter. If the menu opens before it fires, the
@@ -715,7 +443,7 @@ export function GameScreen() {
         },
       });
       const after = stateRef.current;
-      setCoachThisFill(false);
+      endFill();
 
       showFeedback({
         label: result.label,
@@ -750,77 +478,12 @@ export function GameScreen() {
       endRun,
       isFilling,
       play,
+      endFill,
       scheduleAdvance,
       showFeedback,
       stateRef,
     ],
   );
-
-  /**
-   * Persist a displayed hint only after it is on screen (this effect runs
-   * after paint). Counting earlier charged a slot the player never saw.
-   * The write is tracked so halt/background/unmount cannot drop it. Only
-   * tapHintPlays is merged, and a failed write rolls back only if this fill
-   * still owns the live count — a newer fill is never lowered.
-   */
-  useEffect(() => {
-    if (!persist || !coachThisFill || phase !== 'filling' || menuOpen) return;
-    const gen = fillStartGen.current;
-    if (coachRecordedGenRef.current === gen) return;
-    const shown = persist?.tapHintPlays ?? persistRef.current?.tapHintPlays ?? 0;
-    if (shown >= TAP_HINT_PLAYS) return;
-    coachRecordedGenRef.current = gen;
-    const nextPlays = nextTapHintPlays(shown, 1);
-    mergeTapHintPlays(nextPlays);
-    void enqueueCoachWrite(async () => {
-      try {
-        const saved = await recordTapHintPlay(nextPlays);
-        mergeTapHintPlays(saved.tapHintPlays);
-      } catch {
-        // A newer fill may have already raised the live count. Never lower it.
-        if (fillStartGen.current !== gen) return;
-        let diskPlays = Math.max(0, nextPlays - 1);
-        try {
-          diskPlays = (await loadPersist()).tapHintPlays;
-        } catch {
-          // Keep the local fallback when disk cannot be read.
-        }
-        if (fillStartGen.current !== gen) return;
-        const current = persistRef.current;
-        if (!current) return;
-        const rolled = rollbackLiveTapHintPlays(
-          current.tapHintPlays,
-          nextPlays,
-          diskPlays,
-        );
-        if (rolled === current.tapHintPlays) return;
-        applyPersist({ ...current, tapHintPlays: rolled });
-        if (coachRecordedGenRef.current === gen) {
-          coachRecordedGenRef.current = null;
-        }
-      }
-    });
-  }, [
-    applyPersist,
-    coachThisFill,
-    enqueueCoachWrite,
-    menuOpen,
-    mergeTapHintPlays,
-    persist,
-    phase,
-  ]);
-
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', (status) => {
-      if (status === 'background' || status === 'inactive') {
-        void flushCoachWrite();
-      }
-    });
-    return () => {
-      sub.remove();
-      void flushCoachWrite();
-    };
-  }, [flushCoachWrite]);
 
   const startFill = useCallback(() => {
     if (stateRef.current.paused) {
@@ -828,12 +491,7 @@ export function GameScreen() {
       return;
     }
     const current = stateRef.current.round;
-    fillStartGen.current += 1;
-    // Count a play only after the hand actually fades in (TapHint onPlay).
-    setCoachThisFill(
-      hintThisRunRef.current &&
-        tapHintsThisRunRef.current < TAP_HINT_PER_GAME,
-    );
+    beginFill();
 
     dispatch({ type: 'clearFeedback' });
     feedbackOpacity.set(0);
@@ -856,6 +514,7 @@ export function GameScreen() {
       ),
     );
   }, [
+    beginFill,
     dispatch,
     fill,
     feedbackOpacity,
@@ -1026,14 +685,7 @@ export function GameScreen() {
    * so nothing queued from the previous run can fire into the next one.
    */
   const haltRun = useCallback(() => {
-    fillStartGen.current += 1;
-    setCoachThisFill(false);
-    setHowToThisRun(false);
-    hintThisRunRef.current = false;
-    setHintThisRun(false);
-    tapHintsThisRunRef.current = 0;
-    // Do not cancel an in-flight coach write — the player already saw this fill.
-    void flushCoachWrite();
+    haltCoach();
     if (countTimer.current) clearTimeout(countTimer.current);
     if (autoTimer.current) clearTimeout(autoTimer.current);
     countTimer.current = null;
@@ -1044,7 +696,7 @@ export function GameScreen() {
     cancelAnimation(meterX);
     meterX.set(0);
     cancelAnimation(fill);
-  }, [dispatch, fill, flushCoachWrite, meterX]);
+  }, [dispatch, fill, haltCoach, meterX]);
 
   /** Reset the animation layer that sits alongside run state. */
   const resetRunVisuals = useCallback(() => {
@@ -1071,13 +723,7 @@ export function GameScreen() {
   const startRun = (daily: boolean) => {
     haltRun();
     resetRunVisuals();
-    tapHintsThisRunRef.current = 0;
-    const finishedGames =
-      persistRef.current?.totalRuns ?? persist?.totalRuns ?? 0;
-    const coachThisGame = finishedGames < TAP_HINT_GAMES;
-    hintThisRunRef.current = coachThisGame;
-    setHintThisRun(coachThisGame);
-    setHowToThisRun(finishedGames < TAP_HOW_TO_PLAYS);
+    beginCoachRun(persistRef.current?.totalRuns ?? persist?.totalRuns ?? 0);
     dispatch({ type: 'startRun', daily });
     rngRef.current = daily ? createRng(dailySeed()) : Math.random;
     runBestBaselineRef.current = daily
@@ -1380,15 +1026,11 @@ export function GameScreen() {
 
       <TapHint
         visible={showTapHint}
-        cycleKey={fillStartGen.current}
+        cycleKey={fillCycle}
         appearDelay={tapHintAppearDelay(round.fillMs, round.target)}
         ballX={tapBallX}
         ballBottom={tapBallBottom}
-        onPlay={() => {
-          if (tapHintsThisRunRef.current < TAP_HINT_PER_GAME) {
-            tapHintsThisRunRef.current += 1;
-          }
-        }}
+        onPlay={onHintPlayed}
       />
 
       <View
@@ -1758,532 +1400,3 @@ export function GameScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#1E8CFF' },
-  backdrop: {
-    ...fillParent,
-    zIndex: 0,
-  },
-  backdropImage: {
-    width: '100%',
-    height: '100%',
-  },
-  hitLayer: {
-    ...fillParent,
-    zIndex: 20,
-  },
-  content: {
-    ...fillParent,
-    paddingHorizontal: 20,
-    zIndex: 30,
-    elevation: 30,
-  },
-  topBlock: {
-    width: '100%',
-    gap: 6,
-  },
-  topRow: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 10,
-    minHeight: 40,
-  },
-  topLeft: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingRight: 4,
-  },
-  logoHud: {
-    width: 104,
-    height: 66,
-    marginLeft: -4,
-  },
-  bottomBar: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    zIndex: 45,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  menuBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: GameColors.playBlue,
-    borderWidth: 2.5,
-    borderColor: GameColors.ink,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  bestPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 14,
-    borderWidth: 2.5,
-    borderColor: GameColors.ink,
-    backgroundColor: '#FFF4C2',
-    alignItems: 'center',
-    minWidth: 64,
-    flexShrink: 0,
-  },
-  bestPillHot: {
-    backgroundColor: GameColors.lemon,
-  },
-  bestLabel: {
-    fontFamily: GameFonts.soft,
-    fontSize: 12,
-    color: GameColors.panelInk,
-  },
-  bestLabelHot: {
-    fontFamily: GameFonts.body,
-    color: GameColors.ink,
-    letterSpacing: 0.4,
-  },
-  bestValue: {
-    fontFamily: GameFonts.body,
-    fontSize: 20,
-    lineHeight: 24,
-    color: GameColors.ink,
-  },
-  bestValueHot: {
-    fontFamily: GameFonts.display,
-  },
-  // Home-screen score module — dominant BEST over a shorter tinted Daily.
-  scoreModule: {
-    width: 122,
-    flexShrink: 0,
-    borderRadius: 15,
-    borderWidth: 2.5,
-    borderColor: GameColors.ink,
-    backgroundColor: '#FBEFBE',
-    overflow: 'hidden',
-  },
-  scoreMain: {
-    paddingHorizontal: 10,
-    paddingTop: 7,
-    paddingBottom: 8,
-    gap: 3,
-    alignItems: 'stretch',
-  },
-  scoreSectionPressed: {
-    backgroundColor: 'rgba(26,28,44,0.06)',
-  },
-  scoreMainHead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  trophyIcon: {
-    width: 24,
-    height: 24,
-  },
-  scoreBestLabel: {
-    fontFamily: GameFonts.display,
-    fontSize: 13,
-    lineHeight: 16,
-    color: GameColors.ink,
-    letterSpacing: 0.4,
-  },
-  scoreBestValue: {
-    fontFamily: GameFonts.display,
-    fontSize: 24,
-    color: GameColors.ink,
-    letterSpacing: -0.5,
-  },
-  scoreLevelPill: {
-    marginTop: 1,
-    borderRadius: 10,
-    paddingVertical: 3.5,
-    paddingHorizontal: 8,
-    alignItems: 'center',
-    backgroundColor: GameColors.lemon,
-  },
-  scoreLevelText: {
-    fontFamily: GameFonts.body,
-    fontSize: 12,
-    lineHeight: 15,
-    color: GameColors.ink,
-  },
-  scoreDivider: {
-    height: 2.5,
-    backgroundColor: GameColors.ink,
-  },
-  scoreDaily: {
-    paddingHorizontal: 10,
-    paddingTop: 5,
-    paddingBottom: 6,
-    gap: 1,
-    alignItems: 'flex-start',
-    backgroundColor: 'rgba(88,204,2,0.18)',
-  },
-  scoreDailyLabel: {
-    fontFamily: GameFonts.body,
-    fontSize: 10,
-    letterSpacing: 0.5,
-    color: GameColors.bubbleDark,
-  },
-  scoreDailyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  scoreDailyValue: {
-    fontFamily: GameFonts.display,
-    fontSize: 16,
-    lineHeight: 19,
-    color: GameColors.ink,
-  },
-  scoreDailyEmpty: {
-    fontFamily: GameFonts.body,
-    fontSize: 12,
-    color: GameColors.bubbleDark,
-  },
-  // Results screen — best/difference summary + NEW BEST trophy.
-  resultTrophy: {
-    width: 64,
-    height: 64,
-  },
-  resultSummary: {
-    backgroundColor: 'rgba(255,255,255,0.94)',
-    borderRadius: 16,
-    borderWidth: 2.5,
-    borderColor: GameColors.ink,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    alignItems: 'center',
-    gap: 2,
-    minWidth: 168,
-  },
-  resultSummaryLabel: {
-    fontFamily: GameFonts.soft,
-    fontSize: 12,
-    letterSpacing: 0.6,
-    color: GameColors.panelInk,
-  },
-  resultSummaryValue: {
-    fontFamily: GameFonts.display,
-    fontSize: 24,
-    lineHeight: 28,
-    color: GameColors.ink,
-  },
-  resultBestRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  resultGap: {
-    fontFamily: GameFonts.body,
-    fontSize: 14,
-    color: GameColors.scoreBad,
-    marginTop: 2,
-  },
-  statsBlock: { marginTop: 2, alignItems: 'center' },
-  heartsAboveScore: {
-    marginBottom: 6,
-    alignItems: 'center',
-  },
-  bigScore: {
-    fontFamily: GameFonts.display,
-    fontSize: 52,
-    lineHeight: 56,
-    color: GameColors.white,
-    textShadowColor: 'rgba(26,28,44,0.4)',
-    textShadowOffset: { width: 0, height: 3 },
-    textShadowRadius: 0,
-  },
-  bigScoreHot: {
-    color: GameColors.lemon,
-    textShadowColor: GameColors.ink,
-    textShadowOffset: { width: 0, height: 3 },
-    textShadowRadius: 0,
-  },
-  metaLine: {
-    fontFamily: GameFonts.display,
-    fontSize: 22,
-    lineHeight: 26,
-    color: GameColors.ink,
-  },
-  tapHowTo: {
-    marginTop: 6,
-    maxWidth: 260,
-    fontFamily: GameFonts.body,
-    fontSize: 15,
-    lineHeight: 19,
-    textAlign: 'center',
-    color: 'rgba(255,255,255,0.7)',
-    textShadowColor: 'rgba(26,28,44,0.35)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 0,
-  },
-  newBestTag: {
-    marginTop: 4,
-    fontFamily: GameFonts.display,
-    fontSize: 18,
-    lineHeight: 22,
-    letterSpacing: 1,
-    color: GameColors.lemon,
-    textShadowColor: GameColors.ink,
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 0,
-  },
-  runStats: {
-    marginTop: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.94)',
-    borderRadius: 16,
-    borderWidth: 2.5,
-    borderColor: GameColors.ink,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    gap: 12,
-  },
-  runStat: {
-    alignItems: 'center',
-    minWidth: 52,
-  },
-  runStatLabel: {
-    fontFamily: GameFonts.soft,
-    fontSize: 11,
-    color: GameColors.panelInk,
-    letterSpacing: 0.6,
-  },
-  runStatValue: {
-    fontFamily: GameFonts.display,
-    fontSize: 20,
-    lineHeight: 24,
-    color: GameColors.ink,
-  },
-  runStatDivider: {
-    width: 2,
-    height: 28,
-    borderRadius: 1,
-    backgroundColor: 'rgba(26,28,44,0.15)',
-  },
-  comboFloat: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    zIndex: 30,
-  },
-  comboFloatLabel: {
-    fontFamily: GameFonts.display,
-    fontSize: 14,
-    lineHeight: 16,
-    letterSpacing: 2,
-    color: GameColors.white,
-    textAlign: 'center',
-    textShadowColor: GameColors.ink,
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 0,
-  },
-  comboFloatValue: {
-    fontFamily: GameFonts.display,
-    fontSize: 52,
-    lineHeight: 56,
-    color: '#FFE96A',
-    textAlign: 'center',
-    textShadowColor: GameColors.ink,
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 0,
-  },
-  meterAnchor: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    zIndex: 1,
-  },
-  meterDimmed: {
-    opacity: 0.28,
-  },
-  hidden: { opacity: 0 },
-  gameOverPanel: {
-    ...fillParent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 40,
-    gap: 18,
-    paddingHorizontal: 24,
-  },
-  gameOverActions: {
-    width: '100%',
-    alignItems: 'center',
-    gap: 12,
-  },
-  gameOverTitle: {
-    fontFamily: GameFonts.display,
-    fontSize: 52,
-    lineHeight: 56,
-    textAlign: 'center',
-    color: '#FF4B4B',
-    textShadowColor: GameColors.ink,
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 0,
-  },
-  gameOverTitleBest: {
-    color: GameColors.lemon,
-  },
-  dailyShareDate: {
-    fontFamily: GameFonts.body,
-    fontSize: 18,
-    lineHeight: 22,
-    textAlign: 'center',
-    color: GameColors.white,
-    textShadowColor: 'rgba(26,28,44,0.45)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 0,
-    marginBottom: -4,
-  },
-  feedback: {
-    position: 'absolute',
-    zIndex: 35,
-    maxWidth: '52%',
-  },
-  feedbackAlignStart: { textAlign: 'left' },
-  feedbackAlignEnd: { textAlign: 'right' },
-  feedbackLabel: {
-    fontFamily: GameFonts.display,
-    fontSize: 28,
-    lineHeight: 32,
-    textShadowColor: GameColors.ink,
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 0,
-  },
-  feedbackLabelGreat: {
-    fontSize: 44,
-    lineHeight: 48,
-    letterSpacing: 0.5,
-    textShadowOffset: { width: 0, height: 3 },
-  },
-  feedbackPoints: {
-    marginTop: 2,
-    fontFamily: GameFonts.body,
-    fontSize: 18,
-    color: GameColors.white,
-    textShadowColor: GameColors.ink,
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 0,
-  },
-  feedbackCombo: {
-    marginTop: 3,
-    fontFamily: GameFonts.display,
-    fontSize: 18,
-    lineHeight: 22,
-    color: GameColors.lemon,
-    textShadowColor: GameColors.ink,
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 0,
-  },
-  menuCol: {
-    position: 'absolute',
-    left: 28,
-    right: 28,
-    gap: 10,
-    zIndex: 40,
-    alignItems: 'center',
-  },
-  ctaPressable: {
-    width: '100%',
-    maxWidth: 320,
-  },
-  ctaPressableDown: {
-    transform: [{ scale: 0.97 }],
-  },
-  ctaShell: {
-    borderRadius: 22,
-    borderWidth: 4,
-    borderColor: GameColors.ink,
-    overflow: 'hidden',
-  },
-  ctaFace: {
-    minHeight: 64,
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  ctaFaceUp: {
-    marginBottom: 5,
-    borderBottomWidth: 0,
-  },
-  ctaFaceDown: {
-    marginBottom: 0,
-    marginTop: 5,
-  },
-  ctaShine: {
-    position: 'absolute',
-    left: 10,
-    right: 10,
-    top: 6,
-    height: 14,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.28)',
-  },
-  ctaText: {
-    fontFamily: GameFonts.display,
-    fontSize: 30,
-    lineHeight: 34,
-    color: GameColors.white,
-    letterSpacing: 1.5,
-    textShadowColor: 'rgba(26,28,44,0.35)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 0,
-  },
-  ctaSub: {
-    marginTop: 1,
-    fontFamily: GameFonts.soft,
-    fontSize: 12,
-    lineHeight: 14,
-    color: 'rgba(255,255,255,0.92)',
-    letterSpacing: 0.8,
-  },
-  // Compact daily CTA — same row as the menu button, smaller than PLAY.
-  secondaryCtaPressable: {
-    flexShrink: 1,
-  },
-  secondaryCtaShell: {
-    borderRadius: 16,
-    borderWidth: 3,
-    borderColor: GameColors.ink,
-    overflow: 'hidden',
-  },
-  secondaryCtaFace: {
-    minHeight: 36,
-    paddingHorizontal: 14,
-    paddingTop: 6,
-    paddingBottom: 7,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: GameColors.bubble,
-  },
-  secondaryCtaFaceUp: {
-    marginBottom: 3,
-  },
-  secondaryCtaFaceDown: {
-    marginBottom: 0,
-    marginTop: 3,
-  },
-  secondaryCtaLabel: {
-    fontFamily: GameFonts.display,
-    fontSize: 15,
-    lineHeight: 18,
-    color: GameColors.white,
-    letterSpacing: 0.2,
-    textShadowColor: 'rgba(26,28,44,0.35)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 0,
-  },
-});

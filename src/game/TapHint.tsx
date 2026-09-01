@@ -68,7 +68,9 @@ export function TapHint({
   const press = useSharedValue(0);
   const playedKey = useRef<number | null>(null);
   const onPlayRef = useRef(onPlay);
-  onPlayRef.current = onPlay;
+  useEffect(() => {
+    onPlayRef.current = onPlay;
+  }, [onPlay]);
 
   useEffect(() => {
     if (!visible) {
