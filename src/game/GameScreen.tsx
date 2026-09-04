@@ -51,7 +51,7 @@ import {
   type Feedback,
   type FeedbackSlot,
 } from '@/game/runState';
-import { captureAndShare, SHARE_SCORE_CAPTION } from '@/game/share';
+import { captureAndShare, shareScoreCaption } from '@/game/share';
 import { DEFAULT_SKIN, SKINS } from '@/game/skins';
 import {
   clearPersist,
@@ -939,7 +939,7 @@ export function GameScreen() {
     setCapturingShare(true);
     try {
       await captureAndShare(shareRef.current, {
-        message: SHARE_SCORE_CAPTION,
+        message: shareScoreCaption(),
         dialogTitle: 'Share your score',
       });
     } catch {

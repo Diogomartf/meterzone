@@ -3,6 +3,9 @@ import type { View } from 'react-native';
 import { Platform, Share } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
 
+import ShareSheet from '../../modules/share-sheet/src/ShareSheetModule';
+import { MARKETING_URL } from '@/game/review';
+
 /**
  * Frames must commit and paint before `captureRef` can see them — callers hide
  * their chrome (Share/Retry buttons) a render earlier, and this is the beat we
@@ -10,11 +13,33 @@ import { captureRef } from 'react-native-view-shot';
  */
 const PAINT_SETTLE_MS = 60;
 
-/** Caption attached to any shared score image. */
-export const SHARE_SCORE_CAPTION = 'Can you top that?';
+/**
+ * Dares paired with a shared score image. The picture already shows the number,
+ * so the text does the other job: needle the reader into a rematch. Rotated at
+ * random so a friend who gets a few doesn't read the same line twice.
+ */
+export const SHARE_SCORE_DARES = [
+  'Beat my score if you can 👀',
+  'Think you can beat this? 👀',
+  'I stopped the meter. Can you? 🎯',
+  'Your turn. One tap, no mercy.',
+  "Bet you can't top this 😏",
+  'Come and take it.',
+  'One tap stands between you and this score.',
+  'Go on, make me look bad 👇',
+  'Nailed the zone. Your move.',
+  'Harder than it looks. Prove me wrong.',
+] as const;
+
+/** A random dare plus the link, so the challenge is one tap from playable. */
+export function shareScoreCaption(): string {
+  const dare =
+    SHARE_SCORE_DARES[Math.floor(Math.random() * SHARE_SCORE_DARES.length)];
+  return `${dare}\n${MARKETING_URL}`;
+}
 
 export type ShareCaptureOptions = {
-  /** Caption sent alongside the image. */
+  /** Caption sent alongside the image, and the text-only fallback. */
   message: string;
   /** Android share-sheet title. */
   dialogTitle?: string;
@@ -23,10 +48,11 @@ export type ShareCaptureOptions = {
 /**
  * Capture a view as a PNG and hand it to the platform share sheet.
  *
- * iOS goes through `Share.share` so the caption and image travel together;
- * Android's Share ignores `url`, so it uses expo-sharing when available. Falls
- * back to a text-only share whenever the capture or the image path is
- * unavailable, so the button never dead-ends.
+ * Both platforms send the caption alongside the image so a messaging app can
+ * compose them as one message: iOS through `Share.share`, Android through our
+ * `share-sheet` module, since `expo-sharing` drops the text and React Native's
+ * `Share` drops the image. Falls back to expo-sharing and then to a text-only
+ * share, so the button never dead-ends.
  *
  * Resolves once a share sheet was presented; failures throw (callers catch).
  */
@@ -50,6 +76,21 @@ export async function captureAndShare(
   if (Platform.OS === 'ios') {
     await Share.share({ message, url: uri });
     return;
+  }
+
+  if (Platform.OS === 'android' && ShareSheet) {
+    try {
+      await ShareSheet.shareImageWithTextAsync(
+        uri,
+        message,
+        'image/png',
+        dialogTitle,
+      );
+      return;
+    } catch {
+      // An OEM sheet that refused the intent — fall through to the image-only
+      // path rather than dead-ending.
+    }
   }
 
   if (await Sharing.isAvailableAsync()) {

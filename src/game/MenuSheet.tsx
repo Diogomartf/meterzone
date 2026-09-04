@@ -34,7 +34,7 @@ import {
   type HighscoreKind,
 } from '@/game/menuRows';
 import { styles } from '@/game/menuSheetStyles';
-import { captureAndShare } from '@/game/share';
+import { captureAndShare, shareScoreCaption } from '@/game/share';
 
 const LOGO = require('../../assets/images/zone-meter-logo.png');
 
@@ -175,8 +175,6 @@ export function MenuSheet({
   const recordMeta =
     dailyRecordDate.length > 0 ? formatDay(dailyRecordDate) : undefined;
 
-  const shareCaption = 'Can you top that?';
-
   const shareHighscore = async (kind: HighscoreKind) => {
     if (sharingKind) return;
     const target =
@@ -190,7 +188,7 @@ export function MenuSheet({
     // capture below picks up the shareable framing.
     setSharingKind(kind);
     try {
-      await captureAndShare(target, { message: shareCaption });
+      await captureAndShare(target, { message: shareScoreCaption() });
     } catch {
       Alert.alert('Share failed', 'Could not create the share image.');
     } finally {
