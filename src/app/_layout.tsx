@@ -5,6 +5,7 @@ import {
   useFonts,
 } from '@expo-google-fonts/fredoka';
 import { Image, type ImageRef } from 'expo-image';
+import { Observe, ObserveRoot, useObserve } from 'expo-observe';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
@@ -22,6 +23,9 @@ const SPLASH_HANDOFF_MS = 240;
 /** How long the branded splash art stays after the app is ready. */
 const SPLASH_HOLD_MS = 1100;
 const SPLASH_FADE_MS = 380;
+
+// Must run at module scope, before any screen mounts, to get per-route metrics.
+Observe.configure({ integrations: { 'expo-router': true } });
 
 SplashScreen.preventAutoHideAsync();
 SplashScreen.setOptions({ duration: SPLASH_HANDOFF_MS, fade: true });
@@ -97,7 +101,7 @@ function useWarmedImages(sources: number[]) {
   return warmed;
 }
 
-export default function RootLayout() {
+function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Fredoka_500Medium,
     Fredoka_600SemiBold,
@@ -109,6 +113,7 @@ export default function RootLayout() {
   const [holdElapsed, setHoldElapsed] = useState(false);
   const [overlayMounted, setOverlayMounted] = useState(true);
   const overlayOpacity = useSharedValue(1);
+  const { markInteractive } = useObserve();
 
   const fontsReady = fontsLoaded || fontError != null;
 
@@ -147,6 +152,12 @@ export default function RootLayout() {
       },
     );
   }, [firstScreenWarmed, holdElapsed, overlayOpacity]);
+
+  // Reports time-to-interactive at the point the app is genuinely ready for
+  // input — the branded splash hold above is deliberate and stays out of it.
+  useEffect(() => {
+    if (fontsReady && firstScreenWarmed) markInteractive();
+  }, [firstScreenWarmed, fontsReady, markInteractive]);
 
   const overlayStyle = useAnimatedStyle(() => ({
     opacity: overlayOpacity.value,
@@ -192,6 +203,8 @@ export default function RootLayout() {
     </View>
   );
 }
+
+export default ObserveRoot.wrap(RootLayout);
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
