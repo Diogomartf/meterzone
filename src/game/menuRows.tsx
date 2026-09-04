@@ -141,6 +141,9 @@ export function SupportCard() {
 
 export function HighscoreCard({
   badge,
+  caption,
+  mode,
+  modeColor,
   accent,
   accentDeep,
   score,
@@ -151,6 +154,12 @@ export function HighscoreCard({
   onShare,
 }: {
   badge: string;
+  /** Spells out what the number is, e.g. "All-time best". */
+  caption: string;
+  /** Which run this record came from, shown opposite the level pill. */
+  mode: string;
+  /** Ink for the mode pill — one hue per mode, so it reads at a glance. */
+  modeColor: string;
   accent: string;
   accentDeep: string;
   score: number;
@@ -166,9 +175,7 @@ export function HighscoreCard({
       <View style={[styles.hsFace, { backgroundColor: accent }]}>
         <View style={styles.hsShine} />
         <View style={styles.hsTopRow}>
-          <View style={styles.hsBadge}>
-            <Text style={styles.hsBadgeText}>{badge}</Text>
-          </View>
+          <Text style={styles.hsCaption}>{caption}</Text>
           {!empty && onShare && !hideShare ? (
             <Pressable
               onPress={onShare}
@@ -202,11 +209,18 @@ export function HighscoreCard({
           <>
             <Text style={styles.hsScore}>{formatScore(score)}</Text>
             <View style={styles.hsFooter}>
-              <View style={styles.hsLevelPill}>
-                <Text style={styles.hsLevelLabel}>LVL</Text>
-                <Text style={styles.hsLevelValue}>{level}</Text>
+              <View style={styles.hsFooterLeft}>
+                <View style={styles.hsLevelPill}>
+                  <Text style={styles.hsLevelLabel}>LVL</Text>
+                  <Text style={styles.hsLevelValue}>{level}</Text>
+                </View>
+                {meta ? <Text style={styles.hsMeta}>{meta}</Text> : null}
               </View>
-              {meta ? <Text style={styles.hsMeta}>{meta}</Text> : null}
+              <View style={[styles.hsModePill, { borderColor: modeColor }]}>
+                <Text style={[styles.hsModeText, { color: modeColor }]}>
+                  {mode}
+                </Text>
+              </View>
             </View>
           </>
         )}

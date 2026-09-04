@@ -116,7 +116,9 @@ export const styles = StyleSheet.create({
   },
   menuScrollContent: {
     gap: 16,
-    paddingBottom: 4,
+    // Breathing room at the cut line so the last row reads as scrollable
+    // rather than clipped by the sheet edge.
+    paddingBottom: 24,
   },
   supportCard: {
     borderRadius: 20,
@@ -216,7 +218,7 @@ export const styles = StyleSheet.create({
   },
   hsList: {
     gap: 14,
-    paddingBottom: 8,
+    paddingBottom: 24,
   },
   hsCapture: {
     backgroundColor: '#E8F7FF',
@@ -259,15 +261,6 @@ export const styles = StyleSheet.create({
     borderBottomRightRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.35)',
   },
-  hsBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: GameColors.white,
-    borderRadius: 12,
-    borderWidth: 2.5,
-    borderColor: GameColors.ink,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-  },
   hsTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -284,12 +277,19 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  hsBadgeText: {
+  hsCaption: {
+    flex: 1,
     fontFamily: GameFonts.body,
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: 19,
+    lineHeight: 24,
     color: GameColors.ink,
-    letterSpacing: 0.6,
+  },
+  hsIntro: {
+    fontFamily: GameFonts.soft,
+    fontSize: 15,
+    lineHeight: 20,
+    color: GameColors.panelInk,
+    paddingHorizontal: 4,
   },
   hsScore: {
     fontFamily: GameFonts.display,
@@ -318,8 +318,28 @@ export const styles = StyleSheet.create({
   hsFooter: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 10,
     marginTop: 2,
+  },
+  hsFooterLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexShrink: 1,
+  },
+  hsModePill: {
+    backgroundColor: GameColors.white,
+    borderRadius: 11,
+    borderWidth: 2.5,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  hsModeText: {
+    fontFamily: GameFonts.body,
+    fontSize: 12,
+    lineHeight: 15,
+    letterSpacing: 0.6,
   },
   hsLevelPill: {
     flexDirection: 'row',
@@ -393,6 +413,5 @@ export const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
     color: GameColors.panelInk,
-    marginTop: 'auto',
   },
 });

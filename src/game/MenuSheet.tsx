@@ -89,7 +89,7 @@ export function MenuSheet({
 }: MenuSheetProps) {
   const insets = useSafeAreaInsets();
   const { height: windowH } = useWindowDimensions();
-  const sheetH = Math.round(windowH * 0.78);
+  const sheetH = Math.round(windowH * 0.92);
   const translateY = useSharedValue(sheetH);
   const overlayOpacity = useSharedValue(0);
   const [view, setView] = useState<MenuView>('menu');
@@ -297,6 +297,8 @@ export function MenuSheet({
                   nestedScrollEnabled
                   keyboardShouldPersistTaps="handled"
                 >
+                  <SupportCard />
+
                   {canGoBack ? (
                     <Pressable
                       onPress={onGoBack}
@@ -310,8 +312,6 @@ export function MenuSheet({
                       <Text style={styles.startOverBtnText}>GO BACK</Text>
                     </Pressable>
                   ) : null}
-
-                  <SupportCard />
 
                   <View style={styles.card}>
                     <ActionRow
@@ -344,6 +344,8 @@ export function MenuSheet({
                       onPress={onSendFeedback}
                     />
                   </View>
+
+                  <Text style={styles.version}>MeterZone · v{version}</Text>
                 </ScrollView>
               ) : null}
 
@@ -373,6 +375,10 @@ export function MenuSheet({
                   nestedScrollEnabled
                   keyboardShouldPersistTaps="handled"
                 >
+                  <Text style={styles.hsIntro}>
+                    Your personal records — the best you&apos;ve ever scored in
+                    each mode.
+                  </Text>
                   <View
                     ref={normalShareRef}
                     collapsable={false}
@@ -390,6 +396,9 @@ export function MenuSheet({
                     ) : null}
                     <HighscoreCard
                       badge="NORMAL"
+                      mode="NORMAL"
+                      modeColor="#D97706"
+                      caption="All-time best"
                       accent={GameColors.xpGold}
                       accentDeep="#D97706"
                       score={highScore}
@@ -416,6 +425,9 @@ export function MenuSheet({
                     ) : null}
                     <HighscoreCard
                       badge="TODAY"
+                      mode="DAILY"
+                      modeColor={GameColors.bubbleDark}
+                      caption="Today's best"
                       accent={GameColors.playBlue}
                       accentDeep={GameColors.playBlueDark}
                       score={dailyTodayScore}
@@ -442,6 +454,9 @@ export function MenuSheet({
                     ) : null}
                     <HighscoreCard
                       badge="BEST DAILY"
+                      mode="DAILY"
+                      modeColor={GameColors.bubbleDark}
+                      caption="Best ever"
                       accent={GameColors.bubble}
                       accentDeep={GameColors.bubbleDark}
                       score={dailyRecordScore}
@@ -529,8 +544,6 @@ export function MenuSheet({
                 </ScrollView>
               ) : null}
             </View>
-
-            <Text style={styles.version}>MeterZone · v{version}</Text>
           </Animated.View>
         </Animated.View>
       </GestureHandlerRootView>
