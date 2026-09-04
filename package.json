@@ -53,6 +53,7 @@
     "reset-project": "bun ./scripts/reset-project.js",
     "android": "bunx expo start --dev-client --android",
     "ios": "bunx expo start --dev-client --ios",
+    "ios:device": "bunx expo run:ios --device",
     "web": "bunx expo start --web",
     "lint": "bunx expo lint",
     "typecheck": "bunx tsc --noEmit",
