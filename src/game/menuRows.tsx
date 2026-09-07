@@ -1,10 +1,15 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { SymbolView } from 'expo-symbols';
 import { Alert, Pressable, Text, View } from 'react-native';
+import { useGT, useMessages } from 'gt-react-native';
 
 import { GameColors } from '@/constants/gameTheme';
 import { formatScore } from '@/game/format';
-import { requestNativeReview, shareApp } from '@/game/review';
+import {
+  requestNativeReview,
+  shareApp,
+  SHARE_APP_TAGLINE,
+} from '@/game/review';
 import { markReviewAccepted } from '@/game/storage';
 import { styles } from '@/game/menuSheetStyles';
 
@@ -22,6 +27,7 @@ export function ToggleRow({
   value: boolean;
   onPress: () => void;
 }) {
+  const gt = useGT();
   return (
     <Pressable
       onPress={onPress}
@@ -34,7 +40,7 @@ export function ToggleRow({
         <Text style={styles.rowSub}>{subtitle}</Text>
       </View>
       <View style={[styles.toggle, value ? styles.toggleOn : styles.toggleOff]}>
-        <Text style={styles.toggleText}>{value ? 'ON' : 'OFF'}</Text>
+        <Text style={styles.toggleText}>{value ? gt('ON') : gt('OFF')}</Text>
       </View>
     </Pressable>
   );
@@ -71,6 +77,8 @@ export function ActionRow({
 }
 
 export function SupportCard() {
+  const gt = useGT();
+  const m = useMessages();
   return (
     <LinearGradient
       colors={['#7B5CFF', '#5B3DF5', '#4A2FE0']}
@@ -78,10 +86,11 @@ export function SupportCard() {
       end={{ x: 1, y: 1 }}
       style={styles.supportCard}
     >
-      <Text style={styles.supportTitle}>Support our ad-free app</Text>
+      <Text style={styles.supportTitle}>{gt('Support our ad-free app')}</Text>
       <Text style={styles.supportBody}>
-        Your support helps small developers like us keep building free, ad-free
-        games like this.
+        {gt(
+          'Your support helps small developers like us keep building free, ad-free games like this.',
+        )}
       </Text>
       <View style={styles.supportActions}>
         <Pressable
@@ -95,7 +104,7 @@ export function SupportCard() {
             pressed && styles.supportBtnPressed,
           ]}
           accessibilityRole="button"
-          accessibilityLabel="Leave a 5-star review"
+          accessibilityLabel={gt('Leave a 5-star review')}
         >
           <SymbolView
             name={{
@@ -107,12 +116,15 @@ export function SupportCard() {
             tintColor={GameColors.white}
             weight="bold"
           />
-          <Text style={styles.supportBtnText}>Review</Text>
+          <Text style={styles.supportBtnText}>{gt('Review')}</Text>
         </Pressable>
         <Pressable
           onPress={() => {
-            void shareApp().catch(() => {
-              Alert.alert('Share failed', 'Could not open the share sheet.');
+            void shareApp(m(SHARE_APP_TAGLINE)).catch(() => {
+              Alert.alert(
+                gt('Share failed'),
+                gt('Could not open the share sheet.'),
+              );
             });
           }}
           style={({ pressed }) => [
@@ -120,7 +132,7 @@ export function SupportCard() {
             pressed && styles.supportBtnPressed,
           ]}
           accessibilityRole="button"
-          accessibilityLabel="Share MeterZone with friends"
+          accessibilityLabel={gt('Share MeterZone with friends')}
         >
           <SymbolView
             name={{
@@ -132,7 +144,7 @@ export function SupportCard() {
             tintColor={GameColors.white}
             weight="bold"
           />
-          <Text style={styles.supportBtnText}>Share</Text>
+          <Text style={styles.supportBtnText}>{gt('Share')}</Text>
         </Pressable>
       </View>
     </LinearGradient>
@@ -141,6 +153,9 @@ export function SupportCard() {
 
 export function HighscoreCard({
   badge,
+  caption,
+  mode,
+  modeColor,
   accent,
   accentDeep,
   score,
@@ -151,6 +166,12 @@ export function HighscoreCard({
   onShare,
 }: {
   badge: string;
+  /** Spells out what the number is, e.g. "All-time best". */
+  caption: string;
+  /** Which run this record came from, shown opposite the level pill. */
+  mode: string;
+  /** Ink for the mode pill — one hue per mode, so it reads at a glance. */
+  modeColor: string;
   accent: string;
   accentDeep: string;
   score: number;
@@ -160,15 +181,14 @@ export function HighscoreCard({
   hideShare?: boolean;
   onShare?: () => void;
 }) {
+  const gt = useGT();
   const empty = score <= 0;
   return (
     <View style={[styles.hsShell, { backgroundColor: accentDeep }]}>
       <View style={[styles.hsFace, { backgroundColor: accent }]}>
         <View style={styles.hsShine} />
         <View style={styles.hsTopRow}>
-          <View style={styles.hsBadge}>
-            <Text style={styles.hsBadgeText}>{badge}</Text>
-          </View>
+          <Text style={styles.hsCaption}>{caption}</Text>
           {!empty && onShare && !hideShare ? (
             <Pressable
               onPress={onShare}
@@ -178,7 +198,7 @@ export function HighscoreCard({
               ]}
               hitSlop={8}
               accessibilityRole="button"
-              accessibilityLabel={`Share ${badge} highscore`}
+              accessibilityLabel={gt('Share {badge} highscore', { badge })}
             >
               <SymbolView
                 name={{
@@ -202,11 +222,18 @@ export function HighscoreCard({
           <>
             <Text style={styles.hsScore}>{formatScore(score)}</Text>
             <View style={styles.hsFooter}>
-              <View style={styles.hsLevelPill}>
-                <Text style={styles.hsLevelLabel}>LVL</Text>
-                <Text style={styles.hsLevelValue}>{level}</Text>
+              <View style={styles.hsFooterLeft}>
+                <View style={styles.hsLevelPill}>
+                  <Text style={styles.hsLevelLabel}>{gt('LVL')}</Text>
+                  <Text style={styles.hsLevelValue}>{level}</Text>
+                </View>
+                {meta ? <Text style={styles.hsMeta}>{meta}</Text> : null}
               </View>
-              {meta ? <Text style={styles.hsMeta}>{meta}</Text> : null}
+              <View style={[styles.hsModePill, { borderColor: modeColor }]}>
+                <Text style={[styles.hsModeText, { color: modeColor }]}>
+                  {mode}
+                </Text>
+              </View>
             </View>
           </>
         )}

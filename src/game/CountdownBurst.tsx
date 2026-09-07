@@ -1,4 +1,6 @@
+import { useLayoutEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useGT } from 'gt-react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -6,7 +8,6 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { useEffect } from 'react';
 
 import { GameColors, GameFonts } from '@/constants/gameTheme';
 
@@ -23,32 +24,46 @@ const COLORS: Record<number, string> = {
   0: '#FFFFFF',
 };
 
+const POP_OUT = Easing.bezier(0.23, 1, 0.32, 1);
+
 export function CountdownBurst({ value, visible }: Props) {
-  const scale = useSharedValue(0.4);
+  const gt = useGT();
+  const scale = useSharedValue(0.88);
   const opacity = useSharedValue(0);
   const wobble = useSharedValue(0);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!visible) {
-      opacity.value = 0;
+      opacity.set(
+        withTiming(0, { duration: 140, easing: Easing.in(Easing.quad) }),
+      );
+      scale.set(
+        withTiming(1.06, { duration: 140, easing: Easing.in(Easing.quad) }),
+      );
       return;
     }
-    scale.value = 0.35;
-    opacity.value = 0;
-    wobble.value = value === 0 ? -8 : 0;
-    opacity.value = withTiming(1, { duration: 70 });
-    scale.value = withSequence(
-      withTiming(value === 0 ? 1.35 : 1.22, {
-        duration: 160,
-        easing: Easing.out(Easing.cubic),
-      }),
-      withTiming(1, { duration: 180, easing: Easing.inOut(Easing.quad) }),
+
+    const isGo = value === 0;
+    scale.set(0.88);
+    opacity.set(0);
+    wobble.set(isGo ? -6 : 0);
+    opacity.set(withTiming(1, { duration: 60 }));
+    scale.set(
+      withSequence(
+        withTiming(isGo ? 1.42 : 1.16, {
+          duration: 150,
+          easing: POP_OUT,
+        }),
+        withTiming(1, { duration: 160, easing: Easing.inOut(Easing.quad) }),
+      ),
     );
-    if (value === 0) {
-      wobble.value = withSequence(
-        withTiming(8, { duration: 70 }),
-        withTiming(-6, { duration: 70 }),
-        withTiming(0, { duration: 90 }),
+    if (isGo) {
+      wobble.set(
+        withSequence(
+          withTiming(7, { duration: 60 }),
+          withTiming(-5, { duration: 70 }),
+          withTiming(0, { duration: 80 }),
+        ),
       );
     }
   }, [opacity, scale, value, visible, wobble]);
@@ -58,9 +73,7 @@ export function CountdownBurst({ value, visible }: Props) {
     transform: [{ scale: scale.value }, { rotate: `${wobble.value}deg` }],
   }));
 
-  if (!visible) return null;
-
-  const label = value > 0 ? String(value) : 'GO!';
+  const label = value > 0 ? String(value) : gt('GO!');
   const color = COLORS[value] ?? GameColors.ink;
 
   return (
@@ -69,7 +82,7 @@ export function CountdownBurst({ value, visible }: Props) {
         <Text style={[styles.text, value === 0 && styles.goText, { color }]}>
           {label}
         </Text>
-        {value === 0 ? <Text style={styles.sub}>LET&apos;S GO</Text> : null}
+        {value === 0 ? <Text style={styles.sub}>{gt("LET'S GO")}</Text> : null}
       </Animated.View>
     </View>
   );
@@ -102,8 +115,8 @@ const styles = StyleSheet.create({
     textShadowRadius: 0,
   },
   goText: {
-    fontSize: 84,
-    lineHeight: 88,
+    fontSize: 92,
+    lineHeight: 96,
   },
   sub: {
     marginTop: 2,

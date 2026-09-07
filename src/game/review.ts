@@ -1,14 +1,16 @@
 import * as StoreReview from 'expo-store-review';
 import { Linking, Platform, Share } from 'react-native';
 
+import { msg } from 'gt-react-native';
+
 import type { PersistState } from '@/game/types';
 
 /** App Store Connect numeric app id — write-review deep links. */
 export const APP_STORE_ID = '6794744179';
 export const MARKETING_URL = 'https://meterzone.net/';
-export const SHARE_APP_MESSAGE =
-  'Can you tap THE ZONE? Play MeterZone — free one-tap timing game.\n' +
-  MARKETING_URL;
+export const SHARE_APP_TAGLINE = msg(
+  'Can you tap THE ZONE? Play MeterZone — free one-tap timing game.',
+);
 
 /**
  * Soft prompt ladder — few asks, wide gaps (anti-fatigue).
@@ -113,10 +115,9 @@ export async function requestNativeReview(): Promise<void> {
   await Linking.openURL(MARKETING_URL);
 }
 
-export async function shareApp(): Promise<void> {
+export async function shareApp(tagline: string): Promise<void> {
+  const message = `${tagline}\n${MARKETING_URL}`;
   await Share.share(
-    Platform.OS === 'ios'
-      ? { message: SHARE_APP_MESSAGE, url: MARKETING_URL }
-      : { message: SHARE_APP_MESSAGE },
+    Platform.OS === 'ios' ? { message, url: MARKETING_URL } : { message },
   );
 }

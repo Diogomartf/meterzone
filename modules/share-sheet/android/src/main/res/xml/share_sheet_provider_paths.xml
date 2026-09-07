@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+  <!--
+    react-native-view-shot writes its captures to whichever cache dir has more
+    free space, so the external one is the common case on a real device, not
+    the exception. Both have to be declared or getUriForFile throws.
+  -->
+  <cache-path name="cached_files" path="." />
+  <external-cache-path name="external_cached_files" path="." />
+  <files-path name="files" path="." />
+</paths>

@@ -1,6 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { SymbolView } from 'expo-symbols';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useGT } from 'gt-react-native';
 
 import { GameColors, GameFonts } from '@/constants/gameTheme';
 import { requestNativeReview } from '@/game/review';
@@ -22,6 +23,7 @@ export function ReviewPromptModal({
   onAccept,
   onDecline,
 }: ReviewPromptModalProps) {
+  const gt = useGT();
   const accept = () => {
     onAccept();
     void requestNativeReview();
@@ -39,7 +41,7 @@ export function ReviewPromptModal({
         <Pressable
           style={styles.backdrop}
           onPress={onDecline}
-          accessibilityLabel="Dismiss"
+          accessibilityLabel={gt('Dismiss')}
         />
         <View style={styles.sheet}>
           <LinearGradient
@@ -63,10 +65,11 @@ export function ReviewPromptModal({
                 />
               ))}
             </View>
-            <Text style={styles.title}>Enjoying MeterZone?</Text>
+            <Text style={styles.title}>{gt('Enjoying MeterZone?')}</Text>
             <Text style={styles.body}>
-              A quick 5★ review helps more players find us — and keeps the game
-              free and ad-free.
+              {gt(
+                'A quick 5★ review helps more players find us — and keeps the game free and ad-free.',
+              )}
             </Text>
 
             <Pressable
@@ -76,7 +79,7 @@ export function ReviewPromptModal({
                 pressed && styles.btnPressed,
               ]}
               accessibilityRole="button"
-              accessibilityLabel="Rate 5 stars"
+              accessibilityLabel={gt('Rate 5 stars')}
             >
               <SymbolView
                 name={{
@@ -88,7 +91,7 @@ export function ReviewPromptModal({
                 tintColor={GameColors.ink}
                 weight="bold"
               />
-              <Text style={styles.primaryBtnText}>Rate 5 stars</Text>
+              <Text style={styles.primaryBtnText}>{gt('Rate 5 stars')}</Text>
             </Pressable>
 
             <Pressable
@@ -98,9 +101,9 @@ export function ReviewPromptModal({
                 pressed && styles.btnPressed,
               ]}
               accessibilityRole="button"
-              accessibilityLabel="Not now"
+              accessibilityLabel={gt('Not now')}
             >
-              <Text style={styles.secondaryBtnText}>Not now</Text>
+              <Text style={styles.secondaryBtnText}>{gt('Not now')}</Text>
             </Pressable>
           </LinearGradient>
         </View>

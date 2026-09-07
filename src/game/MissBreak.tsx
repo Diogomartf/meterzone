@@ -10,6 +10,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { useGT } from 'gt-react-native';
+
 import { GameColors, GameFonts, fillParent } from '@/constants/gameTheme';
 
 const HEART = require('../../assets/images/heart-filled.png');
@@ -27,6 +29,7 @@ type Props = {
  * without hunting the HUD before the next fill.
  */
 export function MissBreak({ visible, burstKey = 0, livesLeft = 0 }: Props) {
+  const gt = useGT();
   const opacity = useSharedValue(0);
   const wordY = useSharedValue(-8);
   const wordScale = useSharedValue(0.7);
@@ -135,11 +138,12 @@ export function MissBreak({ visible, burstKey = 0, livesLeft = 0 }: Props) {
           <Animated.Text style={[styles.minus, minusStyle]}>-1</Animated.Text>
         </Animated.View>
         <Animated.View style={wordStyle}>
-          <Text style={styles.word}>MISS</Text>
+          <Text style={styles.word}>{gt('MISS')}</Text>
           <Text style={styles.sub}>
-            {livesLeft <= 0
-              ? 'no hearts left'
-              : `${livesLeft} heart${livesLeft === 1 ? '' : 's'} left`}
+            {gt(
+              '{count, plural, =0 {no hearts left} one {# heart left} other {# hearts left}}',
+              { count: livesLeft },
+            )}
           </Text>
         </Animated.View>
       </Animated.View>

@@ -50,7 +50,11 @@ export function useSounds(muted: boolean) {
       if (!alive) return;
 
       (Object.keys(SOURCES) as Sfx[]).forEach((key) => {
-        const player = createAudioPlayer(SOURCES[key]);
+        const player = createAudioPlayer(SOURCES[key], {
+          // SFX must not deactivate the session on pause/finish — iOS
+          // otherwise drops the next play, especially in the simulator.
+          keepAudioSessionActive: true,
+        });
         player.volume = VOLUME[key];
         players.current[key] = player;
       });
@@ -75,6 +79,7 @@ export function useSounds(muted: boolean) {
     if (!player) return;
     try {
       player.volume = VOLUME[key];
+      // `currentTime` is read-only on iOS — rewind has to go through seekTo.
       void player.seekTo(0).then(() => {
         player.play();
       });

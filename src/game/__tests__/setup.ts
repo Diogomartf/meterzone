@@ -22,6 +22,14 @@ mock.module('react-native', () => ({
   Alert: { alert: () => undefined },
 }));
 
+/**
+ * `gt-react-native` pulls in a TurboModule that can't load off-device. Only
+ * `msg` reaches the logic under test, and it stands in as an identity function.
+ */
+mock.module('gt-react-native', () => ({
+  msg: (message: string) => message,
+}));
+
 mock.module('expo-store-review', () => ({
   isAvailableAsync: async () => false,
   hasAction: async () => false,

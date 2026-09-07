@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Linking,
@@ -21,6 +21,13 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  getLocaleProperties,
+  msg,
+  useGT,
+  useLocale,
+  useMessages,
+} from 'gt-react-native';
 
 import { GameColors } from '@/constants/gameTheme';
 import { styles } from '@/game/gameScreenStyles';
@@ -51,7 +58,7 @@ import {
   type Feedback,
   type FeedbackSlot,
 } from '@/game/runState';
-import { captureAndShare, SHARE_SCORE_CAPTION } from '@/game/share';
+import { captureAndShare, shareScoreCaption } from '@/game/share';
 import { DEFAULT_SKIN, SKINS } from '@/game/skins';
 import {
   clearPersist,
@@ -128,6 +135,19 @@ const FEEDBACK_SLOT_STYLE: Record<
   right: { top: '44%', right: 10, alignItems: 'flex-end' },
 };
 
+/**
+ * Shown-to-player wording for each judgement. `RoundLabel` stays the internal
+ * key so scoring and haptics keep comparing against stable English values.
+ */
+const LABEL_TEXT: Record<RoundLabel, string> = {
+  Perfect: msg('PERFECT'),
+  Great: msg('GREAT'),
+  Good: msg('GOOD'),
+  Nice: msg('NICE'),
+  Close: msg('CLOSE'),
+  Miss: msg('MISS'),
+};
+
 const LABEL_COLORS: Record<RoundLabel, string> = {
   Perfect: '#FFE14A',
   Great: '#E24B2D',
@@ -138,6 +158,11 @@ const LABEL_COLORS: Record<RoundLabel, string> = {
 };
 
 export function GameScreen() {
+  const gt = useGT();
+  const m = useMessages();
+  const locale = useLocale();
+  /** Flag of the language in play — the home-screen shortcut into the picker. */
+  const localeFlag = useMemo(() => getLocaleProperties(locale).emoji, [locale]);
   const insets = useSafeAreaInsets();
   const { height: windowH, width: windowW } = useWindowDimensions();
   const { persist, persistRef, applyPersist } = usePersistState();
@@ -183,9 +208,9 @@ export function GameScreen() {
   const [perfectBurstKey, setPerfectBurstKey] = useState(0);
   const [missBurstKey, setMissBurstKey] = useState(0);
   const shareRef = useRef<View>(null);
-  const [menuInitialView, setMenuInitialView] = useState<'menu' | 'highscores'>(
-    'menu',
-  );
+  const [menuInitialView, setMenuInitialView] = useState<
+    'menu' | 'highscores' | 'language'
+  >('menu');
   const [capturingShare, setCapturingShare] = useState(false);
   const [reviewPromptVisible, setReviewPromptVisible] = useState(false);
   const reviewPromptTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -237,6 +262,8 @@ export function GameScreen() {
   const advanceRef = useRef<() => void>(() => {});
   const startFillRef = useRef<() => void>(() => {});
   const runCountdownFromRef = useRef<(at: number) => void>(() => {});
+  /** GO already played the start sting — the fill that follows must not replay it. */
+  const fillAfterGoRef = useRef(false);
 
   const skin = SKINS[persist?.equippedSkin ?? DEFAULT_SKIN];
 
@@ -499,7 +526,9 @@ export function GameScreen() {
     isFilling.set(1);
     syncZoneMotion(current);
     fill.set(0);
-    play('start');
+    const fromGo = fillAfterGoRef.current;
+    fillAfterGoRef.current = false;
+    if (!fromGo) play('start');
     void gameHaptics.start();
     fill.set(
       withTiming(
@@ -534,6 +563,7 @@ export function GameScreen() {
       if (countTimer.current) clearTimeout(countTimer.current);
 
       if (current <= 0) {
+        fillAfterGoRef.current = true;
         dispatch({ type: 'pendingTimer', pending: 'startFill' });
         countTimer.current = setTimeout(() => {
           dispatch({ type: 'pendingTimer', pending: null });
@@ -690,6 +720,7 @@ export function GameScreen() {
     if (autoTimer.current) clearTimeout(autoTimer.current);
     countTimer.current = null;
     autoTimer.current = null;
+    fillAfterGoRef.current = false;
     // Drops the pause, the parked resume and the pending timer in one step.
     dispatch({ type: 'resume' });
     dispatch({ type: 'pendingTimer', pending: null });
@@ -852,7 +883,12 @@ export function GameScreen() {
       // scheme is listed in LSApplicationQueriesSchemes.
       await Linking.openURL(url);
     } catch {
-      Alert.alert('Feedback', `Email us at ${FEEDBACK_EMAIL}`);
+      Alert.alert(
+        gt('Feedback'),
+        gt('Email us at {email}', {
+          email: FEEDBACK_EMAIL,
+        }),
+      );
     }
   };
 
@@ -939,15 +975,15 @@ export function GameScreen() {
     setCapturingShare(true);
     try {
       await captureAndShare(shareRef.current, {
-        message: SHARE_SCORE_CAPTION,
-        dialogTitle: 'Share your score',
+        message: shareScoreCaption(m),
+        dialogTitle: gt('Share your score'),
       });
     } catch {
-      Alert.alert('Share failed', 'Could not create the score image.');
+      Alert.alert(gt('Share failed'), gt('Could not create the score image.'));
     } finally {
       setCapturingShare(false);
     }
-  }, [capturingShare]);
+  }, [capturingShare, gt, m]);
 
   const hitEnabled = phase === 'filling' && !menuOpen;
   const showTapHint =
@@ -1065,7 +1101,11 @@ export function GameScreen() {
                 <Text
                   style={[styles.bestLabel, isNewBest && styles.bestLabelHot]}
                 >
-                  {isNewBest ? 'NEW BEST' : dailyMode ? 'DAILY' : 'BEST'}
+                  {isNewBest
+                    ? gt('NEW BEST')
+                    : dailyMode
+                      ? gt('DAILY')
+                      : gt('BEST')}
                 </Text>
                 <Text
                   style={[styles.bestValue, isNewBest && styles.bestValueHot]}
@@ -1075,12 +1115,13 @@ export function GameScreen() {
                 {!isNewBest ? (
                   <View style={styles.scoreLevelPill}>
                     <Text style={styles.scoreLevelText}>
-                      Level{' '}
-                      {dailyMode
-                        ? persist?.dailyBest.date === todayKey()
-                          ? (persist.dailyBest.level ?? 0)
-                          : 0
-                        : (persist?.bestLevel ?? 0)}
+                      {gt('Level {level}', {
+                        level: dailyMode
+                          ? persist?.dailyBest.date === todayKey()
+                            ? (persist.dailyBest.level ?? 0)
+                            : 0
+                          : (persist?.bestLevel ?? 0),
+                      })}
                     </Text>
                   </View>
                 ) : null}
@@ -1102,27 +1143,29 @@ export function GameScreen() {
             {phase === 'gameover' ? (
               <View style={styles.runStats}>
                 <View style={styles.runStat}>
-                  <Text style={styles.runStatLabel}>ACC</Text>
+                  <Text style={styles.runStatLabel}>{gt('ACC')}</Text>
                   <Text style={styles.runStatValue}>{accuracy}%</Text>
                 </View>
                 <View style={styles.runStatDivider} />
                 <View style={styles.runStat}>
-                  <Text style={styles.runStatLabel}>COMBO</Text>
+                  <Text style={styles.runStatLabel}>{gt('COMBO')}</Text>
                   <Text style={styles.runStatValue}>{stats.bestCombo}</Text>
                 </View>
                 <View style={styles.runStatDivider} />
                 <View style={styles.runStat}>
-                  <Text style={styles.runStatLabel}>LVL</Text>
+                  <Text style={styles.runStatLabel}>{gt('LVL')}</Text>
                   <Text style={styles.runStatValue}>{round.level}</Text>
                 </View>
               </View>
             ) : (
               <>
-                <Text style={styles.metaLine}>LVL {round.level}</Text>
+                <Text style={styles.metaLine}>
+                  {gt('LVL {level}', { level: round.level })}
+                </Text>
                 <TapHowToLine visible={showTapHowTo} />
                 {isNewBest ? (
                   <Animated.Text style={[styles.newBestTag, newBestStyle]}>
-                    NEW BEST
+                    {gt('NEW BEST')}
                   </Animated.Text>
                 ) : null}
               </>
@@ -1140,7 +1183,7 @@ export function GameScreen() {
             pointerEvents="none"
           >
             <Animated.View style={comboLabelStyle}>
-              <Text style={styles.comboFloatLabel}>COMBO</Text>
+              <Text style={styles.comboFloatLabel}>{gt('COMBO')}</Text>
             </Animated.View>
             <Text style={styles.comboFloatValue}>
               ×{comboMultiplier(combo).toFixed(2)}
@@ -1184,7 +1227,7 @@ export function GameScreen() {
                 ]}
                 numberOfLines={1}
               >
-                {feedback.label.toUpperCase()}!
+                {m(LABEL_TEXT[feedback.label])}!
               </Text>
               {feedback.points > 0 ? (
                 <Text
@@ -1205,7 +1248,7 @@ export function GameScreen() {
                     feedback.slot === 'right' && styles.feedbackAlignEnd,
                   ]}
                 >
-                  COMBO x{feedback.combo}
+                  {gt('COMBO x{count}', { count: feedback.combo })}
                 </Text>
               ) : null}
             </>
@@ -1221,11 +1264,12 @@ export function GameScreen() {
           >
             {dailyMode ? (
               <Text style={styles.dailyShareDate} pointerEvents="none">
-                DAILY ·{' '}
-                {new Date(todayKey() + 'T12:00:00').toLocaleDateString(
-                  undefined,
-                  { month: 'short', day: 'numeric', year: 'numeric' },
-                )}
+                {gt('DAILY · {date}', {
+                  date: new Date(todayKey() + 'T12:00:00').toLocaleDateString(
+                    locale,
+                    { month: 'short', day: 'numeric', year: 'numeric' },
+                  ),
+                })}
               </Text>
             ) : null}
             {isNewBest ? (
@@ -1242,7 +1286,7 @@ export function GameScreen() {
               ]}
               pointerEvents="none"
             >
-              {isNewBest ? 'NEW BEST!' : 'GAME OVER'}
+              {isNewBest ? gt('NEW BEST!') : gt('GAME OVER')}
             </Text>
             {!capturingShare ? (
               <View style={styles.resultSummary} pointerEvents="none">
@@ -1250,7 +1294,7 @@ export function GameScreen() {
                   previousBest > 0 ? (
                     <>
                       <Text style={styles.resultSummaryLabel}>
-                        PREVIOUS BEST
+                        {gt('PREVIOUS BEST')}
                       </Text>
                       <Text style={styles.resultSummaryValue}>
                         {formatScore(previousBest)}
@@ -1258,20 +1302,24 @@ export function GameScreen() {
                     </>
                   ) : (
                     <Text style={styles.resultSummaryValue}>
-                      Your first record!
+                      {gt('Your first record!')}
                     </Text>
                   )
                 ) : (
                   <>
                     <View style={styles.resultBestRow}>
-                      <Text style={styles.resultSummaryLabel}>BEST</Text>
+                      <Text style={styles.resultSummaryLabel}>
+                        {gt('BEST')}
+                      </Text>
                       <Text style={styles.resultSummaryValue}>
                         {formatScore(persistedBest)}
                       </Text>
                     </View>
                     {scoreGap > 0 ? (
                       <Text style={styles.resultGap}>
-                        −{formatScore(scoreGap)} from your best
+                        {gt('−{gap} from your best', {
+                          gap: formatScore(scoreGap),
+                        })}
                       </Text>
                     ) : null}
                   </>
@@ -1281,7 +1329,7 @@ export function GameScreen() {
             {!capturingShare ? (
               <View style={styles.gameOverActions} pointerEvents="box-none">
                 <GameCta
-                  label="RETRY"
+                  label={gt('RETRY')}
                   face={GameColors.xpGold}
                   depth="#D97706"
                   onPress={() => {
@@ -1290,7 +1338,7 @@ export function GameScreen() {
                   }}
                 />
                 <GameCta
-                  label="SHARE"
+                  label={gt('SHARE')}
                   face={GameColors.bubble}
                   depth={GameColors.bubbleDark}
                   onPress={() => {
@@ -1309,8 +1357,8 @@ export function GameScreen() {
             pointerEvents="box-none"
           >
             <GameCta
-              label="PLAY"
-              subtitle="TAP THE ZONE"
+              label={gt('PLAY')}
+              subtitle={gt('TAP THE ZONE')}
               face="#FFC800"
               depth="#D97706"
               onPress={() => startRun(false)}
@@ -1326,29 +1374,52 @@ export function GameScreen() {
           ]}
           pointerEvents={capturingShare ? 'none' : 'box-none'}
         >
-          <Pressable
-            style={styles.menuBtn}
-            onPress={() => {
-              setMenuInitialView('menu');
-              openMenu();
-            }}
-            hitSlop={10}
-            accessibilityLabel="Menu"
-          >
-            <SymbolView
-              name={{
-                ios: 'line.3.horizontal',
-                android: 'menu',
-                web: 'menu',
+          <View style={styles.bottomBarLeft} pointerEvents="box-none">
+            <Pressable
+              style={({ pressed }) => [
+                styles.menuBtn,
+                pressed && styles.ctaPressableDown,
+              ]}
+              onPress={() => {
+                setMenuInitialView('menu');
+                openMenu();
               }}
-              size={22}
-              tintColor={GameColors.white}
-              weight="bold"
-            />
-          </Pressable>
+              hitSlop={10}
+              accessibilityLabel={gt('Menu')}
+            >
+              <SymbolView
+                name={{
+                  ios: 'line.3.horizontal',
+                  android: 'menu',
+                  web: 'menu',
+                }}
+                size={22}
+                tintColor={GameColors.white}
+                weight="bold"
+              />
+            </Pressable>
+            {phase === 'ready' ? (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.langBtn,
+                  pressed && styles.ctaPressableDown,
+                ]}
+                onPress={() => {
+                  void gameHaptics.next();
+                  setMenuInitialView('language');
+                  openMenu();
+                }}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={gt('Change language')}
+              >
+                <Text style={styles.langBtnFlag}>{localeFlag}</Text>
+              </Pressable>
+            ) : null}
+          </View>
           {phase === 'ready' ? (
             <SecondaryCta
-              label="Daily challenge"
+              label={gt('Daily challenge')}
               onPress={() => startRun(true)}
             />
           ) : null}
@@ -1360,7 +1431,7 @@ export function GameScreen() {
           style={styles.hitLayer}
           onPressIn={onTap}
           accessibilityRole="button"
-          accessibilityLabel="Tap to stop the meter"
+          accessibilityLabel={gt('Tap to stop the meter')}
           android_ripple={{ color: 'transparent' }}
         />
       ) : null}

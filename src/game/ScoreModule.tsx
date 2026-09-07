@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import { Pressable, Text, View } from 'react-native';
+import { useGT } from 'gt-react-native';
 
 import { formatScore } from '@/game/format';
 import { styles } from '@/game/gameScreenStyles';
@@ -24,6 +25,7 @@ export function ScoreModule({
   dailyPlayed,
   onOpen,
 }: ScoreModuleProps) {
+  const gt = useGT();
   return (
     <View style={styles.scoreModule}>
       <Pressable
@@ -33,7 +35,10 @@ export function ScoreModule({
           pressed && styles.scoreSectionPressed,
         ]}
         accessibilityRole="button"
-        accessibilityLabel={`All-time best ${best}, level ${bestLevel}. Open scores.`}
+        accessibilityLabel={gt(
+          'All-time best {score}, level {level}. Open scores.',
+          { score: best, level: bestLevel },
+        )}
       >
         <View style={styles.scoreMainHead}>
           <Image
@@ -41,7 +46,7 @@ export function ScoreModule({
             style={styles.trophyIcon}
             contentFit="contain"
           />
-          <Text style={styles.scoreBestLabel}>BEST</Text>
+          <Text style={styles.scoreBestLabel}>{gt('BEST')}</Text>
         </View>
         <Text
           style={styles.scoreBestValue}
@@ -52,7 +57,9 @@ export function ScoreModule({
           {formatScore(best)}
         </Text>
         <View style={styles.scoreLevelPill}>
-          <Text style={styles.scoreLevelText}>Level {bestLevel}</Text>
+          <Text style={styles.scoreLevelText}>
+            {gt('Level {level}', { level: bestLevel })}
+          </Text>
         </View>
       </Pressable>
       <View style={styles.scoreDivider} />
@@ -65,11 +72,14 @@ export function ScoreModule({
         accessibilityRole="button"
         accessibilityLabel={
           dailyPlayed
-            ? `Daily best ${dailyScore}, level ${dailyLevel}. Open scores.`
-            : 'Daily best not set yet. Play today.'
+            ? gt('Daily best {score}, level {level}. Open scores.', {
+                score: dailyScore,
+                level: dailyLevel,
+              })
+            : gt('Daily best not set yet. Play today.')
         }
       >
-        <Text style={styles.scoreDailyLabel}>DAILY</Text>
+        <Text style={styles.scoreDailyLabel}>{gt('DAILY')}</Text>
         {dailyPlayed ? (
           <Text style={styles.scoreDailyValue} numberOfLines={1}>
             {formatScore(dailyScore)}
@@ -77,7 +87,7 @@ export function ScoreModule({
         ) : (
           <View style={styles.scoreDailyRow}>
             <Text style={styles.scoreDailyValue}>—</Text>
-            <Text style={styles.scoreDailyEmpty}>Play today</Text>
+            <Text style={styles.scoreDailyEmpty}>{gt('Play today')}</Text>
           </View>
         )}
       </Pressable>

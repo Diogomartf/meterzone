@@ -12,8 +12,11 @@
       "bundleIdentifier": "com.diogomartf.meterzone",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "LSApplicationQueriesSchemes": ["mailto"]
-      }
+        "LSApplicationQueriesSchemes": [
+          "mailto"
+        ]
+      },
+      "appleTeamId": "B55TJK4Q32"
     },
     "android": {
       "package": "com.diogomartf.meterzone",
@@ -23,7 +26,10 @@
         "backgroundColor": "#0053ED"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["android.permission.VIBRATE"],
+      "permissions": [
+        "android.permission.VIBRATE",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ]

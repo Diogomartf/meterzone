@@ -9,6 +9,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { useGT } from 'gt-react-native';
+
 import { GameColors, GameFonts, fillParent } from '@/constants/gameTheme';
 
 type Props = {
@@ -28,6 +30,7 @@ export function PerfectSwoosh({
   points = 0,
   combo = 0,
 }: Props) {
+  const gt = useGT();
   const { width } = useWindowDimensions();
   const opacity = useSharedValue(0);
   const scale = useSharedValue(0.4);
@@ -137,12 +140,16 @@ export function PerfectSwoosh({
           adjustsFontSizeToFit
           minimumFontScale={0.55}
         >
-          PERFECT!
+          {gt('PERFECT!')}
         </Text>
       </Animated.View>
       <Animated.View style={[styles.meta, metaStyle]}>
         {points > 0 ? <Text style={styles.points}>+{points}</Text> : null}
-        {combo > 1 ? <Text style={styles.combo}>COMBO x{combo}</Text> : null}
+        {combo > 1 ? (
+          <Text style={styles.combo}>
+            {gt('COMBO x{count}', { count: combo })}
+          </Text>
+        ) : null}
       </Animated.View>
     </View>
   );
