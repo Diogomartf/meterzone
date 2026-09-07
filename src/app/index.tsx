@@ -1,10 +1,10 @@
-import { useObserve } from 'expo-observe';
 import { useEffect } from 'react';
 
 import { GameScreen } from '@/game/GameScreen';
+import { useObserveSafe } from '@/observe';
 
 export default function HomeScreen() {
-  const { markInteractive } = useObserve();
+  const { markInteractive } = useObserveSafe();
 
   useEffect(() => {
     markInteractive();

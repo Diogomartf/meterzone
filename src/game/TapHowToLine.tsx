@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useMessages } from 'gt-react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -22,6 +23,7 @@ const HOW_TO_FADE_OUT = 400;
  * then fades out 4s later. Stays mounted across levels so the timer is not reset.
  */
 export function TapHowToLine({ visible }: { visible: boolean }) {
+  const m = useMessages();
   const opacity = useSharedValue(0);
   // Mount is adjusted during render when `visible` turns on, so the line is on
   // screen before the effect animates it. Unmounting is always timer-driven,
@@ -70,7 +72,7 @@ export function TapHowToLine({ visible }: { visible: boolean }) {
   if (!held) return null;
   return (
     <Animated.Text style={[styles.tapHowTo, fadeStyle]}>
-      {TAP_HOW_TO}
+      {m(TAP_HOW_TO)}
     </Animated.Text>
   );
 }

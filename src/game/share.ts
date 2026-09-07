@@ -2,6 +2,7 @@ import * as Sharing from 'expo-sharing';
 import type { View } from 'react-native';
 import { Platform, Share } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
+import { msg, type useMessages } from 'gt-react-native';
 
 import ShareSheet from '../../modules/share-sheet/src/ShareSheetModule';
 import { MARKETING_URL } from '@/game/review';
@@ -19,23 +20,26 @@ const PAINT_SETTLE_MS = 60;
  * random so a friend who gets a few doesn't read the same line twice.
  */
 export const SHARE_SCORE_DARES = [
-  'Beat my score if you can 👀',
-  'Think you can beat this? 👀',
-  'I stopped the meter. Can you? 🎯',
-  'Your turn. One tap, no mercy.',
-  "Bet you can't top this 😏",
-  'Come and take it.',
-  'One tap stands between you and this score.',
-  'Go on, make me look bad 👇',
-  'Nailed the zone. Your move.',
-  'Harder than it looks. Prove me wrong.',
+  msg('Beat my score if you can 👀'),
+  msg('Think you can beat this? 👀'),
+  msg('I stopped the meter. Can you? 🎯'),
+  msg('Your turn. One tap, no mercy.'),
+  msg("Bet you can't top this 😏"),
+  msg('Come and take it.'),
+  msg('One tap stands between you and this score.'),
+  msg('Go on, make me look bad 👇'),
+  msg('Nailed the zone. Your move.'),
+  msg('Harder than it looks. Prove me wrong.'),
 ] as const;
 
+/** Resolver from `useMessages()` — the dares are registered at module scope. */
+export type Messages = ReturnType<typeof useMessages>;
+
 /** A random dare plus the link, so the challenge is one tap from playable. */
-export function shareScoreCaption(): string {
+export function shareScoreCaption(m: Messages): string {
   const dare =
     SHARE_SCORE_DARES[Math.floor(Math.random() * SHARE_SCORE_DARES.length)];
-  return `${dare}\n${MARKETING_URL}`;
+  return `${m(dare)}\n${MARKETING_URL}`;
 }
 
 export type ShareCaptureOptions = {

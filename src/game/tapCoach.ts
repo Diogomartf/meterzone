@@ -1,3 +1,5 @@
+import { msg } from 'gt-react-native';
+
 import type { Phase } from '@/game/runState';
 
 /** How many fills a new player sees the pointing-hand TAP coach (lifetime persist). */
@@ -23,7 +25,7 @@ export function tapHintAppearDelay(fillMs: number, target: number): number {
 export const TAP_HOW_TO_PLAYS = 10;
 
 /** Copy under the level label while the first-play coach is up. */
-export const TAP_HOW_TO = 'Tap when meter hits the color zone';
+export const TAP_HOW_TO = msg('Tap when meter hits the color zone');
 
 type HintInput = {
   tapHintPlays: number;

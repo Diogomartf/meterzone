@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
 import { useEffect, useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useGT } from 'gt-react-native';
 import Animated, {
   Easing,
   cancelAnimation,
@@ -214,6 +215,8 @@ const STROKE_OFFSETS = [
 
 /** Gray fill + thin white outline, same 70% opacity as the hand. */
 function TapLabel() {
+  const gt = useGT();
+  const tap = gt('TAP');
   return (
     <View style={styles.labelWrap}>
       {STROKE_OFFSETS.map(([x, y], i) => (
@@ -221,10 +224,10 @@ function TapLabel() {
           key={i}
           style={[styles.label, styles.labelStroke, { left: x, top: y }]}
         >
-          TAP
+          {tap}
         </Text>
       ))}
-      <Text style={[styles.label, styles.labelFill]}>TAP</Text>
+      <Text style={[styles.label, styles.labelFill]}>{tap}</Text>
     </View>
   );
 }

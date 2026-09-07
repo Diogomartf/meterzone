@@ -28,6 +28,7 @@
     "expo-symbols": "~57.0.1",
     "expo-system-ui": "~57.0.1",
     "expo-web-browser": "~57.0.1",
+    "gt-react-native": "^11.1.23",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.0",
@@ -44,6 +45,7 @@
     "@types/react": "~19.2.2",
     "eslint": "^9.39.5",
     "eslint-config-expo": "~57.0.1",
+    "gt": "^2.20.0",
     "prettier": "^3.9.6",
     "typescript": "~6.0.3"
   },
@@ -59,6 +61,7 @@
     "typecheck": "bunx tsc --noEmit",
     "test": "bun test",
     "format": "bunx prettier --write \"src/**/*.{ts,tsx}\"",
+    "translate": "bunx gt translate",
     "format:check": "bunx prettier --check \"src/**/*.{ts,tsx}\"",
     "build:android": "bunx eas-cli build --profile development --platform android",
     "build:ios": "bunx eas-cli build --profile development --platform ios",

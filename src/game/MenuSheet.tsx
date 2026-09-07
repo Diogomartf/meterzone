@@ -23,6 +23,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useGT, useLocaleSelector, useMessages } from 'gt-react-native';
 
 import { GameColors } from '@/constants/gameTheme';
 import {
@@ -38,7 +39,8 @@ import { captureAndShare, shareScoreCaption } from '@/game/share';
 
 const LOGO = require('../../assets/images/zone-meter-logo.png');
 
-type MenuView = 'menu' | 'mode' | 'highscores' | 'howto' | 'settings';
+type MenuView =
+  'menu' | 'mode' | 'highscores' | 'howto' | 'settings' | 'language';
 
 type MenuSheetProps = {
   visible: boolean;
@@ -87,6 +89,14 @@ export function MenuSheet({
   onSendFeedback,
   onDeleteData,
 }: MenuSheetProps) {
+  const gt = useGT();
+  const m = useMessages();
+  const {
+    locale,
+    locales: availableLocales,
+    setLocale,
+    getLocaleProperties,
+  } = useLocaleSelector();
   const insets = useSafeAreaInsets();
   const { height: windowH } = useWindowDimensions();
   const sheetH = Math.round(windowH * 0.92);
@@ -133,12 +143,14 @@ export function MenuSheet({
 
   const confirmDeleteData = () => {
     Alert.alert(
-      'Delete all data?',
-      'This clears high score, best level, coins, and unlocks. This cannot be undone.',
+      gt('Delete all data?'),
+      gt(
+        'This clears high score, best level, coins, and unlocks. This cannot be undone.',
+      ),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: gt('Cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: gt('Delete'),
           style: 'destructive',
           onPress: onDeleteData,
         },
@@ -156,17 +168,19 @@ export function MenuSheet({
 
   const title =
     view === 'menu'
-      ? 'MENU'
+      ? gt('MENU')
       : view === 'mode'
-        ? 'PLAY MODE'
+        ? gt('PLAY MODE')
         : view === 'highscores'
-          ? 'HALL OF FAME'
+          ? gt('HALL OF FAME')
           : view === 'howto'
-            ? 'HOW TO PLAY'
-            : 'SETTINGS';
+            ? gt('HOW TO PLAY')
+            : view === 'language'
+              ? gt('LANGUAGE')
+              : gt('SETTINGS');
 
   const formatDay = (iso: string) =>
-    new Date(iso + 'T12:00:00').toLocaleDateString(undefined, {
+    new Date(iso + 'T12:00:00').toLocaleDateString(locale, {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -174,6 +188,13 @@ export function MenuSheet({
 
   const recordMeta =
     dailyRecordDate.length > 0 ? formatDay(dailyRecordDate) : undefined;
+
+  /** Each language is named in its own tongue, so it reads for its speaker. */
+  const nativeName = (code: string) => {
+    const { nativeLanguageName, languageName } = getLocaleProperties(code);
+    return nativeLanguageName || languageName || code;
+  };
+  const currentLanguageName = nativeName(locale);
 
   const shareHighscore = async (kind: HighscoreKind) => {
     if (sharingKind) return;
@@ -188,9 +209,9 @@ export function MenuSheet({
     // capture below picks up the shareable framing.
     setSharingKind(kind);
     try {
-      await captureAndShare(target, { message: shareScoreCaption() });
+      await captureAndShare(target, { message: shareScoreCaption(m) });
     } catch {
-      Alert.alert('Share failed', 'Could not create the share image.');
+      Alert.alert(gt('Share failed'), gt('Could not create the share image.'));
     } finally {
       setSharingKind(null);
     }
@@ -234,7 +255,7 @@ export function MenuSheet({
           <Pressable
             style={styles.dismissArea}
             onPress={dismiss}
-            accessibilityLabel="Dismiss menu"
+            accessibilityLabel={gt('Dismiss menu')}
           />
           <Animated.View
             collapsable={false}
@@ -262,7 +283,7 @@ export function MenuSheet({
                         pressed && styles.closeBtnPressed,
                       ]}
                       hitSlop={10}
-                      accessibilityLabel="Back"
+                      accessibilityLabel={gt('Back')}
                     >
                       <Text style={styles.backBtnText}>‹</Text>
                     </Pressable>
@@ -279,9 +300,9 @@ export function MenuSheet({
                       pressed && styles.closeBtnPressed,
                     ]}
                     hitSlop={10}
-                    accessibilityLabel="Close"
+                    accessibilityLabel={gt('Close')}
                   >
-                    <Text style={styles.closeBtnText}>DONE</Text>
+                    <Text style={styles.closeBtnText}>{gt('DONE')}</Text>
                   </Pressable>
                 </View>
               </View>
@@ -307,40 +328,44 @@ export function MenuSheet({
                         pressed && styles.closeBtnPressed,
                       ]}
                       accessibilityRole="button"
-                      accessibilityLabel="Go back"
+                      accessibilityLabel={gt('Go back')}
                     >
-                      <Text style={styles.startOverBtnText}>GO BACK</Text>
+                      <Text style={styles.startOverBtnText}>
+                        {gt('GO BACK')}
+                      </Text>
                     </Pressable>
                   ) : null}
 
                   <View style={styles.card}>
                     <ActionRow
-                      label="Play mode"
-                      subtitle={dailyMode ? 'Daily challenge' : 'Normal run'}
+                      label={gt('Play mode')}
+                      subtitle={
+                        dailyMode ? gt('Daily challenge') : gt('Normal run')
+                      }
                       onPress={() => setView('mode')}
                     />
                     <View style={styles.divider} />
                     <ActionRow
-                      label="Hall of fame"
-                      subtitle="Normal, today & best daily"
+                      label={gt('Hall of fame')}
+                      subtitle={gt('Normal, today & best daily')}
                       onPress={() => setView('highscores')}
                     />
                     <View style={styles.divider} />
                     <ActionRow
-                      label="Settings"
-                      subtitle="Sound, haptics & data"
+                      label={gt('Settings')}
+                      subtitle={gt('Sound, haptics, language & data')}
                       onPress={() => setView('settings')}
                     />
                     <View style={styles.divider} />
                     <ActionRow
-                      label="How to play"
-                      subtitle="Goal, Normal & Daily"
+                      label={gt('How to play')}
+                      subtitle={gt('Goal, Normal & Daily')}
                       onPress={() => setView('howto')}
                     />
                     <View style={styles.divider} />
                     <ActionRow
-                      label="Send feedback"
-                      subtitle="Ideas, bugs, or love notes"
+                      label={gt('Send feedback')}
+                      subtitle={gt('Ideas, bugs, or love notes')}
                       onPress={onSendFeedback}
                     />
                   </View>
@@ -352,15 +377,15 @@ export function MenuSheet({
               {view === 'mode' ? (
                 <View style={styles.card}>
                   <ModeRow
-                    label="Normal"
-                    subtitle="Classic endless run"
+                    label={gt('Normal')}
+                    subtitle={gt('Classic endless run')}
                     selected={!dailyMode}
                     onPress={() => onStartMode(false)}
                   />
                   <View style={styles.divider} />
                   <ModeRow
-                    label="Daily"
-                    subtitle="Same sequence for everyone · updates daily"
+                    label={gt('Daily')}
+                    subtitle={gt('Same sequence for everyone · updates daily')}
                     selected={dailyMode}
                     onPress={() => onStartMode(true)}
                   />
@@ -376,8 +401,9 @@ export function MenuSheet({
                   keyboardShouldPersistTaps="handled"
                 >
                   <Text style={styles.hsIntro}>
-                    Your personal records — the best you&apos;ve ever scored in
-                    each mode.
+                    {gt(
+                      "Your personal records — the best you've ever scored in each mode.",
+                    )}
                   </Text>
                   <View
                     ref={normalShareRef}
@@ -395,15 +421,15 @@ export function MenuSheet({
                       />
                     ) : null}
                     <HighscoreCard
-                      badge="NORMAL"
-                      mode="NORMAL"
+                      badge={gt('NORMAL')}
+                      mode={gt('NORMAL')}
                       modeColor="#D97706"
-                      caption="All-time best"
+                      caption={gt('All-time best')}
                       accent={GameColors.xpGold}
                       accentDeep="#D97706"
                       score={highScore}
                       level={bestLevel}
-                      emptyHint="Beat the meter. Own the board."
+                      emptyHint={gt('Beat the meter. Own the board.')}
                       hideShare={sharingKind === 'normal'}
                       onShare={() => void shareHighscore('normal')}
                     />
@@ -424,15 +450,15 @@ export function MenuSheet({
                       />
                     ) : null}
                     <HighscoreCard
-                      badge="TODAY"
-                      mode="DAILY"
+                      badge={gt('TODAY')}
+                      mode={gt('DAILY')}
                       modeColor={GameColors.bubbleDark}
-                      caption="Today's best"
+                      caption={gt("Today's best")}
                       accent={GameColors.playBlue}
                       accentDeep={GameColors.playBlueDark}
                       score={dailyTodayScore}
                       level={dailyTodayLevel}
-                      emptyHint="Same challenge for everyone. Go!"
+                      emptyHint={gt('Same challenge for everyone. Go!')}
                       hideShare={sharingKind === 'today'}
                       onShare={() => void shareHighscore('today')}
                     />
@@ -453,16 +479,16 @@ export function MenuSheet({
                       />
                     ) : null}
                     <HighscoreCard
-                      badge="BEST DAILY"
-                      mode="DAILY"
+                      badge={gt('BEST DAILY')}
+                      mode={gt('DAILY')}
                       modeColor={GameColors.bubbleDark}
-                      caption="Best ever"
+                      caption={gt('Best ever')}
                       accent={GameColors.bubble}
                       accentDeep={GameColors.bubbleDark}
                       score={dailyRecordScore}
                       level={dailyRecordLevel}
                       meta={recordMeta}
-                      emptyHint="Your greatest daily still awaits."
+                      emptyHint={gt('Your greatest daily still awaits.')}
                       hideShare={sharingKind === 'record'}
                       onShare={() => void shareHighscore('record')}
                     />
@@ -481,29 +507,56 @@ export function MenuSheet({
                 >
                   <View style={styles.card}>
                     <View style={styles.infoBlock}>
-                      <Text style={styles.rowLabel}>The goal</Text>
+                      <Text style={styles.rowLabel}>{gt('The goal')}</Text>
                       <Text style={styles.rowSub}>
-                        Watch the meter rise, then tap once to stop it inside
-                        the zone. Perfect, Great, and Nice keep you going and
-                        stack combos. Miss and you lose a heart.
+                        {gt(
+                          'Watch the meter rise, then tap once to stop it inside the zone. Perfect, Great, and Nice keep you going and stack combos. Miss and you lose a heart.',
+                        )}
                       </Text>
                     </View>
                     <View style={styles.divider} />
                     <View style={styles.infoBlock}>
-                      <Text style={styles.rowLabel}>Normal</Text>
+                      <Text style={styles.rowLabel}>{gt('Normal')}</Text>
                       <Text style={styles.rowSub}>
-                        A classic endless run. Levels get tougher as you climb —
-                        chase your all-time high score.
+                        {gt(
+                          'A classic endless run. Levels get tougher as you climb — chase your all-time high score.',
+                        )}
                       </Text>
                     </View>
                     <View style={styles.divider} />
                     <View style={styles.infoBlock}>
-                      <Text style={styles.rowLabel}>Daily</Text>
+                      <Text style={styles.rowLabel}>{gt('Daily')}</Text>
                       <Text style={styles.rowSub}>
-                        The same sequence for everyone that day, so scores are
-                        fair to compare. A fresh challenge every day.
+                        {gt(
+                          'The same sequence for everyone that day, so scores are fair to compare. A fresh challenge every day.',
+                        )}
                       </Text>
                     </View>
+                  </View>
+                </ScrollView>
+              ) : null}
+
+              {view === 'language' ? (
+                <ScrollView
+                  style={styles.menuScroll}
+                  contentContainerStyle={styles.menuScrollContent}
+                  showsVerticalScrollIndicator={false}
+                  bounces={false}
+                  nestedScrollEnabled
+                  keyboardShouldPersistTaps="handled"
+                >
+                  <View style={styles.card}>
+                    {availableLocales.map((code, i) => (
+                      <View key={code}>
+                        {i > 0 ? <View style={styles.divider} /> : null}
+                        <ModeRow
+                          label={nativeName(code)}
+                          subtitle={getLocaleProperties(code).languageName}
+                          selected={code === locale}
+                          onPress={() => setLocale(code)}
+                        />
+                      </View>
+                    ))}
                   </View>
                 </ScrollView>
               ) : null}
@@ -519,15 +572,15 @@ export function MenuSheet({
                 >
                   <View style={styles.card}>
                     <ToggleRow
-                      label="Sound"
-                      subtitle="Effects & countdown ticks"
+                      label={gt('Sound')}
+                      subtitle={gt('Effects & countdown ticks')}
                       value={soundOn}
                       onPress={onToggleSound}
                     />
                     <View style={styles.divider} />
                     <ToggleRow
-                      label="Haptics"
-                      subtitle="Vibration on taps & results"
+                      label={gt('Haptics')}
+                      subtitle={gt('Vibration on taps & results')}
                       value={hapticsOn}
                       onPress={onToggleHaptics}
                     />
@@ -535,8 +588,16 @@ export function MenuSheet({
 
                   <View style={styles.card}>
                     <ActionRow
-                      label="Delete data"
-                      subtitle="High score, progress & unlocks"
+                      label={gt('Language')}
+                      subtitle={currentLanguageName}
+                      onPress={() => setView('language')}
+                    />
+                  </View>
+
+                  <View style={styles.card}>
+                    <ActionRow
+                      label={gt('Delete data')}
+                      subtitle={gt('High score, progress & unlocks')}
                       onPress={confirmDeleteData}
                       destructive
                     />

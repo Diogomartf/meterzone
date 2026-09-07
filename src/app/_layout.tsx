@@ -5,7 +5,6 @@ import {
   useFonts,
 } from '@expo-google-fonts/fredoka';
 import { Image, type ImageRef } from 'expo-image';
-import { Observe, ObserveRoot, useObserve } from 'expo-observe';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
@@ -17,6 +16,15 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { StatusBar } from 'expo-status-bar';
+import { GTProvider, initializeGT } from 'gt-react-native';
+
+import gtConfig from '../../gt.config.json';
+import { loadTranslations } from '@/loadTranslations';
+import {
+  configureObserve,
+  markLaunchInteractive,
+  wrapWithObserve,
+} from '@/observe';
 
 /** Cross-fade from the native splash to our identical overlay. */
 const SPLASH_HANDOFF_MS = 240;
@@ -25,7 +33,15 @@ const SPLASH_HOLD_MS = 1100;
 const SPLASH_FADE_MS = 380;
 
 // Must run at module scope, before any screen mounts, to get per-route metrics.
-Observe.configure({ integrations: { 'expo-router': true } });
+configureObserve();
+
+// Locale detection and translation loading happen here, before the first render.
+initializeGT({
+  ...gtConfig,
+  loadTranslations,
+  projectId: process.env.EXPO_PUBLIC_GT_PROJECT_ID,
+  devApiKey: process.env.EXPO_PUBLIC_GT_DEV_API_KEY,
+});
 
 SplashScreen.preventAutoHideAsync();
 SplashScreen.setOptions({ duration: SPLASH_HANDOFF_MS, fade: true });
@@ -113,7 +129,6 @@ function RootLayout() {
   const [holdElapsed, setHoldElapsed] = useState(false);
   const [overlayMounted, setOverlayMounted] = useState(true);
   const overlayOpacity = useSharedValue(1);
-  const { markInteractive } = useObserve();
 
   const fontsReady = fontsLoaded || fontError != null;
 
@@ -144,20 +159,18 @@ function RootLayout() {
 
   useEffect(() => {
     if (!holdElapsed || !firstScreenWarmed) return;
-    overlayOpacity.value = withTiming(
-      0,
-      { duration: SPLASH_FADE_MS },
-      (finished) => {
+    overlayOpacity.set(
+      withTiming(0, { duration: SPLASH_FADE_MS }, (finished) => {
         if (finished) runOnJS(setOverlayMounted)(false);
-      },
+      }),
     );
   }, [firstScreenWarmed, holdElapsed, overlayOpacity]);
 
   // Reports time-to-interactive at the point the app is genuinely ready for
   // input — the branded splash hold above is deliberate and stays out of it.
   useEffect(() => {
-    if (fontsReady && firstScreenWarmed) markInteractive();
-  }, [firstScreenWarmed, fontsReady, markInteractive]);
+    if (fontsReady && firstScreenWarmed) markLaunchInteractive();
+  }, [firstScreenWarmed, fontsReady]);
 
   const overlayStyle = useAnimatedStyle(() => ({
     opacity: overlayOpacity.value,
@@ -178,7 +191,9 @@ function RootLayout() {
     >
       <StatusBar style="dark" />
       {fontsReady ? (
-        <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
+        <GTProvider>
+          <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
+        </GTProvider>
       ) : null}
       {overlayMounted ? (
         <Animated.View
@@ -204,7 +219,7 @@ function RootLayout() {
   );
 }
 
-export default ObserveRoot.wrap(RootLayout);
+export default wrapWithObserve(RootLayout);
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
