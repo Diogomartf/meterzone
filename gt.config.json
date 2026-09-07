@@ -1,6 +1,6 @@
 {
   "defaultLocale": "en",
-  "locales": ["pt", "es"],
+  "locales": ["pt", "pt-PT", "es"],
   "files": {
     "gt": {
       "output": "src/_gt/[locale].json"

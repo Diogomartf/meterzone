@@ -4,6 +4,7 @@
  */
 const translations: Record<string, unknown> = {
   pt: require('./_gt/pt.json'),
+  'pt-PT': require('./_gt/pt-PT.json'),
   es: require('./_gt/es.json'),
 };
 

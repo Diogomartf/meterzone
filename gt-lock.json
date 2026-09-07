@@ -15,6 +15,11 @@
           "updatedAt": "2026-09-07T12:34:23.014Z",
           "fileName": "src/_gt/es.json",
           "postProcessHash": "c81287c0c7cad4c2ea5cd03ce214fb7159fbe7e3874081577930b1929803c8eb"
+        },
+        "pt-PT": {
+          "updatedAt": "2026-09-07T12:50:39.154Z",
+          "fileName": "src/_gt/pt-PT.json",
+          "postProcessHash": "113055c8bccf5d30f9ab230b1bee01e2366b2d8ab6f38b4372cc261e0f42b296"
         }
       },
       "fileName": "__INTERNAL_GT_TEMPLATE_NAME__"
