@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Linking,
@@ -21,7 +21,13 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { msg, useGT, useLocale, useMessages } from 'gt-react-native';
+import {
+  getLocaleProperties,
+  msg,
+  useGT,
+  useLocale,
+  useMessages,
+} from 'gt-react-native';
 
 import { GameColors } from '@/constants/gameTheme';
 import { styles } from '@/game/gameScreenStyles';
@@ -155,6 +161,8 @@ export function GameScreen() {
   const gt = useGT();
   const m = useMessages();
   const locale = useLocale();
+  /** Flag of the language in play — the home-screen shortcut into the picker. */
+  const localeFlag = useMemo(() => getLocaleProperties(locale).emoji, [locale]);
   const insets = useSafeAreaInsets();
   const { height: windowH, width: windowW } = useWindowDimensions();
   const { persist, persistRef, applyPersist } = usePersistState();
@@ -200,9 +208,9 @@ export function GameScreen() {
   const [perfectBurstKey, setPerfectBurstKey] = useState(0);
   const [missBurstKey, setMissBurstKey] = useState(0);
   const shareRef = useRef<View>(null);
-  const [menuInitialView, setMenuInitialView] = useState<'menu' | 'highscores'>(
-    'menu',
-  );
+  const [menuInitialView, setMenuInitialView] = useState<
+    'menu' | 'highscores' | 'language'
+  >('menu');
   const [capturingShare, setCapturingShare] = useState(false);
   const [reviewPromptVisible, setReviewPromptVisible] = useState(false);
   const reviewPromptTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1366,26 +1374,49 @@ export function GameScreen() {
           ]}
           pointerEvents={capturingShare ? 'none' : 'box-none'}
         >
-          <Pressable
-            style={styles.menuBtn}
-            onPress={() => {
-              setMenuInitialView('menu');
-              openMenu();
-            }}
-            hitSlop={10}
-            accessibilityLabel={gt('Menu')}
-          >
-            <SymbolView
-              name={{
-                ios: 'line.3.horizontal',
-                android: 'menu',
-                web: 'menu',
+          <View style={styles.bottomBarLeft} pointerEvents="box-none">
+            <Pressable
+              style={({ pressed }) => [
+                styles.menuBtn,
+                pressed && styles.ctaPressableDown,
+              ]}
+              onPress={() => {
+                setMenuInitialView('menu');
+                openMenu();
               }}
-              size={22}
-              tintColor={GameColors.white}
-              weight="bold"
-            />
-          </Pressable>
+              hitSlop={10}
+              accessibilityLabel={gt('Menu')}
+            >
+              <SymbolView
+                name={{
+                  ios: 'line.3.horizontal',
+                  android: 'menu',
+                  web: 'menu',
+                }}
+                size={22}
+                tintColor={GameColors.white}
+                weight="bold"
+              />
+            </Pressable>
+            {phase === 'ready' ? (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.langBtn,
+                  pressed && styles.ctaPressableDown,
+                ]}
+                onPress={() => {
+                  void gameHaptics.next();
+                  setMenuInitialView('language');
+                  openMenu();
+                }}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={gt('Change language')}
+              >
+                <Text style={styles.langBtnFlag}>{localeFlag}</Text>
+              </Pressable>
+            ) : null}
+          </View>
           {phase === 'ready' ? (
             <SecondaryCta
               label={gt('Daily challenge')}

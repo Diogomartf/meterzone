@@ -36,8 +36,16 @@ import {
 } from '@/game/menuRows';
 import { styles } from '@/game/menuSheetStyles';
 import { captureAndShare, shareScoreCaption } from '@/game/share';
+import gtConfig from '../../gt.config.json';
 
 const LOGO = require('../../assets/images/zone-meter-logo.png');
+
+/**
+ * Display order for the picker. `useLocaleSelector` otherwise sorts locales
+ * alphabetically by native name, which buries Portugal under Brasil; passing an
+ * explicit list keeps gt.config.json the one place that order is decided.
+ */
+const LOCALE_ORDER = [gtConfig.defaultLocale, ...gtConfig.locales];
 
 type MenuView =
   'menu' | 'mode' | 'highscores' | 'howto' | 'settings' | 'language';
@@ -96,7 +104,7 @@ export function MenuSheet({
     locales: availableLocales,
     setLocale,
     getLocaleProperties,
-  } = useLocaleSelector();
+  } = useLocaleSelector(LOCALE_ORDER);
   const insets = useSafeAreaInsets();
   const { height: windowH } = useWindowDimensions();
   const sheetH = Math.round(windowH * 0.92);
@@ -190,15 +198,13 @@ export function MenuSheet({
     dailyRecordDate.length > 0 ? formatDay(dailyRecordDate) : undefined;
 
   /**
-   * Each language named in its own tongue, so it reads for its own speaker.
-   * The *minimized* name is what separates the two Portuguese entries —
-   * `nativeLanguageName` is plain "português" for both pt and pt-PT, which
-   * would put two identically labelled rows in the list.
+   * Each language named in its own tongue. Both Portuguese entries read
+   * "Português" — the flag and the region subtitle are what tell them apart,
+   * the way the platform's own language settings present them.
    */
   const nativeName = (code: string) => {
-    const { nativeMinimizedName, nativeLanguageName } =
-      getLocaleProperties(code);
-    const name = nativeMinimizedName || nativeLanguageName || code;
+    const { nativeLanguageName } = getLocaleProperties(code);
+    const name = nativeLanguageName || code;
     // Portuguese and Spanish lowercase their language names; a list of options
     // reads better capitalized, the way the platform's own settings show them.
     return name.charAt(0).toUpperCase() + name.slice(1);

@@ -54,6 +54,13 @@ export const styles = StyleSheet.create({
     zIndex: 45,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  /** Keeps the round icon buttons paired on the left of the space-between bar. */
+  bottomBarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
   },
   menuBtn: {
@@ -66,6 +73,24 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
+  },
+  /** Same round chrome as the menu button, so the two read as one set. */
+  langBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: GameColors.white,
+    borderWidth: 2.5,
+    borderColor: GameColors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    overflow: 'hidden',
+  },
+  langBtnFlag: {
+    fontSize: 24,
+    // Emoji sit on their own baseline; a matched line height centres the glyph.
+    lineHeight: 30,
   },
   bestPill: {
     paddingHorizontal: 12,
