@@ -41,8 +41,11 @@ class ShareSheetModule : Module() {
 
       // The chooser's own grant is enough on stock Android, but a number of
       // OEM sheets hand the intent on without it — grant each target directly.
+      // Resolve against `send`: the chooser is an ACTION_CHOOSER intent, so
+      // querying it returns the picker itself rather than the apps that
+      // ultimately receive the image.
       context.packageManager
-        .queryIntentActivities(chooser, PackageManager.MATCH_DEFAULT_ONLY)
+        .queryIntentActivities(send, PackageManager.MATCH_DEFAULT_ONLY)
         .forEach {
           context.grantUriPermission(
             it.activityInfo.packageName,
