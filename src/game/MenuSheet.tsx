@@ -189,12 +189,26 @@ export function MenuSheet({
   const recordMeta =
     dailyRecordDate.length > 0 ? formatDay(dailyRecordDate) : undefined;
 
-  /** Each language is named in its own tongue, so it reads for its speaker. */
+  /**
+   * Each language named in its own tongue, so it reads for its own speaker.
+   * The *minimized* name is what separates the two Portuguese entries —
+   * `nativeLanguageName` is plain "português" for both pt and pt-PT, which
+   * would put two identically labelled rows in the list.
+   */
   const nativeName = (code: string) => {
-    const { nativeLanguageName, languageName } = getLocaleProperties(code);
-    return nativeLanguageName || languageName || code;
+    const { nativeMinimizedName, nativeLanguageName } =
+      getLocaleProperties(code);
+    const name = nativeMinimizedName || nativeLanguageName || code;
+    // Portuguese and Spanish lowercase their language names; a list of options
+    // reads better capitalized, the way the platform's own settings show them.
+    return name.charAt(0).toUpperCase() + name.slice(1);
   };
-  const currentLanguageName = nativeName(locale);
+
+  /** Flag of the region the locale resolves to — en → 🇺🇸, pt → 🇧🇷, pt-PT → 🇵🇹. */
+  const flagged = (code: string) =>
+    `${getLocaleProperties(code).emoji}  ${nativeName(code)}`;
+
+  const currentLanguageName = flagged(locale);
 
   const shareHighscore = async (kind: HighscoreKind) => {
     if (sharingKind) return;
@@ -550,8 +564,8 @@ export function MenuSheet({
                       <View key={code}>
                         {i > 0 ? <View style={styles.divider} /> : null}
                         <ModeRow
-                          label={nativeName(code)}
-                          subtitle={getLocaleProperties(code).languageName}
+                          label={flagged(code)}
+                          subtitle={getLocaleProperties(code).nativeRegionName}
                           selected={code === locale}
                           onPress={() => setLocale(code)}
                         />
