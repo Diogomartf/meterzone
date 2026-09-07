@@ -1,6 +1,6 @@
 import Constants from 'expo-constants';
 import { Image } from 'expo-image';
-import { useEffect, useRef, useState } from 'react';
+import { startTransition, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Modal,
@@ -215,6 +215,17 @@ export function MenuSheet({
     `${getLocaleProperties(code).emoji}  ${nativeName(code)}`;
 
   const currentLanguageName = flagged(locale);
+
+  /**
+   * GTProvider loads the new locale's file behind a Suspense boundary. Without
+   * a transition React swaps in that boundary's fallback, blanking the app to
+   * the root background and re-revealing the first screen; inside one, the
+   * current screen stays put until the translations are ready.
+   */
+  const switchLocale = (code: string) => {
+    if (code === locale) return;
+    startTransition(() => setLocale(code));
+  };
 
   const shareHighscore = async (kind: HighscoreKind) => {
     if (sharingKind) return;
@@ -573,7 +584,7 @@ export function MenuSheet({
                           label={flagged(code)}
                           subtitle={getLocaleProperties(code).nativeRegionName}
                           selected={code === locale}
-                          onPress={() => setLocale(code)}
+                          onPress={() => switchLocale(code)}
                         />
                       </View>
                     ))}

@@ -2,7 +2,6 @@ package expo.modules.sharesheet
 
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.core.content.FileProvider
 import expo.modules.kotlin.exception.Exceptions
@@ -37,22 +36,13 @@ class ShareSheetModule : Module() {
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
       }
 
-      val chooser = Intent.createChooser(send, dialogTitle)
-
-      // The chooser's own grant is enough on stock Android, but a number of
-      // OEM sheets hand the intent on without it — grant each target directly.
-      // Resolve against `send`: the chooser is an ACTION_CHOOSER intent, so
-      // querying it returns the picker itself rather than the apps that
-      // ultimately receive the image.
-      context.packageManager
-        .queryIntentActivities(send, PackageManager.MATCH_DEFAULT_ONLY)
-        .forEach {
-          context.grantUriPermission(
-            it.activityInfo.packageName,
-            contentUri,
-            Intent.FLAG_GRANT_READ_URI_PERMISSION
-          )
-        }
+      // `createChooser` does not copy the wrapped intent's flags onto itself,
+      // so the chooser needs its own. Between that and the clip data, the
+      // grant reaches whichever app the player actually picks — and, being
+      // intent-scoped, Android revokes it when that task finishes.
+      val chooser = Intent.createChooser(send, dialogTitle).apply {
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+      }
 
       appContext.throwingActivity.startActivity(chooser)
     }
