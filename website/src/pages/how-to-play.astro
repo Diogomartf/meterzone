@@ -1,0 +1,108 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { APP_STORE_URL, SITE_URL } from '../site';
+
+const description = 'Learn how to play MeterZone on iPhone: aim for Perfect stops, build combos up to 5×, protect your three hearts, and take on the daily challenge offline.';
+const jsonLd = [{
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE_URL}/` },
+    { '@type': 'ListItem', position: 2, name: 'How to play', item: `${SITE_URL}/how-to-play/` },
+  ],
+}];
+---
+
+<BaseLayout title="How to Play MeterZone: Timing, Combos & Daily Challenges" description={description} jsonLd={jsonLd}>
+  <main class="guide">
+    <nav aria-label="Breadcrumb"><a href="/">MeterZone</a> / How to play</nav>
+    <header>
+      <p class="eyebrow">THE GAMEPLAY GUIDE</p>
+      <h1>One tap. Better timing. Bigger scores.</h1>
+      <p class="intro">MeterZone is a free offline timing game for iPhone. Watch the meter rise and tap to stop it inside the target zone. Here’s how to turn your first hit into a longer run.</p>
+    </header>
+
+    <nav class="contents" aria-label="On this page">
+      <a href="#timing">Timing your tap</a>
+      <a href="#scoring">Scores and combos</a>
+      <a href="#daily">Daily challenge</a>
+      <a href="#offline">Playing offline</a>
+    </nav>
+
+    <section id="timing">
+      <h2>How to time your tap</h2>
+      <p>Each round has a rising meter and a target zone. Tap once when the fill reaches the zone. Aim for the yellow center line for a Perfect stop; landing elsewhere inside the zone still earns points.</p>
+      <ol>
+        <li><strong>Read the target first.</strong> Find the center and the outer edges before you tap.</li>
+        <li><strong>Watch the fill approach.</strong> Follow its movement instead of repeating the timing from your previous round.</li>
+        <li><strong>Use your result.</strong> If you stopped below the center, wait a little longer next time. If you stopped above it, try tapping earlier.</li>
+      </ol>
+      <p>You begin a run with three hearts. A stop outside the zone is a Miss and costs one heart. Keeping the meter inside the zone lets you continue without losing a heart.</p>
+    </section>
+
+    <section id="scoring">
+      <h2>Perfect, Great, Nice: what each hit means</h2>
+      <div class="table-wrap">
+        <table>
+          <caption>Hit results and combo effects from level 2 onward</caption>
+          <thead><tr><th scope="col">Result</th><th scope="col">Where you stop</th><th scope="col">Combo effect</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Perfect</th><td>At the center strike line</td><td>Adds one to your streak</td></tr>
+            <tr><th scope="row">Great</th><td>In the inner band around the center</td><td>Adds one to your streak</td></tr>
+            <tr><th scope="row">Nice</th><td>Inside the outer zone</td><td>Reduces your streak by one, to a minimum of zero</td></tr>
+            <tr><th scope="row">Miss</th><td>Outside the zone</td><td>Resets your streak and costs a heart</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>Build a multiplier up to 5×</h3>
+      <p>Level 1 introduces the timing; combos begin at level 2. Each hit uses the streak you already have. Every streak point adds 0.25× to the next hit’s multiplier, up to 5×. For example, a streak of four gives your next successful hit a 2× multiplier.</p>
+      <p>A Perfect hit starts with 100 base points before the level bonus and multiplier. Great and Nice hits earn fewer base points, depending on how close you land to the center. Later levels increase the base-point reward.</p>
+      <h3>Consistency keeps a run alive</h3>
+      <p>A Great hit still grows your combo. A Nice hit protects your hearts even though it reduces the streak. If you are struggling to hit the center, first practice landing anywhere inside the zone, then work toward more accurate stops.</p>
+    </section>
+
+    <section id="daily">
+      <h2>How the daily challenge works</h2>
+      <p>The daily challenge uses a sequence based on the current UTC date, so players on the same game version get the same daily sequence. A new challenge begins at midnight UTC, which may differ from midnight where you live.</p>
+      <p>Replay the challenge to practice that day’s timing and try to improve your daily best. Your daily result stays on your device. Use the game’s share option to send a score image to friends and compare runs.</p>
+      <p>Regular play gives you a new randomized sequence when you start a run. Use it for variety, and return to the daily challenge when you want another attempt at the same sequence.</p>
+    </section>
+
+    <section id="offline">
+      <h2>A timing game you can play offline</h2>
+      <p>Once you have downloaded MeterZone from the App Store, you can play without an internet connection or an account. High scores, settings, and unlocks are saved on your phone. Sound and haptics can be adjusted in the game’s settings.</p>
+      <p>MeterZone is available for iPhone. There is no Android version currently available.</p>
+    </section>
+
+    {APP_STORE_URL && (
+      <section class="download" aria-labelledby="guide-download-title">
+        <h2 id="guide-download-title">Try your first run</h2>
+        <p>Find the zone, tap, and see how far you can go.</p>
+        <a class="download-link" href={APP_STORE_URL} data-download-location="gameplay-guide">Download on the App Store</a>
+      </section>
+    )}
+    <footer><a href="/">Home</a><a href="/support/">Support</a><a href="/privacy/">Privacy Policy</a></footer>
+  </main>
+</BaseLayout>
+
+<style>
+  .guide { max-width: 52rem; margin: auto; padding: 2rem 1.25rem 3rem; }
+  nav, footer { font-size: 0.95rem; }
+  a { text-underline-offset: 0.2em; }
+  header { padding: 2rem 0 1.5rem; }
+  .eyebrow { font-size: 0.8rem; font-weight: 600; letter-spacing: 0.1em; }
+  h1 { font-size: clamp(2.2rem, 6vw, 3.6rem); line-height: 1.1; max-width: 15ch; margin: 0.75rem 0 1.25rem; }
+  .intro { font-size: 1.15rem; }
+  p, li { line-height: 1.7; }
+  li + li { margin-top: 0.75rem; }
+  .contents { display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem; padding: 1.25rem; border: 2px solid var(--ink); border-radius: 1rem; background: var(--lemon); }
+  section { padding-top: 2rem; scroll-margin-top: 1rem; }
+  h2 { font-size: clamp(1.5rem, 4vw, 2rem); line-height: 1.2; }
+  h3 { margin-top: 1.75rem; font-size: 1.25rem; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; background: #fff; font-size: 0.95rem; }
+  caption { text-align: left; padding: 0 0 0.75rem; line-height: 1.5; }
+  th, td { text-align: left; border: 1px solid #737781; padding: 0.75rem; line-height: 1.5; }
+  thead { background: var(--lemon); }
+  .download { margin-top: 2rem; padding: 1.5rem; border-radius: 1.25rem; background: #fff; text-align: center; }
+  footer { display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 2.5rem; }
+</style>

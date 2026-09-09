@@ -52,3 +52,34 @@ a {
 button {
   font: inherit;
 }
+
+:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 4px;
+}
+
+.download-link {
+  display: inline-block;
+  padding: 1rem 1.25rem;
+  border: 3px solid var(--ink);
+  border-radius: 1rem;
+  background: var(--bubble);
+  color: var(--ink);
+  box-shadow: 0 4px 0 var(--ink);
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  transition: transform 160ms ease-out;
+}
+
+.download-link:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
