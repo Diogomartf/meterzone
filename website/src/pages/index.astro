@@ -1,4 +1,5 @@
 ---
+import { GAME_FAQS as faqs } from '../faq';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PhoneMockup from '../components/PhoneMockup.astro';
 import {
@@ -49,30 +50,7 @@ const features = [
   },
 ];
 
-const faqs = [
-  {
-    question: `What is ${APP_NAME}?`,
-    answer: `${APP_NAME} is a free casual one-tap timing game. Watch the meter rise, tap when it hits the zone, stack combos, and chase high scores.`,
-  },
-  {
-    question: 'Is MeterZone free?',
-    answer: 'Yes. MeterZone is free to download and play on the App Store.',
-  },
-  {
-    question: 'Is MeterZone on Android?',
-    answer:
-      'Not yet. MeterZone is available on iPhone via the App Store. A Google Play version may follow later.',
-  },
-  {
-    question: 'Do I need an account?',
-    answer:
-      'No. There is no sign-in. Scores, settings, and unlocks are stored on your device.',
-  },
-  {
-    question: 'What devices does it support?',
-    answer: 'MeterZone is built for iPhone and available on the App Store.',
-  },
-];
+
 
 const jsonLd = [
   {
@@ -126,7 +104,7 @@ const jsonLd = [
               </span>
             </h1>
             <p class="hero-kicker">{HERO_KICKER}</p>
-            <p class="hero-description">Play offline, stack combos, and beat the daily challenge. No account needed.</p>
+            <p class="hero-description">MeterZone is a free offline timing game for iPhone. Tap to stop the rising meter inside the zone, stack combos, and beat the daily challenge. No account needed.</p>
           </header>
 
           <div class="hero-phone" aria-label="Game preview">

@@ -98,8 +98,31 @@ The site ships with:
 - JSON-LD for `WebSite`, `WebPage`, and `MobileApplication`
 - Auto-generated sitemap (`@astrojs/sitemap`) and `robots.txt`
 - Social share image at `public/images/og.png` (1200×630)
+- A top-level `404.html` with `noindex`, preventing Cloudflare Pages from returning
+  the homepage with HTTP 200 for missing URLs
+- `/llms.txt`, generated from the same facts as the homepage FAQ and its JSON-LD
 
-Submit `https://meterzone.net/sitemap-index.xml` in [Google Search Console](https://search.google.com/search-console) and [Bing Webmaster Tools](https://www.bing.com/webmasters) once DNS is live.
+Submit `https://meterzone.net/sitemap.xml` in [Google Search Console](https://search.google.com/search-console) and [Bing Webmaster Tools](https://www.bing.com/webmasters).
+
+### Search and AI discovery
+
+Edit `src/faq.ts` to update the visible homepage answers, FAQ schema, and AI
+reference together. Keep claims consistent with the released app and gameplay
+guide. `llms.txt` is an optional reference for tools that read it, not a promise
+of indexing, rankings, or AI citations. Google's [AI search guidance](https://developers.google.com/search/docs/appearance/ai-features)
+requires ordinary SEO fundamentals, not special AI files or schema.
+
+After publishing:
+
+1. Check that `/`, `/how-to-play/`, `/robots.txt`, `/sitemap.xml`, and `/llms.txt`
+   return HTTP 200, and an invented URL returns HTTP 404.
+2. Inspect the homepage and gameplay guide in Search Console, check the selected
+   canonical, and request indexing. Submit the sitemap to Google and Bing.
+3. Check Cloudflare crawler settings if webmaster tools report blocked fetches;
+   `robots.txt` alone cannot override a CDN challenge or block.
+4. Monitor search impressions, queries, and clicks alongside existing App Store
+   click events. Seek relevant game coverage and links to the official site;
+   avoid generating repetitive pages just to target keyword variations.
 
 **Hero phone preview** — `HERO_MEDIA` in `site.ts`:
 - Image (default): `{ type: 'image', src: '/images/game-preview.png', ... }`
