@@ -1,0 +1,23 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Page not found" description="This page could not be found. Return to MeterZone or browse the gameplay guide." index={false}>
+  <main>
+    <p>404</p>
+    <h1>Page not found</h1>
+    <p>Try the homepage or the gameplay guide to find your way back.</p>
+    <nav aria-label="Helpful pages">
+      <a href="/">MeterZone home</a>
+      <a href="/how-to-play/">How to play</a>
+      <a href="/support/">Support</a>
+    </nav>
+  </main>
+</BaseLayout>
+
+<style>
+  main { max-width: 40rem; margin: 10vh auto; padding: 2rem; }
+  h1 { font-size: clamp(2rem, 6vw, 3rem); }
+  p { line-height: 1.6; }
+  nav { display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 2rem; }
+</style>

@@ -125,7 +125,7 @@ const structuredData = {
       ...(sameAs.length > 0 ? { downloadUrl: sameAs, sameAs } : {}),
       author: { '@id': `${SITE_URL}/#organization` },
       publisher: { '@id': `${SITE_URL}/#organization` },
-      image: imageUrl,
+      image: new URL(OG_IMAGE.path, SITE_URL).href,
       screenshot: new URL('/images/game-preview.png', SITE_URL).href,
     },
     ...jsonLd,
@@ -151,6 +151,7 @@ const structuredData = {
     <meta name="referrer" content="strict-origin-when-cross-origin" />
 
     <link rel="canonical" href={canonical} />
+    <link rel="alternate" type="text/plain" title="MeterZone facts and official links" href="/llms.txt" />
     <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
     <link rel="icon" type="image/png" href="/favicon.png" sizes="48x48" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
