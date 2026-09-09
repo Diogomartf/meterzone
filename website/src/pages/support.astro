@@ -2,7 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { APP_NAME, CONTACT_EMAIL, SITE_URL } from '../site';
 
-const supportDescription = `Official ${APP_NAME} support — contact ${CONTACT_EMAIL} for gameplay help, bug reports, and store questions. Free one-tap timing game for iOS and Android.`;
+const supportDescription = `Official ${APP_NAME} support — contact ${CONTACT_EMAIL} for gameplay help, bug reports, and store questions. Free one-tap timing game for iPhone.`;
 
 const supportFaqs = [
   {
@@ -75,7 +75,7 @@ const jsonLd = [
   <main class="support">
     <div class="support-bg" aria-hidden="true">
       <img
-        src="/images/web-bg.png"
+        src="/images/web-bg.webp"
         alt=""
         width="1024"
         height="576"
@@ -86,11 +86,12 @@ const jsonLd = [
 
     <div class="support-inner">
       <a class="back" href="/">← Back to {APP_NAME}</a>
+      <p><a href="/how-to-play/">Gameplay and scoring guide →</a></p>
 
       <header class="support-hero">
         <img
           class="brand-logo"
-          src="/images/zone-meter-logo.png"
+          src="/images/zone-meter-logo.webp"
           alt={APP_NAME}
           width="611"
           height="393"
@@ -433,7 +434,7 @@ const jsonLd = [
     border-radius: 0.85rem;
     border: 3px solid var(--ink);
     background: var(--bubble);
-    color: var(--white);
+    color: var(--ink);
     font: inherit;
     font-size: 0.95rem;
     font-weight: 700;
@@ -499,7 +500,7 @@ const jsonLd = [
   }
 
   .faq-grid a {
-    color: var(--play-blue-dark);
+    color: #124a85;
     font-weight: 600;
     text-underline-offset: 0.15em;
   }

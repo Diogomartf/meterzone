@@ -1,0 +1,40 @@
+<script>
+  // Only the production domain sends events; previews and local checks stay quiet.
+  const allowed = location.hostname === 'meterzone.net'
+    && navigator.doNotTrack !== '1'
+    && !(navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl;
+
+  if (allowed) {
+    const source = () => {
+      const campaign = new URLSearchParams(location.search).get('utm_source')?.toLowerCase();
+      const known = ['google', 'bing', 'instagram', 'facebook', 'tiktok', 'reddit', 'youtube', 'newsletter'];
+      if (campaign) return known.includes(campaign) ? campaign : 'other-campaign';
+      if (!document.referrer) return 'direct';
+      try {
+        const host = new URL(document.referrer).hostname;
+        if (host === location.hostname) return 'internal';
+        for (const name of known) {
+          if (host === `${name}.com` || host.endsWith(`.${name}.com`)) return name;
+        }
+        if (/^(www\.)?google\.[a-z.]+$/.test(host)) return 'google';
+      } catch { /* Treat unparseable referrers as other. */ }
+      return 'other';
+    };
+    const trafficSource = source();
+    const send = (event: 'page_view' | 'app_store_click', placement = '') => {
+      const body = JSON.stringify({ event, page: location.pathname, source: trafficSource, placement });
+      try {
+        if (navigator.sendBeacon?.('/api/events', new Blob([body], { type: 'application/json' }))) return;
+        void fetch('/api/events', { method: 'POST', body, headers: { 'Content-Type': 'application/json' }, keepalive: true }).catch(() => {});
+      } catch { /* Analytics must never prevent an App Store visit. */ }
+    };
+    send('page_view');
+    const onDownload = (event: MouseEvent) => {
+      if (event.type === 'auxclick' && event.button !== 1) return;
+      const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>('a[data-download-location]') : null;
+      if (link && new URL(link.href).hostname === 'apps.apple.com') send('app_store_click', link.dataset.downloadLocation);
+    };
+    document.addEventListener('click', onDownload);
+    document.addEventListener('auxclick', onDownload);
+  }
+</script>

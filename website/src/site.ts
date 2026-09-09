@@ -4,10 +4,10 @@ export const CONTACT_EMAIL = 'hello@meterzone.net';
 export const APP_NAME = 'MeterZone';
 
 /** Default SEO copy — keep under ~155 chars for meta descriptions. */
-export const SITE_TAGLINE = 'Free one-tap timing challenge';
+export const SITE_TAGLINE = 'A free one-tap timing game for iPhone';
 export const SITE_DESCRIPTION =
-  'MeterZone is a free casual one-tap timing game. Stop the rising meter in the zone, stack combos, chase high scores, and beat the daily challenge.';
-export const SITE_TITLE = `${APP_NAME} — One-Tap Timing Game | Casual Arcade`;
+  'Play MeterZone, a free offline timing game for iPhone. Tap to stop the rising meter, stack combos, and beat the daily challenge. No account needed.';
+export const SITE_TITLE = `${APP_NAME} — Free Offline Timing Game for iPhone`;
 
 /** Social share image (1200×630). */
 export const OG_IMAGE = {
@@ -38,7 +38,7 @@ export const HERO_MEDIA = {
   type: 'video' as 'image' | 'video',
   src: '/videos/gameplay.mp4',
   /** Used when type is 'video' (and as img fallback poster). */
-  poster: '/images/game-preview.png',
+  poster: '/images/game-preview.webp',
   alt: 'MeterZone gameplay: one-tap timing — stop the rising meter inside the zone',
 } satisfies {
   type: 'image' | 'video';

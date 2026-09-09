@@ -106,7 +106,7 @@ const jsonLd = [
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-bg" aria-hidden="true">
         <img
-          src="/images/web-bg.png"
+          src="/images/web-bg.webp"
           alt=""
           width="1024"
           height="576"
@@ -120,16 +120,13 @@ const jsonLd = [
           <header class="hero-copy">
             <h1 class="hero-headline" id="hero-title">
               <span class="hero-lead">{HERO_HEADLINE.lead}</span>
-              <span class="hero-punch" aria-hidden="true">
+              <span class="hero-punch">
                 <span class="hero-zone"><span class="hero-zone-text">{HERO_HEADLINE.zone}</span></span>
                 <span class="hero-q">?</span>
               </span>
-              <span class="sr-only"
-                >{APP_NAME} — free one-tap timing game. {HERO_HEADLINE.lead}{' '}
-                {HERO_HEADLINE.zone}?</span
-              >
             </h1>
             <p class="hero-kicker">{HERO_KICKER}</p>
+            <p class="hero-description">Play offline, stack combos, and beat the daily challenge. No account needed.</p>
           </header>
 
           <div class="hero-phone" aria-label="Game preview">
@@ -139,7 +136,7 @@ const jsonLd = [
           <div class="hero-actions">
             <img
               class="hero-logo"
-              src="/images/zone-meter-logo.png"
+              src="/images/zone-meter-logo.webp"
               alt={`${APP_NAME} logo`}
               width="611"
               height="393"
@@ -148,7 +145,7 @@ const jsonLd = [
             />
             <div class="cta-group">
               {APP_STORE_URL ? (
-                <a class="store-btn store-btn--ios" href={APP_STORE_URL} rel="noopener">
+                <a class="store-btn store-btn--ios" href={APP_STORE_URL} data-download-location="hero" rel="noopener">
                   Download on the App Store
                 </a>
               ) : (
@@ -187,6 +184,7 @@ const jsonLd = [
           </li>
         ))}
       </ol>
+      <p class="guide-link"><a href="/how-to-play/">Read the gameplay and scoring guide →</a></p>
     </section>
 
     <section class="features" aria-labelledby="features-title">
@@ -220,9 +218,18 @@ const jsonLd = [
         </div>
       </section>
 
+      {APP_STORE_URL && (
+        <section class="download-section" aria-labelledby="download-title">
+          <h2 id="download-title">Your next high score starts with one tap.</h2>
+          <p>Free on iPhone. Play offline. Come back for a fresh daily challenge.</p>
+          <a class="download-link" href={APP_STORE_URL} data-download-location="after-faq">Download on the App Store</a>
+        </section>
+      )}
+
       <footer class="footer">
         <p class="footer-brand">{APP_NAME}</p>
         <nav aria-label="Footer">
+          <a href="/how-to-play/">How to play</a>
           <a href="/support/">Support</a>
           <a href="/privacy/">Privacy Policy</a>
           <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
@@ -234,6 +241,21 @@ const jsonLd = [
 </BaseLayout>
 
 <style>
+  .hero-description {
+    max-width: 24rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 0.75rem;
+    background: #fff;
+    color: var(--ink);
+    line-height: 1.5;
+    margin: 0.65rem 0 0;
+  }
+  .guide-link { margin: 2rem 0 0; text-align: center; }
+  .guide-link a { font-weight: 600; text-underline-offset: 0.2em; }
+  .download-section { padding: 1rem 1.5rem 3.5rem; text-align: center; }
+  .download-section h2 { font-size: clamp(1.5rem, 4vw, 2rem); }
+  .download-section p { line-height: 1.6; }
+
   .page {
     min-height: 100vh;
     display: flex;
@@ -359,8 +381,10 @@ const jsonLd = [
   .hero-lead {
     font-size: clamp(1.25rem, 3.5vw, 1.65rem);
     font-weight: 500;
-    color: var(--lemon);
-    text-shadow: 0 2px 0 rgba(26, 28, 44, 0.35);
+    color: var(--ink);
+    background: var(--lemon);
+    padding: 0.35rem 0.65rem;
+    border-radius: 0.5rem;
     letter-spacing: 0.02em;
     animation: lead-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.25s both;
   }
@@ -483,8 +507,10 @@ const jsonLd = [
     font-size: clamp(2.25rem, 7vw, 3.5rem);
     font-weight: 700;
     line-height: 1;
-    color: #e8edf2;
-    text-shadow: 0 1px 3px rgba(26, 28, 44, 0.45);
+    color: var(--ink);
+    background: #fff;
+    padding: 0.35rem 0.5rem;
+    border-radius: 0.5rem;
     animation: q-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.65s both;
   }
 
@@ -505,8 +531,10 @@ const jsonLd = [
     font-size: clamp(0.95rem, 2.2vw, 1.05rem);
     font-weight: 500;
     line-height: 1.45;
-    color: #e8edf2;
-    text-shadow: 0 1px 3px rgba(26, 28, 44, 0.45);
+    color: var(--ink);
+    background: #fff;
+    padding: 0.35rem 0.5rem;
+    border-radius: 0.5rem;
     animation: rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.5s both;
   }
 
@@ -537,17 +565,20 @@ const jsonLd = [
 
   .store-btn--ios {
     background: var(--bubble);
-    color: var(--white);
+    color: var(--ink);
   }
 
   .store-btn--android {
     background: var(--play-blue);
-    color: var(--white);
+    color: var(--ink);
   }
 
+  @media (hover: hover) and (pointer: fine) {
   a.store-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 0 var(--ink);
+  }
+
   }
 
   a.store-btn:active {
@@ -894,6 +925,7 @@ const jsonLd = [
 
     .hero-actions {
       justify-self: stretch;
+      align-self: center;
       align-items: stretch;
       width: 100%;
     }

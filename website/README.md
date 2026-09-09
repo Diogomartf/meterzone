@@ -36,7 +36,58 @@ Attach **meterzone.net** as a custom domain on the Cloudflare Pages project (`me
 
 ## Configuration
 
-Edit [`src/site.ts`](src/site.ts) for store URLs, contact email, taglines, SEO copy, and hero media. Set `APP_STORE_URL` and `PLAY_STORE_URL` when the app is live — until then, CTAs show “Coming soon”.
+Edit [`src/site.ts`](src/site.ts) for store URLs, contact email, taglines, SEO copy, and hero media. The iPhone App Store link is live; Android is not currently available.
+
+## Website analytics
+
+Cloudflare Pages Functions records `page_view` and `app_store_click` as daily
+aggregate counters in the `meterzone-website-analytics` D1 database, configured
+in `wrangler.toml`.
+Only `/api/events` invokes a Function; pages and assets remain static.
+Production events are enabled only on `meterzone.net`, so previews do not
+pollute counts. An unavailable analytics endpoint never blocks download links.
+
+Dimensions: page path, button placement (`hero`, `after-faq`, `gameplay-guide`),
+broad source category, and device category. No cookies, browser storage,
+persistent visitor identifiers, raw IP addresses, full user-agent strings,
+referrer URLs, or query strings are written to the dataset. DNT and GPC opt out.
+Recognized `utm_source` values are google, bing, instagram, facebook, tiktok,
+reddit, youtube, and newsletter; other values become `other-campaign`.
+
+Use [`analytics.sql`](analytics.sql) with `wrangler d1 execute` to compare clicks
+and page views over 28 days. Keep Wrangler credentials local; never put a token
+in the site.
+These are event counts, not unique visitors or installations. Attribution is
+for the current page: a reader moving from the homepage to the guide will have
+`internal` as the guide's source. We deliberately do not track visits across pages.
+
+Run `bun run test` for analytics validation and privacy checks. `astro dev`
+does not run Pages Functions; use `wrangler pages dev dist` for routing checks.
+Before the first production deploy, an account administrator must create the
+`meterzone-website-analytics` D1 database and set its ID in `wrangler.toml`,
+then apply `migrations/0001_daily_events.sql` remotely. The current deploy
+token does not have permission to create D1 resources. Analytics ingestion
+must be verified on the deployed production domain after that setup.
+
+## Optimized images
+
+The hero background, logo, and video poster use WebP derivatives. Keep the PNG
+originals as source assets and for social/structured-data compatibility. With
+`cwebp` installed, regenerate after changing the source images:
+
+```bash
+cwebp -q 82 public/images/web-bg.png -o public/images/web-bg.webp
+cwebp -q 85 -resize 416 0 public/images/zone-meter-logo.png -o public/images/zone-meter-logo.webp
+cwebp -q 82 -resize 600 0 public/images/game-preview.png -o public/images/game-preview.webp
+```
+
+WebP assets cache for one day; hashed Astro assets cache immutably for one year.
+The video starts automatically unless reduced motion is requested, and its
+play/pause and sound controls support keyboard interaction.
+
+The gameplay guide at `/how-to-play/` is linked from home and support and
+included in the generated sitemap. Keep its scoring explanation in sync with
+`../src/game/scoring.ts` and daily reset wording with `../src/game/storage.ts`.
 
 ## SEO
 

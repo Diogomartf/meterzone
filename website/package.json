@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "test": "bun test tests",
     "dev": "astro dev",
     "build": "astro build && cp dist/sitemap-0.xml dist/sitemap.xml",
     "preview": "astro preview",
