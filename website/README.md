@@ -63,11 +63,12 @@ for the current page: a reader moving from the homepage to the guide will have
 
 Run `bun run test` for analytics validation and privacy checks. `astro dev`
 does not run Pages Functions; use `wrangler pages dev dist` for routing checks.
-Before the first production deploy, an account administrator must create the
-`meterzone-website-analytics` D1 database and set its ID in `wrangler.toml`,
-then apply `migrations/0001_daily_events.sql` remotely. The current deploy
-token does not have permission to create D1 resources. Analytics ingestion
-must be verified on the deployed production domain after that setup.
+The production D1 database ID is configured in `wrangler.toml`, and the initial
+schema has been applied. For future schema changes, apply migrations with
+`bunx wrangler d1 migrations apply meterzone-website-analytics --remote`
+using an account with D1 write access before deploying the Functions that need
+them. The deployment token does not need permission to create D1 resources.
+Analytics ingestion must be verified on the deployed production domain.
 
 ## Optimized images
 

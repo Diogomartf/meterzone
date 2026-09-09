@@ -35,13 +35,13 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Isolate website TypeScript configuration
+        # Both Astro and Wrangler walk up to the Expo app tsconfig. Keep it
+        # hidden through deployment because CI installs only website packages.
+        run: mv ../tsconfig.json ../tsconfig.json.ci-bak
+
       - name: Build
-        # Rolldown walks up to the Expo app tsconfig; hide it so CI (website-only
-        # install) does not try to resolve expo/tsconfig.base.
-        run: |
-          trap 'mv ../tsconfig.json.ci-bak ../tsconfig.json 2>/dev/null || true' EXIT
-          mv ../tsconfig.json ../tsconfig.json.ci-bak
-          bun run build
+        run: bun run build
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
@@ -51,3 +51,10 @@ jobs:
           workingDirectory: website
           command: pages deploy dist --project-name=meterzone
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Restore app TypeScript configuration
+        if: always()
+        run: |
+          if [ -f ../tsconfig.json.ci-bak ]; then
+            mv ../tsconfig.json.ci-bak ../tsconfig.json
+          fi
