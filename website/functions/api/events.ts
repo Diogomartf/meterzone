@@ -1,5 +1,5 @@
 interface AnalyticsDatabase {
-  prepare(sql: string): { bind(...values: string[]): { run(): Promise<{ success: boolean }> } };
+  prepare(sql: string): { bind(...values: string[]): { run(): Promise<{ success: boolean; meta?: { changes?: number } }> } };
 }
 
 interface Context {
@@ -13,6 +13,13 @@ const placements: Record<string, string[]> = {
   '/': ['hero', 'after-faq'],
   '/how-to-play/': ['gameplay-guide'],
 };
+const MAX_EVENTS_PER_MINUTE = 60;
+
+async function clientKey(request: Request) {
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`meterzone-rate-limit:${ip}`));
+  return [...new Uint8Array(bytes)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
 
 export async function onRequest({ request, env }: Context): Promise<Response> {
   const respond = (status: number) => new Response(null, { status, headers: { 'Cache-Control': 'no-store' } });
@@ -42,6 +49,23 @@ export async function onRequest({ request, env }: Context): Promise<Response> {
   if (data.event !== 'page_view' && data.event !== 'app_store_click') return respond(400);
   if (data.event === 'app_store_click' && !placements[data.page]?.includes(data.placement)) return respond(400);
   if (!env.DB) return respond(503);
+
+  // Origin is useful CSRF protection, but is forgeable by scripts. Rate-limit
+  // on Cloudflare's trusted client IP before touching the event counter. Only a
+  // one-way key is stored, and stale windows are removed on each accepted call.
+  const key = await clientKey(request);
+  try {
+    const result = await env.DB.prepare(`
+      INSERT INTO rate_limits (client_key, window_start, count)
+      VALUES (?1, unixepoch() / 60, 1)
+      ON CONFLICT (client_key) DO UPDATE SET
+        window_start = CASE WHEN window_start = unixepoch() / 60 THEN window_start ELSE unixepoch() / 60 END,
+        count = CASE WHEN window_start = unixepoch() / 60 THEN count + 1 ELSE 1 END
+      WHERE window_start != unixepoch() / 60 OR count < ${MAX_EVENTS_PER_MINUTE}
+    `).bind(key).run();
+    if (!result.success || result.meta?.changes === 0) return respond(429);
+    await env.DB.prepare(`DELETE FROM rate_limits WHERE window_start < unixepoch() / 60 - 2`).bind().run();
+  } catch { return respond(503); }
 
   const ua = request.headers.get('User-Agent') || '';
   const device = /iPad|Tablet|Android(?!.*Mobile)/i.test(ua) ? 'tablet' : /iPhone|Android|Mobile/i.test(ua) ? 'mobile' : 'desktop';

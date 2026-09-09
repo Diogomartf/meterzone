@@ -98,6 +98,9 @@ const jsonLd = [
         This measurement uses no cookies, browser storage, or persistent visitor
         identifiers. We do not store IP addresses, full browser user-agent strings,
         full referrer URLs, or URL query strings in our analytics database.
+        To limit forged submissions, the endpoint derives a one-way rate-limit key
+        from Cloudflare’s client IP and removes inactive keys after a short window;
+        the raw IP is never stored.
         Browsers that send Do Not Track or Global Privacy Control are excluded.
         Cloudflare processes requests as our hosting provider.
       </p>
