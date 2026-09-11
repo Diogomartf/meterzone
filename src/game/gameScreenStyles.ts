@@ -44,7 +44,7 @@ export const styles = StyleSheet.create({
   },
   logoHud: {
     width: 104,
-    height: 66,
+    height: 75,
     marginLeft: -4,
   },
   bottomBar: {

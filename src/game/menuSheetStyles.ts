@@ -232,7 +232,7 @@ export const styles = StyleSheet.create({
   },
   hsLogo: {
     width: 118,
-    height: 76,
+    height: 85,
   },
   hsShell: {
     alignSelf: 'stretch',
