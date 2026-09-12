@@ -165,6 +165,12 @@ export function TapHint({
 
 const RING_SIZE = 22;
 
+/**
+ * The label is wider than the hand so translations ("TOCA", "TIPPEN") stay on
+ * one line; negative margins let it overflow the hand column while centered.
+ */
+const LABEL_WIDTH = 220;
+
 /** Expanding circle lines from the fingertip ball — reads as a tap. */
 function TapRing({
   playKey,
@@ -222,12 +228,15 @@ function TapLabel() {
       {STROKE_OFFSETS.map(([x, y], i) => (
         <Text
           key={i}
+          numberOfLines={1}
           style={[styles.label, styles.labelStroke, { left: x, top: y }]}
         >
           {tap}
         </Text>
       ))}
-      <Text style={[styles.label, styles.labelFill]}>{tap}</Text>
+      <Text numberOfLines={1} style={[styles.label, styles.labelFill]}>
+        {tap}
+      </Text>
     </View>
   );
 }
@@ -272,6 +281,8 @@ const styles = StyleSheet.create({
   },
   labelSlot: {
     marginTop: 6,
+    width: LABEL_WIDTH,
+    marginHorizontal: -(LABEL_WIDTH - TAP_HAND_SIZE.width) / 2,
     alignItems: 'center',
   },
   labelWrap: {
