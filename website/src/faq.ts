@@ -31,6 +31,6 @@ export const GAME_FAQS = [
   {
     question: 'How do I unlock meter skins?',
     answer:
-      'Perfect, Great, and Nice hits pay coins. Open Skins from the menu or the home coin counter and spend them to unlock Lava, Ice, and Gold looks for the meter. Unlocks stay on your device.',
+      'Perfect, Great, and Nice hits pay coins. Open Skins from the menu or the home coin counter to unlock Lava, Ice, and Gold liquids. Switch the meter gradient any time in Settings. Unlocks stay on your device.',
   },
 ];

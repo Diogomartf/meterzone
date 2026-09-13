@@ -505,4 +505,82 @@ export const styles = StyleSheet.create({
   skinActionTextLocked: {
     color: GameColors.panelInk,
   },
+  liquidSwitchHead: {
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 8,
+    gap: 2,
+  },
+  liquidSwitchKicker: {
+    fontFamily: GameFonts.body,
+    fontSize: 13,
+    lineHeight: 16,
+    letterSpacing: 0.8,
+    color: GameColors.panelInk,
+  },
+  liquidSwitchName: {
+    fontFamily: GameFonts.display,
+    fontSize: 28,
+    lineHeight: 32,
+    color: GameColors.ink,
+  },
+  liquidSwitchHint: {
+    fontFamily: GameFonts.soft,
+    fontSize: 14,
+    lineHeight: 18,
+    color: GameColors.panelInk,
+    marginTop: 2,
+  },
+  liquidSwitchRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 16,
+    gap: 8,
+  },
+  liquidTubeBtn: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 8,
+  },
+  liquidTubePressed: {
+    transform: [{ translateY: 1 }],
+  },
+  liquidTubeShell: {
+    width: '100%',
+    height: 92,
+    borderRadius: 16,
+    borderWidth: 2.5,
+    borderColor: GameColors.ink,
+    padding: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  liquidTubeShellOn: {
+    backgroundColor: GameColors.xpGold,
+    borderWidth: 3,
+  },
+  liquidTube: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 11,
+    borderWidth: 2,
+  },
+  liquidTubeDim: {
+    opacity: 0.38,
+  },
+  liquidTubeLabel: {
+    fontFamily: GameFonts.body,
+    fontSize: 13,
+    lineHeight: 16,
+    color: GameColors.panelInk,
+  },
+  liquidTubeLabelOn: {
+    color: GameColors.ink,
+  },
+  liquidTubeLabelDim: {
+    color: GameColors.panelInk,
+    opacity: 0.7,
+  },
 });

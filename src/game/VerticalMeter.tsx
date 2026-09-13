@@ -12,7 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { GameColors } from '@/constants/gameTheme';
-import type { SkinDef } from '@/game/skins';
+import { liquidSurface, type SkinDef } from '@/game/skins';
 
 type Props = {
   fill: SharedValue<number>;
@@ -62,6 +62,7 @@ function VerticalMeterComponent({
 
   const pRatio = Math.min(Math.max(perfectRatio, 0.06), 0.28);
   const gRatio = Math.min(Math.max(greatRatio, pRatio * 1.8), 0.58);
+  const surface = useMemo(() => liquidSurface(skin), [skin]);
 
   // Symmetric Nice / Great / Nice — Perfect is the yellow strike line at center
   const eyeGradient = useMemo(() => {
@@ -234,11 +235,7 @@ function VerticalMeterComponent({
             style={[styles.liquidWrap, { height: innerH }, liquidStyle]}
           >
             <LinearGradient
-              colors={[
-                'rgba(255,176,32,0)',
-                'rgba(255,176,32,0.28)',
-                'rgba(255,240,120,0.5)',
-              ]}
+              colors={[...surface.glow]}
               locations={[0, 0.55, 1]}
               style={styles.surfaceGlow}
               pointerEvents="none"
@@ -252,9 +249,15 @@ function VerticalMeterComponent({
 
             <View style={styles.liquidSheen} pointerEvents="none" />
 
-            <Animated.View style={[styles.surface, surfaceStyle]}>
+            <Animated.View
+              style={[
+                styles.surface,
+                surfaceStyle,
+                { shadowColor: surface.shadow },
+              ]}
+            >
               <LinearGradient
-                colors={['#FFFFFF', '#FFF6A0', '#FFC94A']}
+                colors={[...surface.foam]}
                 start={{ x: 0, y: 0.5 }}
                 end={{ x: 1, y: 0.5 }}
                 style={StyleSheet.absoluteFill}

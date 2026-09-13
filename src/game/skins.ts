@@ -69,3 +69,35 @@ export function unlockedSkinCount(unlocked: readonly SkinId[]): number {
   const owned = new Set(unlocked);
   return SKIN_IDS.filter((id) => owned.has(id)).length;
 }
+
+/** `#RGB` / `#RRGGBB` → `rgba(...)` so foam and glow can fade. */
+export function hexAlpha(hex: string, alpha: number): string {
+  const raw = hex.startsWith('#') ? hex.slice(1) : hex;
+  const n =
+    raw.length === 3
+      ? raw
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : raw;
+  const r = parseInt(n.slice(0, 2), 16);
+  const g = parseInt(n.slice(2, 4), 16);
+  const b = parseInt(n.slice(4, 6), 16);
+  const a = Math.min(1, Math.max(0, alpha));
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+/** Meniscus + glow taken from the liquid stops so each look reads as itself. */
+export function liquidSurface(skin: SkinDef): {
+  foam: readonly [string, string, string];
+  glow: readonly [string, string, string];
+  shadow: string;
+} {
+  const top = skin.liquid[0];
+  const high = skin.liquid[1];
+  return {
+    foam: ['#FFFFFF', top, high],
+    glow: [hexAlpha(high, 0), hexAlpha(high, 0.28), hexAlpha(top, 0.5)],
+    shadow: high,
+  };
+}

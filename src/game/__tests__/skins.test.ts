@@ -1,6 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 
-import { SKINS, SKIN_IDS, skinAction, unlockedSkinCount } from '@/game/skins';
+import {
+  SKINS,
+  SKIN_IDS,
+  hexAlpha,
+  liquidSurface,
+  skinAction,
+  unlockedSkinCount,
+} from '@/game/skins';
 
 describe('skinAction', () => {
   test('the equipped unlocked skin is equipped', () => {
@@ -33,6 +40,28 @@ describe('unlockedSkinCount', () => {
     expect(unlockedSkinCount(['toxic'])).toBe(1);
     expect(unlockedSkinCount(['toxic', 'lava', 'ice', 'gold'])).toBe(4);
     expect(unlockedSkinCount(['toxic', 'toxic', 'mystery' as never])).toBe(1);
+  });
+});
+
+describe('hexAlpha', () => {
+  test('expands six-digit hex and clamps alpha', () => {
+    expect(hexAlpha('#FF0000', 0.5)).toBe('rgba(255,0,0,0.5)');
+    expect(hexAlpha('00A8FF', 0)).toBe('rgba(0,168,255,0)');
+    expect(hexAlpha('#0F0', 2)).toBe('rgba(0,255,0,1)');
+  });
+});
+
+describe('liquidSurface', () => {
+  test('foam and glow follow the liquid stops', () => {
+    const surface = liquidSurface(SKINS.ice);
+    expect(surface.foam).toEqual([
+      '#FFFFFF',
+      SKINS.ice.liquid[0],
+      SKINS.ice.liquid[1],
+    ]);
+    expect(surface.shadow).toBe(SKINS.ice.liquid[1]);
+    expect(surface.glow[0]).toBe(hexAlpha(SKINS.ice.liquid[1], 0));
+    expect(surface.glow[2]).toBe(hexAlpha(SKINS.ice.liquid[0], 0.5));
   });
 });
 
