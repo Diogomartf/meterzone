@@ -168,9 +168,7 @@ export function LiquidSkinSwitch({
     <View style={styles.card}>
       <View style={styles.liquidSwitchHead}>
         <Text style={styles.liquidSwitchKicker}>{gt('LIQUID')}</Text>
-        <Text style={styles.liquidSwitchName}>
-          {m(SKIN_NAME[equipped.id])}
-        </Text>
+        <Text style={styles.liquidSwitchName}>{m(SKIN_NAME[equipped.id])}</Text>
         <Text style={styles.liquidSwitchHint}>
           {gt('Tap a gradient to change the meter liquid.')}
         </Text>
@@ -178,12 +176,7 @@ export function LiquidSkinSwitch({
       <View style={styles.liquidSwitchRow}>
         {SKIN_IDS.map((id) => {
           const skin = SKINS[id];
-          const action = skinAction(
-            skin,
-            equippedSkin,
-            unlockedSkins,
-            coins,
-          );
+          const action = skinAction(skin, equippedSkin, unlockedSkins, coins);
           const name = m(SKIN_NAME[id]);
           const selected = action === 'equipped';
           const locked = action === 'locked';
