@@ -534,11 +534,11 @@ export const styles = StyleSheet.create({
   liquidSwitchRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     paddingHorizontal: 14,
     paddingTop: 8,
     paddingBottom: 16,
-    gap: 6,
+    gap: 12,
   },
   liquidTubeBtn: {
     width: 68,
