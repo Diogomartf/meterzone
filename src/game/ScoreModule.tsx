@@ -6,6 +6,7 @@ import { formatScore } from '@/game/format';
 import { styles } from '@/game/gameScreenStyles';
 
 const TROPHY = require('../../assets/images/trophy.png');
+const COIN = require('../../assets/images/coins.png');
 
 type ScoreModuleProps = {
   best: number;
@@ -105,7 +106,10 @@ export function ScoreModule({
         accessibilityRole="button"
         accessibilityLabel={gt('{count} coins. Open skins.', { count: coins })}
       >
-        <Text style={styles.scoreCoinsLabel}>{gt('COINS')}</Text>
+        <View style={styles.scoreCoinsHead}>
+          <Image source={COIN} style={styles.coinIcon} contentFit="contain" />
+          <Text style={styles.scoreCoinsLabel}>{gt('COINS')}</Text>
+        </View>
         <Text style={styles.scoreCoinsValue} numberOfLines={1}>
           {formatScore(coins)}
         </Text>

@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { msg, useGT, useMessages } from 'gt-react-native';
@@ -5,6 +6,8 @@ import { msg, useGT, useMessages } from 'gt-react-native';
 import { formatScore } from '@/game/format';
 import { ActionRow } from '@/game/menuRows';
 import { styles } from '@/game/menuSheetStyles';
+
+const COIN = require('../../assets/images/coins.png');
 import {
   SKINS,
   SKIN_IDS,
@@ -59,6 +62,7 @@ function PriceTag({ cost }: { cost: number }) {
       style={styles.skinPriceTag}
       accessibilityLabel={gt('{cost} coins', { cost })}
     >
+      <Image source={COIN} style={styles.skinPriceCoin} contentFit="contain" />
       <Text style={styles.skinPriceTagText}>{formatScore(cost)}</Text>
     </View>
   );
@@ -310,7 +314,14 @@ export function SkinShop({
     >
       <View style={styles.skinBank}>
         <Text style={styles.skinBankLabel}>{gt('YOUR COINS')}</Text>
-        <Text style={styles.skinBankValue}>{formatScore(coins)}</Text>
+        <View style={styles.skinBankValueRow}>
+          <Image
+            source={COIN}
+            style={styles.skinBankCoin}
+            contentFit="contain"
+          />
+          <Text style={styles.skinBankValue}>{formatScore(coins)}</Text>
+        </View>
         <Text style={styles.skinBankHint}>
           {gt(
             'Perfect, Great, and Nice hits pay coins. Spend them on a new look for the meter.',

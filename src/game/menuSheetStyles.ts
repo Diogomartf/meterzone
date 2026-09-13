@@ -431,6 +431,15 @@ export const styles = StyleSheet.create({
     letterSpacing: 0.8,
     color: GameColors.ink,
   },
+  skinBankValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  skinBankCoin: {
+    width: 52,
+    height: 52,
+  },
   skinBankValue: {
     fontFamily: GameFonts.display,
     fontSize: 48,
@@ -507,6 +516,9 @@ export const styles = StyleSheet.create({
   },
   skinPriceTag: {
     alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     marginTop: 2,
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -514,6 +526,10 @@ export const styles = StyleSheet.create({
     borderWidth: 2.5,
     borderColor: GameColors.ink,
     backgroundColor: GameColors.xpGold,
+  },
+  skinPriceCoin: {
+    width: 16,
+    height: 16,
   },
   skinPriceTagText: {
     fontFamily: GameFonts.body,

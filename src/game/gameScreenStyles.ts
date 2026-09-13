@@ -223,6 +223,15 @@ export const styles = StyleSheet.create({
     alignItems: 'flex-start',
     backgroundColor: 'rgba(255,200,0,0.28)',
   },
+  scoreCoinsHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  coinIcon: {
+    width: 16,
+    height: 16,
+  },
   scoreCoinsLabel: {
     fontFamily: GameFonts.body,
     fontSize: 10,
