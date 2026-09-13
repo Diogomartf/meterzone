@@ -42,6 +42,8 @@ import { ScoreModule } from '@/game/ScoreModule';
 import { TapHint, TAP_BALL_GAP } from '@/game/TapHint';
 import { TapHowToLine } from '@/game/TapHowToLine';
 import { VerticalMeter } from '@/game/VerticalMeter';
+import { VolcanoBurst } from '@/game/VolcanoBurst';
+import { isMeterTopOut } from '@/game/volcano';
 import { formatScore } from '@/game/format';
 import { gameHaptics, setGameHapticsEnabled } from '@/game/haptics';
 import { createRng, makeRound } from '@/game/levels';
@@ -214,6 +216,7 @@ export function GameScreen() {
   const [previousBest, setPreviousBest] = useState(0);
   const [perfectBurstKey, setPerfectBurstKey] = useState(0);
   const [missBurstKey, setMissBurstKey] = useState(0);
+  const [volcanoBurstKey, setVolcanoBurstKey] = useState(0);
   const shareRef = useRef<View>(null);
   const [menuInitialView, setMenuInitialView] = useState<
     'menu' | 'highscores' | 'language' | 'skins'
@@ -233,6 +236,8 @@ export function GameScreen() {
   const halfTo = useSharedValue(round.zoneHalf);
   const zoneShrinks = useSharedValue(0);
   const meterX = useSharedValue(0);
+  const meterShakeX = useSharedValue(0);
+  const meterShakeY = useSharedValue(0);
   const feedbackOpacity = useSharedValue(0);
   const feedbackScale = useSharedValue(0.7);
   const comboPulse = useSharedValue(1);
@@ -707,14 +712,40 @@ export function GameScreen() {
     void gameHaptics.zoneEnter();
   }, []);
 
+  const eruptVolcano = useCallback(() => {
+    setVolcanoBurstKey((k) => k + 1);
+    meterShakeX.set(
+      withSequence(
+        withTiming(-8, { duration: 40 }),
+        withTiming(8, { duration: 50 }),
+        withTiming(-6, { duration: 45 }),
+        withTiming(5, { duration: 45 }),
+        withTiming(-2, { duration: 40 }),
+        withTiming(0, { duration: 70 }),
+      ),
+    );
+    meterShakeY.set(
+      withSequence(
+        withTiming(-12, {
+          duration: 70,
+          easing: Easing.out(Easing.cubic),
+        }),
+        withTiming(4, { duration: 90 }),
+        withTiming(0, { duration: 80 }),
+      ),
+    );
+    void gameHaptics.erupt();
+  }, [meterShakeX, meterShakeY]);
+
   useAnimatedReaction(
     () => fill.value,
     (value, prev) => {
       if (isFilling.value !== 1 || prev == null) return;
       const low = zoneTarget.value - zoneHalf.value;
       if (prev < low && value >= low) runOnJS(onZoneEnter)();
+      if (isMeterTopOut(value, prev)) runOnJS(eruptVolcano)();
     },
-    [onZoneEnter],
+    [eruptVolcano, onZoneEnter],
   );
 
   /**
@@ -733,8 +764,12 @@ export function GameScreen() {
     dispatch({ type: 'pendingTimer', pending: null });
     cancelAnimation(meterX);
     meterX.set(0);
+    cancelAnimation(meterShakeX);
+    cancelAnimation(meterShakeY);
+    meterShakeX.set(0);
+    meterShakeY.set(0);
     cancelAnimation(fill);
-  }, [dispatch, fill, haltCoach, meterX]);
+  }, [dispatch, fill, haltCoach, meterShakeX, meterShakeY, meterX]);
 
   /** Reset the animation layer that sits alongside run state. */
   const resetRunVisuals = useCallback(() => {
@@ -744,6 +779,8 @@ export function GameScreen() {
     feedbackOpacity.set(0);
     isFilling.set(0);
     meterX.set(0);
+    meterShakeX.set(0);
+    meterShakeY.set(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -971,7 +1008,10 @@ export function GameScreen() {
   };
 
   const meterStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: meterX.value }],
+    transform: [
+      { translateX: meterX.value + meterShakeX.value },
+      { translateY: meterShakeY.value },
+    ],
   }));
   const feedbackStyle = useAnimatedStyle(() => ({
     opacity: feedbackOpacity.value,
@@ -1099,6 +1139,13 @@ export function GameScreen() {
           />
         </Animated.View>
       </View>
+
+      <VolcanoBurst
+        burstKey={volcanoBurstKey}
+        colors={skin.liquid}
+        bottom={meterBottom + meterWrapH - 18}
+        scale={meterScale}
+      />
 
       <TapHint
         visible={showTapHint}

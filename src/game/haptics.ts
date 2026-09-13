@@ -115,6 +115,13 @@ export const gameHaptics = {
     return feel('light');
   },
 
+  /** Short rumble when the meter tops out like a volcano */
+  async erupt() {
+    await feel('heavy');
+    await sleep(isAndroid ? 40 : 35);
+    await feel('medium');
+  },
+
   /** Graded result buzz */
   async result(label: RoundLabel) {
     if (!platformOk || !userEnabled) return;
