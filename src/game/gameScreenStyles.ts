@@ -217,20 +217,18 @@ export const styles = StyleSheet.create({
   },
   scoreCoins: {
     paddingHorizontal: 10,
-    paddingTop: 5,
-    paddingBottom: 6,
-    gap: 1,
-    alignItems: 'flex-start',
+    paddingTop: 7,
+    paddingBottom: 7,
     backgroundColor: 'rgba(255,200,0,0.28)',
   },
-  scoreCoinsHead: {
+  scoreCoinsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   coinIcon: {
-    width: 16,
-    height: 16,
+    width: 18,
+    height: 18,
   },
   scoreCoinsLabel: {
     fontFamily: GameFonts.body,

@@ -106,13 +106,13 @@ export function ScoreModule({
         accessibilityRole="button"
         accessibilityLabel={gt('{count} coins. Open skins.', { count: coins })}
       >
-        <View style={styles.scoreCoinsHead}>
+        <View style={styles.scoreCoinsRow}>
           <Image source={COIN} style={styles.coinIcon} contentFit="contain" />
           <Text style={styles.scoreCoinsLabel}>{gt('COINS')}</Text>
+          <Text style={styles.scoreCoinsValue} numberOfLines={1}>
+            {formatScore(coins)}
+          </Text>
         </View>
-        <Text style={styles.scoreCoinsValue} numberOfLines={1}>
-          {formatScore(coins)}
-        </Text>
       </Pressable>
     </View>
   );
