@@ -19,10 +19,17 @@ const HOW_TO_HOLD = 4000;
 const HOW_TO_FADE_OUT = 400;
 
 /**
- * First-play how-to under LVL. Waits 0.5s after the game starts, fades in,
- * then fades out 4s later. Stays mounted across levels so the timer is not reset.
+ * First-play how-to. On home (`persistent`) it fades in and stays so the
+ * tip can be read before PLAY. In a run it waits 0.5s, fades in, then
+ * fades out 4s later. Stays mounted across levels so that timer is not reset.
  */
-export function TapHowToLine({ visible }: { visible: boolean }) {
+export function TapHowToLine({
+  visible,
+  persistent = false,
+}: {
+  visible: boolean;
+  persistent?: boolean;
+}) {
   const m = useMessages();
   const opacity = useSharedValue(0);
   // Mount is adjusted during render when `visible` turns on, so the line is on
@@ -47,13 +54,18 @@ export function TapHowToLine({ visible }: { visible: boolean }) {
     }
 
     opacity.value = 0;
+    const fadeIn = withTiming(1, {
+      duration: HOW_TO_FADE_IN,
+      easing: Easing.out(Easing.cubic),
+    });
+    if (persistent) {
+      opacity.value = withDelay(HOW_TO_DELAY, fadeIn);
+      return;
+    }
     opacity.value = withDelay(
       HOW_TO_DELAY,
       withSequence(
-        withTiming(1, {
-          duration: HOW_TO_FADE_IN,
-          easing: Easing.out(Easing.cubic),
-        }),
+        fadeIn,
         withDelay(
           HOW_TO_HOLD,
           withTiming(0, {
@@ -66,12 +78,14 @@ export function TapHowToLine({ visible }: { visible: boolean }) {
     const done = HOW_TO_DELAY + HOW_TO_FADE_IN + HOW_TO_HOLD + HOW_TO_FADE_OUT;
     const hide = setTimeout(() => setHeld(false), done);
     return () => clearTimeout(hide);
-  }, [opacity, visible]);
+  }, [opacity, persistent, visible]);
 
   const fadeStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
   if (!held) return null;
   return (
-    <Animated.Text style={[styles.tapHowTo, fadeStyle]}>
+    <Animated.Text
+      style={[styles.tapHowTo, persistent && styles.tapHowToHome, fadeStyle]}
+    >
       {m(TAP_HOW_TO)}
     </Animated.Text>
   );

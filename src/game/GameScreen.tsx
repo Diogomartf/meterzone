@@ -1405,6 +1405,7 @@ export function GameScreen() {
             style={[styles.menuCol, { bottom: menuBottom }]}
             pointerEvents="box-none"
           >
+            <TapHowToLine visible={showTapHowTo} persistent />
             <GameCta
               label={gt('PLAY')}
               subtitle={gt('TAP THE ZONE')}

@@ -56,16 +56,18 @@ export function shouldShowTapHint({
 }
 
 /**
- * How-to line under LVL. First TAP_HOW_TO_PLAYS games, not levels.
- * Hidden on ready / game over. `howToThisRun` keeps it eligible for the
- * delayed fade even as levels change.
+ * How-to line on the home screen (always — it sits above PLAY and does
+ * not interrupt a run) and under LVL for the first TAP_HOW_TO_PLAYS games.
+ * Hidden on game over. `howToThisRun` keeps the in-run fade eligible
+ * even as levels change.
  */
 export function shouldShowTapHowTo({
   totalRuns = 0,
   howToThisRun = false,
   phase,
 }: HintInput): boolean {
-  if (phase === 'ready' || phase === 'gameover') return false;
+  if (phase === 'gameover') return false;
+  if (phase === 'ready') return true;
   if (howToThisRun) return true;
   return totalRuns < TAP_HOW_TO_PLAYS;
 }

@@ -322,6 +322,12 @@ export const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 0,
   },
+  /** Home placement sits above PLAY, so drop the under-LVL top gap. */
+  tapHowToHome: {
+    marginTop: 0,
+    marginBottom: 2,
+    maxWidth: 280,
+  },
   newBestTag: {
     marginTop: 4,
     fontFamily: GameFonts.display,
