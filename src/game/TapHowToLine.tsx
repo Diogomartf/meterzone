@@ -6,22 +6,22 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withDelay,
-  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 
 import { styles } from '@/game/gameScreenStyles';
 import { TAP_HOW_TO } from '@/game/tapCoach';
 
-const HOW_TO_DELAY = 500;
-const HOW_TO_FADE_IN = 400;
+const HOW_TO_HOME_DELAY = 500;
+const HOW_TO_FADE_IN = 180;
 const HOW_TO_HOLD = 4000;
 const HOW_TO_FADE_OUT = 400;
 
 /**
  * First-play how-to. On home (`persistent`) it fades in and stays so the
- * tip can be read before PLAY. In a run it waits 0.5s, fades in, then
- * fades out 4s later. Stays mounted across levels so that timer is not reset.
+ * tip can be read before PLAY. In a run it is visible on the first frame
+ * after PLAY, then fades out 4s later. Stays mounted across levels so
+ * that timer is not reset.
  */
 export function TapHowToLine({
   visible,
@@ -31,7 +31,8 @@ export function TapHowToLine({
   persistent?: boolean;
 }) {
   const m = useMessages();
-  const opacity = useSharedValue(0);
+  // In-run starts fully visible so the tip is there on the first frame after PLAY.
+  const opacity = useSharedValue(persistent ? 0 : 1);
   // Mount is adjusted during render when `visible` turns on, so the line is on
   // screen before the effect animates it. Unmounting is always timer-driven,
   // which keeps the fade-out visible after `visible` goes back off.
@@ -53,29 +54,28 @@ export function TapHowToLine({
       return () => clearTimeout(hide);
     }
 
-    opacity.value = 0;
-    const fadeIn = withTiming(1, {
-      duration: HOW_TO_FADE_IN,
-      easing: Easing.out(Easing.cubic),
-    });
     if (persistent) {
-      opacity.value = withDelay(HOW_TO_DELAY, fadeIn);
+      opacity.value = 0;
+      opacity.value = withDelay(
+        HOW_TO_HOME_DELAY,
+        withTiming(1, {
+          duration: HOW_TO_FADE_IN,
+          easing: Easing.out(Easing.cubic),
+        }),
+      );
       return;
     }
+
+    // In a run: on-screen immediately after PLAY, then hold and fade.
+    opacity.value = 1;
     opacity.value = withDelay(
-      HOW_TO_DELAY,
-      withSequence(
-        fadeIn,
-        withDelay(
-          HOW_TO_HOLD,
-          withTiming(0, {
-            duration: HOW_TO_FADE_OUT,
-            easing: Easing.in(Easing.quad),
-          }),
-        ),
-      ),
+      HOW_TO_HOLD,
+      withTiming(0, {
+        duration: HOW_TO_FADE_OUT,
+        easing: Easing.in(Easing.quad),
+      }),
     );
-    const done = HOW_TO_DELAY + HOW_TO_FADE_IN + HOW_TO_HOLD + HOW_TO_FADE_OUT;
+    const done = HOW_TO_HOLD + HOW_TO_FADE_OUT;
     const hide = setTimeout(() => setHeld(false), done);
     return () => clearTimeout(hide);
   }, [opacity, persistent, visible]);
