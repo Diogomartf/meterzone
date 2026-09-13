@@ -38,7 +38,8 @@ export const SKINS: Record<SkinId, SkinDef> = {
   gold: {
     id: 'gold',
     name: 'Gold',
-    cost: 400,
+    // Rarest look — more than 100 consecutive Perfects (~2900 coins).
+    cost: 3500,
     liquid: ['#FFFBEB', '#FDE68A', '#FBBF24', '#D97706', '#92400E'],
     shell: '#EAB308',
     shellDark: '#A16207',

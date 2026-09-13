@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
+import { scoreFill } from '@/game/scoring';
+import { makeRound } from '@/game/levels';
 import {
   SKINS,
   SKIN_IDS,
@@ -8,6 +10,24 @@ import {
   skinAction,
   unlockedSkinCount,
 } from '@/game/skins';
+
+/** Bank from `levels` consecutive Perfects on a fresh run. */
+function coinsFromPerfectRun(levels: number): number {
+  let coins = 0;
+  let combo = 0;
+  for (let level = 1; level <= levels; level++) {
+    const round = {
+      ...makeRound(level),
+      target: 0.5,
+      targetEnd: 0.5,
+      moving: false,
+    };
+    const hit = scoreFill(round.target, round, combo);
+    coins += hit.coins;
+    combo = hit.combo;
+  }
+  return coins;
+}
 
 describe('skinAction', () => {
   test('the equipped unlocked skin is equipped', () => {
@@ -20,7 +40,9 @@ describe('skinAction', () => {
 
   test('enough coins unlocks a locked look', () => {
     expect(skinAction(SKINS.lava, 'toxic', ['toxic'], 120)).toBe('unlock');
-    expect(skinAction(SKINS.gold, 'toxic', ['toxic'], 400)).toBe('unlock');
+    expect(skinAction(SKINS.gold, 'toxic', ['toxic'], SKINS.gold.cost)).toBe(
+      'unlock',
+    );
   });
 
   test('short coins stay locked', () => {
@@ -72,5 +94,12 @@ describe('SKIN_IDS', () => {
     expect(SKINS.toxic.cost).toBe(0);
     expect(SKINS.lava.cost).toBeLessThan(SKINS.ice.cost);
     expect(SKINS.ice.cost).toBeLessThan(SKINS.gold.cost);
+  });
+
+  test('Gold stays locked through a 100-level Perfect run', () => {
+    const bank = coinsFromPerfectRun(100);
+    expect(bank).toBeGreaterThan(0);
+    expect(SKINS.gold.cost).toBeGreaterThan(bank);
+    expect(skinAction(SKINS.gold, 'toxic', ['toxic'], bank)).toBe('locked');
   });
 });
