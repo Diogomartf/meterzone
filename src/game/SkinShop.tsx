@@ -136,8 +136,10 @@ function SkinRow({
         />
       </View>
       <View style={styles.rowText}>
-        <Text style={styles.rowLabel}>{name}</Text>
-        <PriceTag cost={skin.cost} />
+        <View style={styles.skinNameRow}>
+          <Text style={styles.rowLabel}>{name}</Text>
+          <PriceTag cost={skin.cost} />
+        </View>
         <Text style={styles.rowSub}>
           {action === 'locked'
             ? gt('Need {count} more', { count: lockedShort })

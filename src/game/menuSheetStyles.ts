@@ -514,12 +514,16 @@ export const styles = StyleSheet.create({
   skinActionTextLocked: {
     color: GameColors.panelInk,
   },
+  skinNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
   skinPriceTag: {
-    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    marginTop: 2,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
