@@ -505,6 +505,23 @@ export const styles = StyleSheet.create({
   skinActionTextLocked: {
     color: GameColors.panelInk,
   },
+  skinPriceTag: {
+    alignSelf: 'flex-start',
+    marginTop: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 2.5,
+    borderColor: GameColors.ink,
+    backgroundColor: GameColors.xpGold,
+  },
+  skinPriceTagText: {
+    fontFamily: GameFonts.body,
+    fontSize: 14,
+    lineHeight: 17,
+    color: GameColors.ink,
+    letterSpacing: 0.2,
+  },
   liquidSwitchHead: {
     paddingHorizontal: 18,
     paddingTop: 16,
@@ -587,5 +604,11 @@ export const styles = StyleSheet.create({
   liquidTubeLabelDim: {
     color: GameColors.panelInk,
     opacity: 0.7,
+  },
+  liquidTubePrice: {
+    fontFamily: GameFonts.body,
+    fontSize: 11,
+    lineHeight: 13,
+    color: GameColors.ink,
   },
 });

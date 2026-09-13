@@ -51,6 +51,19 @@ function actionStyle(action: SkinAction) {
   return styles.skinActionLocked;
 }
 
+function PriceTag({ cost }: { cost: number }) {
+  const gt = useGT();
+  if (cost <= 0) return null;
+  return (
+    <View
+      style={styles.skinPriceTag}
+      accessibilityLabel={gt('{cost} coins', { cost })}
+    >
+      <Text style={styles.skinPriceTagText}>{formatScore(cost)}</Text>
+    </View>
+  );
+}
+
 function SkinRow({
   skin,
   action,
@@ -98,10 +111,14 @@ function SkinRow({
                   name,
                   cost: skin.cost,
                 })
-              : gt('{name} skin locked. Need {count} more coins.', {
-                  name,
-                  count: lockedShort,
-                })
+              : gt(
+                  '{name} skin locked. {cost} coins. Need {count} more coins.',
+                  {
+                    name,
+                    cost: skin.cost,
+                    count: lockedShort,
+                  },
+                )
       }
     >
       <View
@@ -116,12 +133,11 @@ function SkinRow({
       </View>
       <View style={styles.rowText}>
         <Text style={styles.rowLabel}>{name}</Text>
+        <PriceTag cost={skin.cost} />
         <Text style={styles.rowSub}>
           {action === 'locked'
             ? gt('Need {count} more', { count: lockedShort })
-            : action === 'unlock'
-              ? gt('{cost} coins', { cost: skin.cost })
-              : m(SKIN_BLURB[skin.id])}
+            : m(SKIN_BLURB[skin.id])}
         </Text>
       </View>
       <View style={[styles.skinAction, actionStyle(action)]}>
@@ -209,7 +225,10 @@ export function LiquidSkinSwitch({
                           name,
                           cost: skin.cost,
                         })
-                      : gt('{name} liquid locked. Open shop.', { name })
+                      : gt('{name} liquid locked. {cost} coins. Open shop.', {
+                          name,
+                          cost: skin.cost,
+                        })
               }
             >
               <View
@@ -240,6 +259,17 @@ export function LiquidSkinSwitch({
               >
                 {name}
               </Text>
+              {skin.cost > 0 && (action === 'locked' || action === 'unlock') ? (
+                <Text
+                  style={[
+                    styles.liquidTubePrice,
+                    locked && styles.liquidTubeLabelDim,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {formatScore(skin.cost)}
+                </Text>
+              ) : null}
             </Pressable>
           );
         })}
