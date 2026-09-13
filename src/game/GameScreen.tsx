@@ -64,13 +64,20 @@ import {
   clearPersist,
   commitRunResult,
   dailySeed,
+  equipSkin,
   markReviewAccepted,
   recordReviewPromptDecline,
   setHapticsEnabled,
   setSoundMuted,
   todayKey,
+  unlockSkin,
 } from '@/game/storage';
-import type { RoundConfig, RoundLabel, SessionStats } from '@/game/types';
+import type {
+  RoundConfig,
+  RoundLabel,
+  SessionStats,
+  SkinId,
+} from '@/game/types';
 import { useRunState } from '@/game/useRunState';
 import { usePersistState } from '@/game/usePersistState';
 import { useSounds } from '@/game/useSounds';
@@ -209,7 +216,7 @@ export function GameScreen() {
   const [missBurstKey, setMissBurstKey] = useState(0);
   const shareRef = useRef<View>(null);
   const [menuInitialView, setMenuInitialView] = useState<
-    'menu' | 'highscores' | 'language'
+    'menu' | 'highscores' | 'language' | 'skins'
   >('menu');
   const [capturingShare, setCapturingShare] = useState(false);
   const [reviewPromptVisible, setReviewPromptVisible] = useState(false);
@@ -823,6 +830,39 @@ export function GameScreen() {
     openMenu();
   }, [openMenu]);
 
+  const openSkins = useCallback(() => {
+    void gameHaptics.next();
+    setMenuInitialView('skins');
+    openMenu();
+  }, [openMenu]);
+
+  const onUnlockSkin = useCallback(
+    (id: SkinId) => {
+      void (async () => {
+        const next = await unlockSkin(id, SKINS[id].cost);
+        if (!next) {
+          void gameHaptics.result('Miss');
+          return;
+        }
+        applyPersist(next);
+        void gameHaptics.result('Great');
+      })();
+    },
+    [applyPersist],
+  );
+
+  const onEquipSkin = useCallback(
+    (id: SkinId) => {
+      void (async () => {
+        const next = await equipSkin(id);
+        if (!next) return;
+        applyPersist(next);
+        void gameHaptics.next();
+      })();
+    },
+    [applyPersist],
+  );
+
   const closeMenu = useCallback(() => {
     // Read the parked resume before dispatching — `resume` clears it.
     const resume = stateRef.current.pauseResume;
@@ -1091,7 +1131,9 @@ export function GameScreen() {
                 dailyScore={homeDailyScore}
                 dailyLevel={homeDailyLevel}
                 dailyPlayed={Boolean(dailyPlayedToday)}
+                coins={persist?.coins ?? 0}
                 onOpen={openScores}
+                onOpenSkins={openSkins}
               />
             ) : phase === 'gameover' ? null : (
               <View
@@ -1157,6 +1199,13 @@ export function GameScreen() {
                   <Text style={styles.runStatValue}>{round.level}</Text>
                 </View>
               </View>
+            ) : null}
+            {phase === 'gameover' ? (
+              stats.coinsEarned > 0 ? (
+                <Text style={styles.resultCoins}>
+                  {gt('+{earned} coins', { earned: stats.coinsEarned })}
+                </Text>
+              ) : null
             ) : (
               <>
                 <Text style={styles.metaLine}>
@@ -1454,6 +1503,9 @@ export function GameScreen() {
         dailyRecordScore={persist?.dailyRecord.score ?? 0}
         dailyRecordLevel={persist?.dailyRecord.level ?? 0}
         dailyRecordDate={persist?.dailyRecord.date ?? ''}
+        coins={persist?.coins ?? 0}
+        unlockedSkins={persist?.unlockedSkins ?? ['toxic']}
+        equippedSkin={persist?.equippedSkin ?? DEFAULT_SKIN}
         onClose={closeMenu}
         onToggleSound={() => void toggleSound()}
         onToggleHaptics={() => void toggleHaptics()}
@@ -1461,6 +1513,8 @@ export function GameScreen() {
         onStartMode={startModeFromMenu}
         onSendFeedback={() => void sendFeedback()}
         onDeleteData={() => void deleteData()}
+        onUnlockSkin={onUnlockSkin}
+        onEquipSkin={onEquipSkin}
       />
 
       <ReviewPromptModal

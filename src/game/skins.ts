@@ -46,3 +46,26 @@ export const SKINS: Record<SkinId, SkinDef> = {
 };
 
 export const DEFAULT_SKIN: SkinId = 'toxic';
+
+/** Display order in the shop — cheapest extra first, gold last. */
+export const SKIN_IDS: readonly SkinId[] = ['toxic', 'lava', 'ice', 'gold'];
+
+export type SkinAction = 'equipped' | 'equip' | 'unlock' | 'locked';
+
+/** What the shop button should do for this skin right now. */
+export function skinAction(
+  skin: SkinDef,
+  equipped: SkinId,
+  unlocked: readonly SkinId[],
+  coins: number,
+): SkinAction {
+  if (skin.id === equipped && unlocked.includes(skin.id)) return 'equipped';
+  if (unlocked.includes(skin.id)) return 'equip';
+  if (coins >= skin.cost) return 'unlock';
+  return 'locked';
+}
+
+export function unlockedSkinCount(unlocked: readonly SkinId[]): number {
+  const owned = new Set(unlocked);
+  return SKIN_IDS.filter((id) => owned.has(id)).length;
+}

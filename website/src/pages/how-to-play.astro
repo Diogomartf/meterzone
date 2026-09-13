@@ -2,7 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { APP_STORE_URL, SITE_URL } from '../site';
 
-const description = 'Learn how to play MeterZone on iPhone: aim for Perfect stops, build combos up to 5×, protect your three hearts, and take on the daily challenge offline.';
+const description = 'Learn how to play MeterZone on iPhone: aim for Perfect stops, build combos up to 5×, protect your three hearts, unlock meter skins with coins, and take on the daily challenge offline.';
 const jsonLd = [{
   '@type': 'BreadcrumbList',
   itemListElement: [
@@ -24,6 +24,7 @@ const jsonLd = [{
     <nav class="contents" aria-label="On this page">
       <a href="#timing">Timing your tap</a>
       <a href="#scoring">Scores and combos</a>
+      <a href="#skins">Coins and skins</a>
       <a href="#daily">Daily challenge</a>
       <a href="#offline">Playing offline</a>
     </nav>
@@ -43,13 +44,13 @@ const jsonLd = [{
       <h2>Perfect, Great, Nice: what each hit means</h2>
       <div class="table-wrap">
         <table>
-          <caption>Hit results and combo effects from level 2 onward</caption>
-          <thead><tr><th scope="col">Result</th><th scope="col">Where you stop</th><th scope="col">Combo effect</th></tr></thead>
+          <caption>Hit results, combo effects, and coins from level 2 onward</caption>
+          <thead><tr><th scope="col">Result</th><th scope="col">Where you stop</th><th scope="col">Combo effect</th><th scope="col">Coins</th></tr></thead>
           <tbody>
-            <tr><th scope="row">Perfect</th><td>At the center strike line</td><td>Adds one to your streak</td></tr>
-            <tr><th scope="row">Great</th><td>In the inner band around the center</td><td>Adds one to your streak</td></tr>
-            <tr><th scope="row">Nice</th><td>Inside the outer zone</td><td>Reduces your streak by one, to a minimum of zero</td></tr>
-            <tr><th scope="row">Miss</th><td>Outside the zone</td><td>Resets your streak and costs a heart</td></tr>
+            <tr><th scope="row">Perfect</th><td>At the center strike line</td><td>Adds one to your streak</td><td>5, plus more for a longer streak</td></tr>
+            <tr><th scope="row">Great</th><td>In the inner band around the center</td><td>Adds one to your streak</td><td>3</td></tr>
+            <tr><th scope="row">Nice</th><td>Inside the outer zone</td><td>Reduces your streak by one, to a minimum of zero</td><td>1</td></tr>
+            <tr><th scope="row">Miss</th><td>Outside the zone</td><td>Resets your streak and costs a heart</td><td>None</td></tr>
           </tbody>
         </table>
       </div>
@@ -58,6 +59,12 @@ const jsonLd = [{
       <p>A Perfect hit starts with 100 base points before the level bonus and multiplier. Great and Nice hits earn fewer base points, depending on how close you land to the center. Later levels increase the base-point reward.</p>
       <h3>Consistency keeps a run alive</h3>
       <p>A Great hit still grows your combo. A Nice hit protects your hearts even though it reduces the streak. If you are struggling to hit the center, first practice landing anywhere inside the zone, then work toward more accurate stops.</p>
+    </section>
+
+    <section id="skins">
+      <h2>Coins and meter skins</h2>
+      <p>Every Perfect, Great, and Nice hit pays coins. Misses pay nothing. Open Skins from the menu, or tap the coin counter on the home screen, to spend what you have earned.</p>
+      <p>Toxic is the default look. Lava, Ice, and Gold can be unlocked with coins and equipped at any time. Unlocks stay on your iPhone with your high scores and settings — there is no account and no extra purchase.</p>
     </section>
 
     <section id="daily">

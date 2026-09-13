@@ -13,17 +13,21 @@ type ScoreModuleProps = {
   dailyScore: number;
   dailyLevel: number;
   dailyPlayed: boolean;
+  coins: number;
   onOpen: () => void;
+  onOpenSkins: () => void;
 };
 
-/** Home-screen score module: dominant all-time BEST over a shorter Daily Best. */
+/** Home-screen score module: dominant all-time BEST over Daily Best and coins. */
 export function ScoreModule({
   best,
   bestLevel,
   dailyScore,
   dailyLevel,
   dailyPlayed,
+  coins,
   onOpen,
+  onOpenSkins,
 }: ScoreModuleProps) {
   const gt = useGT();
   return (
@@ -90,6 +94,21 @@ export function ScoreModule({
             <Text style={styles.scoreDailyEmpty}>{gt('Play today')}</Text>
           </View>
         )}
+      </Pressable>
+      <View style={styles.scoreDivider} />
+      <Pressable
+        onPress={onOpenSkins}
+        style={({ pressed }) => [
+          styles.scoreCoins,
+          pressed && styles.scoreSectionPressed,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel={gt('{count} coins. Open skins.', { count: coins })}
+      >
+        <Text style={styles.scoreCoinsLabel}>{gt('COINS')}</Text>
+        <Text style={styles.scoreCoinsValue} numberOfLines={1}>
+          {formatScore(coins)}
+        </Text>
       </Pressable>
     </View>
   );

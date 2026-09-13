@@ -5,6 +5,7 @@ import {
   clearPersist,
   commitRunResult,
   dailySeed,
+  equipSkin,
   loadPersist,
   markReviewAccepted,
   recordReviewPromptDecline,
@@ -14,6 +15,7 @@ import {
   setHapticsEnabled,
   setSoundMuted,
   todayKey,
+  unlockSkin,
 } from '@/game/storage';
 import { TAP_HINT_PLAYS } from '@/game/tapCoach';
 
@@ -436,6 +438,44 @@ describe('settings toggles', () => {
     const s = await loadPersist();
     expect(s.soundMuted).toBe(true);
     expect(s.hapticsEnabled).toBe(false);
+  });
+});
+
+describe('unlockSkin and equipSkin', () => {
+  test('unlocks, spends coins, and equips the new look', async () => {
+    seed({ coins: 150, unlockedSkins: ['toxic'], equippedSkin: 'toxic' });
+    const unlocked = await unlockSkin('lava', 120);
+    expect(unlocked).not.toBeNull();
+    expect(unlocked!.coins).toBe(30);
+    expect(unlocked!.unlockedSkins).toEqual(['toxic', 'lava']);
+    expect(unlocked!.equippedSkin).toBe('lava');
+    expect((await loadPersist()).equippedSkin).toBe('lava');
+  });
+
+  test('refuses when coins are short', async () => {
+    seed({ coins: 119, unlockedSkins: ['toxic'] });
+    expect(await unlockSkin('lava', 120)).toBeNull();
+    const s = await loadPersist();
+    expect(s.coins).toBe(119);
+    expect(s.unlockedSkins).toEqual(['toxic']);
+  });
+
+  test('re-unlocking an owned skin is a no-op', async () => {
+    seed({
+      coins: 400,
+      unlockedSkins: ['toxic', 'lava'],
+      equippedSkin: 'toxic',
+    });
+    const again = await unlockSkin('lava', 120);
+    expect(again!.coins).toBe(400);
+    expect(again!.equippedSkin).toBe('toxic');
+  });
+
+  test('equip only works for unlocked skins', async () => {
+    seed({ unlockedSkins: ['toxic', 'lava'], equippedSkin: 'toxic' });
+    expect((await equipSkin('lava'))!.equippedSkin).toBe('lava');
+    expect(await equipSkin('gold')).toBeNull();
+    expect((await loadPersist()).equippedSkin).toBe('lava');
   });
 });
 

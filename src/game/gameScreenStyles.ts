@@ -215,6 +215,36 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     color: GameColors.bubbleDark,
   },
+  scoreCoins: {
+    paddingHorizontal: 10,
+    paddingTop: 5,
+    paddingBottom: 6,
+    gap: 1,
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(255,200,0,0.28)',
+  },
+  scoreCoinsLabel: {
+    fontFamily: GameFonts.body,
+    fontSize: 10,
+    letterSpacing: 0.5,
+    color: '#A16207',
+  },
+  scoreCoinsValue: {
+    fontFamily: GameFonts.display,
+    fontSize: 16,
+    lineHeight: 19,
+    color: GameColors.ink,
+  },
+  resultCoins: {
+    marginTop: 8,
+    fontFamily: GameFonts.body,
+    fontSize: 16,
+    lineHeight: 20,
+    color: GameColors.lemon,
+    textShadowColor: GameColors.ink,
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 0,
+  },
   // Results screen — best/difference summary + NEW BEST trophy.
   resultTrophy: {
     width: 64,

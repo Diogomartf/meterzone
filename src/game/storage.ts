@@ -276,7 +276,6 @@ export async function commitRunResult(input: {
 
     const next: PersistState = {
       ...prev,
-      // Coins kept in save data but not surfaced in UI for now
       coins: prev.coins + input.coinsEarned,
       bestComboAllTime: Math.max(prev.bestComboAllTime, input.bestCombo),
       // Normal and daily bests are tracked separately
