@@ -734,7 +734,6 @@ export function GameScreen() {
         withTiming(0, { duration: 80 }),
       ),
     );
-    void gameHaptics.erupt();
   }, [meterShakeX, meterShakeY]);
 
   useAnimatedReaction(
