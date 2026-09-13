@@ -1142,7 +1142,6 @@ export function GameScreen() {
 
       <VolcanoBurst
         burstKey={volcanoBurstKey}
-        colors={skin.liquid}
         bottom={meterBottom + meterWrapH - 18}
         scale={meterScale}
       />
