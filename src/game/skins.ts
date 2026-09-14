@@ -22,8 +22,9 @@ export const SKINS: Record<SkinId, SkinDef> = {
   lava: {
     id: 'lava',
     name: 'Lava',
-    // Even the first extra look is a prestige unlock: a flawless 150-level run
-    // banks ~6,200 coins, so no single run — however good — buys a skin.
+    // Even the first extra look is a long-haul unlock: ~275 consecutive
+    // Perfects to afford in a single run, so in practice it is banked across
+    // sessions rather than won in one.
     cost: 20000,
     liquid: ['#FFE8C8', '#FFB020', '#FF5A1F', '#E11D48', '#7F1D1D'],
     shell: '#F97316',
@@ -32,7 +33,7 @@ export const SKINS: Record<SkinId, SkinDef> = {
   ice: {
     id: 'ice',
     name: 'Ice',
-    // Long-haul goal — dozens of deep runs past Lava.
+    // ~480 consecutive Perfects in one run, or many deep runs past Lava.
     cost: 60000,
     liquid: ['#F0F9FF', '#BAE6FD', '#38BDF8', '#2563EB', '#1E3A8A'],
     shell: '#38BDF8',
@@ -41,8 +42,8 @@ export const SKINS: Record<SkinId, SkinDef> = {
   gold: {
     id: 'gold',
     name: 'Gold',
-    // The end of the road — hundreds of runs, and only for players who keep
-    // reaching the level plateau where coin income tops out.
+    // The end of the road: ~890 consecutive Perfects in a single run. Meant to
+    // be reached by grinding deep runs, not by any one of them.
     cost: 200000,
     liquid: ['#FFFBEB', '#FDE68A', '#FBBF24', '#D97706', '#92400E'],
     shell: '#EAB308',
