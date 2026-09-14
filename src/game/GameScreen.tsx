@@ -89,6 +89,7 @@ import { useMeterTap } from '@/game/useMeterTap';
 const LOGO = require('../../assets/images/zone-meter-logo.webp');
 const GAME_BG = require('../../assets/images/game-bg.webp');
 const TROPHY = require('../../assets/images/trophy.webp');
+const COIN = require('../../assets/images/coin.webp');
 const FEEDBACK_EMAIL = 'hello@meterzone.net';
 
 /** Yellow pad surface in game-bg.png (fraction of image height from top). */
@@ -1188,9 +1189,24 @@ export function GameScreen() {
             ) : null}
             {phase === 'gameover' ? (
               stats.coinsEarned > 0 ? (
-                <Text style={styles.resultCoins}>
-                  {gt('+{earned} coins', { earned: stats.coinsEarned })}
-                </Text>
+                // The coin icon carries the unit, so the number stands alone.
+                // The full phrase stays as the label for screen readers.
+                <View
+                  style={styles.resultCoinsRow}
+                  accessible
+                  accessibilityLabel={gt('+{earned} coins', {
+                    earned: stats.coinsEarned,
+                  })}
+                >
+                  <Image
+                    source={COIN}
+                    style={styles.resultCoinsIcon}
+                    contentFit="contain"
+                  />
+                  <Text style={styles.resultCoins}>
+                    +{formatScore(stats.coinsEarned)}
+                  </Text>
+                </View>
               ) : null
             ) : (
               <>
