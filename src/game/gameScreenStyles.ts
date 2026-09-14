@@ -215,6 +215,37 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     color: GameColors.bubbleDark,
   },
+  scoreCoins: {
+    paddingHorizontal: 10,
+    paddingTop: 7,
+    paddingBottom: 7,
+    backgroundColor: 'rgba(255,200,0,0.28)',
+  },
+  scoreCoinsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  coinIcon: {
+    width: 18,
+    height: 18,
+  },
+  scoreCoinsValue: {
+    fontFamily: GameFonts.display,
+    fontSize: 16,
+    lineHeight: 19,
+    color: GameColors.ink,
+  },
+  resultCoins: {
+    marginTop: 8,
+    fontFamily: GameFonts.body,
+    fontSize: 16,
+    lineHeight: 20,
+    color: GameColors.lemon,
+    textShadowColor: GameColors.ink,
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 0,
+  },
   // Results screen — best/difference summary + NEW BEST trophy.
   resultTrophy: {
     width: 64,
@@ -282,15 +313,29 @@ export const styles = StyleSheet.create({
   },
   tapHowTo: {
     marginTop: 6,
-    maxWidth: 260,
+    maxWidth: 300,
     fontFamily: GameFonts.body,
-    fontSize: 15,
-    lineHeight: 19,
+    fontSize: 17,
+    lineHeight: 22,
     textAlign: 'center',
-    color: 'rgba(255,255,255,0.7)',
-    textShadowColor: 'rgba(26,28,44,0.35)',
+    color: GameColors.white,
+    textShadowColor: GameColors.ink,
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 0,
+  },
+  /** Home placement sits above the meter — muted so PLAY stays the focus. */
+  tapHowToHome: {
+    marginTop: 0,
+    maxWidth: 280,
+    color: 'rgba(214, 224, 232, 0.68)',
+    textShadowColor: 'rgba(26, 28, 44, 0.28)',
+  },
+  tapHowToHomeSlot: {
+    position: 'absolute',
+    left: 28,
+    right: 28,
+    alignItems: 'center',
+    zIndex: 40,
   },
   newBestTag: {
     marginTop: 4,

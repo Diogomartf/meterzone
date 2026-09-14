@@ -113,8 +113,13 @@ describe('shouldShowTapHowTo', () => {
     ).toBe(true);
   });
 
-  test('hides on ready and game over', () => {
-    expect(howTo({ phase: 'ready' })).toBe(false);
+  test('shows on the home screen even after the in-run coach ends', () => {
+    expect(howTo({ phase: 'ready', totalRuns: 0 })).toBe(true);
+    expect(howTo({ phase: 'ready', totalRuns: TAP_HOW_TO_PLAYS })).toBe(true);
+    expect(howTo({ phase: 'ready', totalRuns: 99 })).toBe(true);
+  });
+
+  test('hides on game over', () => {
     expect(howTo({ phase: 'gameover', howToThisRun: true })).toBe(false);
   });
 

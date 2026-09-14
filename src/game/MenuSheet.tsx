@@ -35,7 +35,11 @@ import {
   type HighscoreKind,
 } from '@/game/menuRows';
 import { styles } from '@/game/menuSheetStyles';
+import { SkinShop } from '@/game/SkinShop';
 import { captureAndShare, shareScoreCaption } from '@/game/share';
+import { SKIN_IDS, unlockedSkinCount } from '@/game/skins';
+import { formatScore } from '@/game/format';
+import type { SkinId } from '@/game/types';
 import gtConfig from '../../gt.config.json';
 
 const LOGO = require('../../assets/images/zone-meter-logo.png');
@@ -48,7 +52,7 @@ const LOGO = require('../../assets/images/zone-meter-logo.png');
 const LOCALE_ORDER = [gtConfig.defaultLocale, ...gtConfig.locales];
 
 type MenuView =
-  'menu' | 'mode' | 'highscores' | 'howto' | 'settings' | 'language';
+  'menu' | 'mode' | 'highscores' | 'howto' | 'settings' | 'language' | 'skins';
 
 type MenuSheetProps = {
   visible: boolean;
@@ -66,6 +70,9 @@ type MenuSheetProps = {
   dailyRecordScore: number;
   dailyRecordLevel: number;
   dailyRecordDate: string;
+  coins: number;
+  unlockedSkins: readonly SkinId[];
+  equippedSkin: SkinId;
   onClose: () => void;
   onToggleSound: () => void;
   onToggleHaptics: () => void;
@@ -73,6 +80,8 @@ type MenuSheetProps = {
   onStartMode: (daily: boolean) => void;
   onSendFeedback: () => void;
   onDeleteData: () => void;
+  onUnlockSkin: (id: SkinId) => void;
+  onEquipSkin: (id: SkinId) => void;
 };
 
 export function MenuSheet({
@@ -89,6 +98,9 @@ export function MenuSheet({
   dailyRecordScore,
   dailyRecordLevel,
   dailyRecordDate,
+  coins,
+  unlockedSkins,
+  equippedSkin,
   onClose,
   onToggleSound,
   onToggleHaptics,
@@ -96,6 +108,8 @@ export function MenuSheet({
   onStartMode,
   onSendFeedback,
   onDeleteData,
+  onUnlockSkin,
+  onEquipSkin,
 }: MenuSheetProps) {
   const gt = useGT();
   const m = useMessages();
@@ -185,7 +199,9 @@ export function MenuSheet({
             ? gt('HOW TO PLAY')
             : view === 'language'
               ? gt('LANGUAGE')
-              : gt('SETTINGS');
+              : view === 'skins'
+                ? gt('SKINS')
+                : gt('SETTINGS');
 
   const formatDay = (iso: string) =>
     new Date(iso + 'T12:00:00').toLocaleDateString(locale, {
@@ -383,14 +399,24 @@ export function MenuSheet({
                     />
                     <View style={styles.divider} />
                     <ActionRow
+                      label={gt('Skins')}
+                      subtitle={gt('{count} coins · {owned} of {total}', {
+                        count: formatScore(coins),
+                        owned: unlockedSkinCount(unlockedSkins),
+                        total: SKIN_IDS.length,
+                      })}
+                      onPress={() => setView('skins')}
+                    />
+                    <View style={styles.divider} />
+                    <ActionRow
                       label={gt('Settings')}
-                      subtitle={gt('Sound, haptics, language & data')}
+                      subtitle={gt('Sound, haptics & language')}
                       onPress={() => setView('settings')}
                     />
                     <View style={styles.divider} />
                     <ActionRow
                       label={gt('How to play')}
-                      subtitle={gt('Goal, Normal & Daily')}
+                      subtitle={gt('Goal, modes & skins')}
                       onPress={() => setView('howto')}
                     />
                     <View style={styles.divider} />
@@ -563,6 +589,15 @@ export function MenuSheet({
                         )}
                       </Text>
                     </View>
+                    <View style={styles.divider} />
+                    <View style={styles.infoBlock}>
+                      <Text style={styles.rowLabel}>{gt('Skins')}</Text>
+                      <Text style={styles.rowSub}>
+                        {gt(
+                          'Perfect, Great, and Nice hits pay coins. Spend them in Skins to unlock Lava, Ice, and Gold, then equip the look you want on the meter.',
+                        )}
+                      </Text>
+                    </View>
                   </View>
                 </ScrollView>
               ) : null}
@@ -590,6 +625,16 @@ export function MenuSheet({
                     ))}
                   </View>
                 </ScrollView>
+              ) : null}
+
+              {view === 'skins' ? (
+                <SkinShop
+                  coins={coins}
+                  unlockedSkins={unlockedSkins}
+                  equippedSkin={equippedSkin}
+                  onUnlock={onUnlockSkin}
+                  onEquip={onEquipSkin}
+                />
               ) : null}
 
               {view === 'settings' ? (

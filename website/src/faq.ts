@@ -28,4 +28,9 @@ export const GAME_FAQS = [
     question: 'When does the daily challenge reset?',
     answer: 'A new daily challenge begins at midnight UTC. Players on the same game version get the same daily sequence and can replay it to improve their daily best.',
   },
+  {
+    question: 'How do I unlock meter skins?',
+    answer:
+      'Perfect, Great, and Nice hits pay coins. Open Skins from the menu or the home coin counter to unlock Lava, Ice, and Gold. Gold is the rarest — it takes more than a hundred levels even on a strong Perfect run. Equip a look any time in Skins. Unlocks stay on your device.',
+  },
 ];
