@@ -108,7 +108,6 @@ export function ScoreModule({
       >
         <View style={styles.scoreCoinsRow}>
           <Image source={COIN} style={styles.coinIcon} contentFit="contain" />
-          <Text style={styles.scoreCoinsLabel}>{gt('COINS')}</Text>
           <Text style={styles.scoreCoinsValue} numberOfLines={1}>
             {formatScore(coins)}
           </Text>

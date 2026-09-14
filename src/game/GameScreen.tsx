@@ -1401,19 +1401,29 @@ export function GameScreen() {
         ) : null}
 
         {phase === 'ready' ? (
-          <View
-            style={[styles.menuCol, { bottom: menuBottom }]}
-            pointerEvents="box-none"
-          >
-            <TapHowToLine visible={showTapHowTo} persistent />
-            <GameCta
-              label={gt('PLAY')}
-              subtitle={gt('TAP THE ZONE')}
-              face="#FFC800"
-              depth="#D97706"
-              onPress={() => startRun(false)}
-            />
-          </View>
+          <>
+            <View
+              style={[
+                styles.tapHowToHomeSlot,
+                { bottom: meterBottom + meterH + 48 },
+              ]}
+              pointerEvents="none"
+            >
+              <TapHowToLine visible={showTapHowTo} persistent />
+            </View>
+            <View
+              style={[styles.menuCol, { bottom: menuBottom }]}
+              pointerEvents="box-none"
+            >
+              <GameCta
+                label={gt('PLAY')}
+                subtitle={gt('TAP THE ZONE')}
+                face="#FFC800"
+                depth="#D97706"
+                onPress={() => startRun(false)}
+              />
+            </View>
+          </>
         ) : null}
 
         <View

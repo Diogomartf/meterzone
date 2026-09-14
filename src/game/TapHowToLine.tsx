@@ -18,10 +18,10 @@ const HOW_TO_HOLD = 4000;
 const HOW_TO_FADE_OUT = 400;
 
 /**
- * First-play how-to. On home (`persistent`) it fades in and stays so the
- * tip can be read before PLAY. In a run it is visible on the first frame
- * after PLAY, then fades out 4s later. Stays mounted across levels so
- * that timer is not reset.
+ * First-play how-to. On home (`persistent`) it fades in above the meter
+ * and stays so the tip can be read before PLAY. In a run it is visible
+ * on the first frame after PLAY, then fades out 4s later. Stays mounted
+ * across levels so that timer is not reset.
  */
 export function TapHowToLine({
   visible,

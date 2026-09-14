@@ -31,6 +31,6 @@ export const GAME_FAQS = [
   {
     question: 'How do I unlock meter skins?',
     answer:
-      'Perfect, Great, and Nice hits pay coins. Open Skins from the menu or the home coin counter to unlock Lava, Ice, and Gold liquids. Gold is the rarest — it takes more than a hundred levels even on a strong Perfect run. Switch the meter gradient any time in Settings. Unlocks stay on your device.',
+      'Perfect, Great, and Nice hits pay coins. Open Skins from the menu or the home coin counter to unlock Lava, Ice, and Gold. Gold is the rarest — it takes more than a hundred levels even on a strong Perfect run. Equip a look any time in Skins. Unlocks stay on your device.',
   },
 ];

@@ -56,7 +56,7 @@ export function shouldShowTapHint({
 }
 
 /**
- * How-to line on the home screen (always — it sits above PLAY and does
+ * How-to line on the home screen (always — it sits above the meter and does
  * not interrupt a run) and under LVL for the first TAP_HOW_TO_PLAYS games.
  * Hidden on game over. `howToThisRun` keeps the in-run fade eligible
  * even as levels change.

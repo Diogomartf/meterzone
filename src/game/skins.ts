@@ -22,7 +22,7 @@ export const SKINS: Record<SkinId, SkinDef> = {
   lava: {
     id: 'lava',
     name: 'Lava',
-    cost: 120,
+    cost: 220,
     liquid: ['#FFE8C8', '#FFB020', '#FF5A1F', '#E11D48', '#7F1D1D'],
     shell: '#F97316',
     shellDark: '#C2410C',
@@ -30,7 +30,7 @@ export const SKINS: Record<SkinId, SkinDef> = {
   ice: {
     id: 'ice',
     name: 'Ice',
-    cost: 200,
+    cost: 1000,
     liquid: ['#F0F9FF', '#BAE6FD', '#38BDF8', '#2563EB', '#1E3A8A'],
     shell: '#38BDF8',
     shellDark: '#0284C7',

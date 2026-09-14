@@ -230,12 +230,6 @@ export const styles = StyleSheet.create({
     width: 18,
     height: 18,
   },
-  scoreCoinsLabel: {
-    fontFamily: GameFonts.body,
-    fontSize: 10,
-    letterSpacing: 0.5,
-    color: '#A16207',
-  },
   scoreCoinsValue: {
     fontFamily: GameFonts.display,
     fontSize: 16,
@@ -329,11 +323,19 @@ export const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 0,
   },
-  /** Home placement sits above PLAY, so drop the under-LVL top gap. */
+  /** Home placement sits above the meter — muted so PLAY stays the focus. */
   tapHowToHome: {
     marginTop: 0,
-    marginBottom: 2,
     maxWidth: 280,
+    color: 'rgba(214, 224, 232, 0.68)',
+    textShadowColor: 'rgba(26, 28, 44, 0.28)',
+  },
+  tapHowToHomeSlot: {
+    position: 'absolute',
+    left: 28,
+    right: 28,
+    alignItems: 'center',
+    zIndex: 40,
   },
   newBestTag: {
     marginTop: 4,

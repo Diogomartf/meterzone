@@ -4,7 +4,6 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { msg, useGT, useMessages } from 'gt-react-native';
 
 import { formatScore } from '@/game/format';
-import { ActionRow } from '@/game/menuRows';
 import { styles } from '@/game/menuSheetStyles';
 
 const COIN = require('../../assets/images/coins.png');
@@ -54,12 +53,12 @@ function actionStyle(action: SkinAction) {
   return styles.skinActionLocked;
 }
 
-function PriceTag({ cost }: { cost: number }) {
+function PriceTag({ cost, owned }: { cost: number; owned: boolean }) {
   const gt = useGT();
   if (cost <= 0) return null;
   return (
     <View
-      style={styles.skinPriceTag}
+      style={[styles.skinPriceTag, owned && styles.skinPriceTagOwned]}
       accessibilityLabel={gt('{cost} coins', { cost })}
     >
       <Image source={COIN} style={styles.skinPriceCoin} contentFit="contain" />
@@ -138,7 +137,10 @@ function SkinRow({
       <View style={styles.rowText}>
         <View style={styles.skinNameRow}>
           <Text style={styles.rowLabel}>{name}</Text>
-          <PriceTag cost={skin.cost} />
+          <PriceTag
+            cost={skin.cost}
+            owned={action === 'equipped' || action === 'equip'}
+          />
         </View>
         <Text style={styles.rowSub}>
           {action === 'locked'
@@ -157,140 +159,6 @@ function SkinRow({
         </Text>
       </View>
     </Pressable>
-  );
-}
-
-type LiquidSkinSwitchProps = {
-  coins: number;
-  unlockedSkins: readonly SkinId[];
-  equippedSkin: SkinId;
-  onUnlock: (id: SkinId) => void;
-  onEquip: (id: SkinId) => void;
-  onBrowseShop: () => void;
-};
-
-/** Settings — tap a liquid gradient to fill the meter with that look. */
-export function LiquidSkinSwitch({
-  coins,
-  unlockedSkins,
-  equippedSkin,
-  onUnlock,
-  onEquip,
-  onBrowseShop,
-}: LiquidSkinSwitchProps) {
-  const gt = useGT();
-  const m = useMessages();
-  const equipped = SKINS[equippedSkin] ?? SKINS.toxic;
-  const lockedLeft = SKIN_IDS.some((id) => {
-    const action = skinAction(SKINS[id], equippedSkin, unlockedSkins, coins);
-    return action === 'locked' || action === 'unlock';
-  });
-
-  return (
-    <View style={styles.card}>
-      <View style={styles.liquidSwitchHead}>
-        <Text style={styles.liquidSwitchKicker}>{gt('LIQUID')}</Text>
-        <Text style={styles.liquidSwitchName}>{m(SKIN_NAME[equipped.id])}</Text>
-        <Text style={styles.liquidSwitchHint}>
-          {gt('Tap a gradient to change the meter liquid.')}
-        </Text>
-      </View>
-      <View style={styles.liquidSwitchRow}>
-        {SKIN_IDS.map((id) => {
-          const skin = SKINS[id];
-          const action = skinAction(skin, equippedSkin, unlockedSkins, coins);
-          const name = m(SKIN_NAME[id]);
-          const selected = action === 'equipped';
-          const locked = action === 'locked';
-          const pressable = action !== 'equipped';
-
-          const onPress = () => {
-            if (action === 'equip') onEquip(id);
-            else if (action === 'unlock') onUnlock(id);
-            else if (action === 'locked') onBrowseShop();
-          };
-
-          return (
-            <Pressable
-              key={id}
-              onPress={onPress}
-              disabled={action === 'equipped'}
-              style={({ pressed }) => [
-                styles.liquidTubeBtn,
-                pressed && pressable && styles.liquidTubePressed,
-              ]}
-              accessibilityRole="button"
-              accessibilityState={{ selected, disabled: action === 'equipped' }}
-              accessibilityLabel={
-                selected
-                  ? gt('{name} liquid. Equipped.', { name })
-                  : action === 'equip'
-                    ? gt('Equip {name} liquid', { name })
-                    : action === 'unlock'
-                      ? gt('Unlock {name} liquid for {cost} coins', {
-                          name,
-                          cost: skin.cost,
-                        })
-                      : gt('{name} liquid locked. {cost} coins. Open shop.', {
-                          name,
-                          cost: skin.cost,
-                        })
-              }
-            >
-              <View
-                style={[
-                  styles.liquidTubeShell,
-                  { backgroundColor: skin.shellDark },
-                  selected && styles.liquidTubeShellOn,
-                ]}
-              >
-                <LinearGradient
-                  colors={[...skin.liquid]}
-                  start={{ x: 0.5, y: 0 }}
-                  end={{ x: 0.5, y: 1 }}
-                  style={[
-                    styles.liquidTube,
-                    { borderColor: skin.shell },
-                    locked && styles.liquidTubeDim,
-                  ]}
-                />
-              </View>
-              <Text
-                style={[
-                  styles.liquidTubeLabel,
-                  selected && styles.liquidTubeLabelOn,
-                  locked && styles.liquidTubeLabelDim,
-                ]}
-                numberOfLines={1}
-              >
-                {name}
-              </Text>
-              {skin.cost > 0 && (action === 'locked' || action === 'unlock') ? (
-                <Text
-                  style={[
-                    styles.liquidTubePrice,
-                    locked && styles.liquidTubeLabelDim,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {formatScore(skin.cost)}
-                </Text>
-              ) : null}
-            </Pressable>
-          );
-        })}
-      </View>
-      {lockedLeft ? (
-        <>
-          <View style={styles.divider} />
-          <ActionRow
-            label={gt('Unlock looks')}
-            subtitle={gt('{count} coins', { count: formatScore(coins) })}
-            onPress={onBrowseShop}
-          />
-        </>
-      ) : null}
-    </View>
   );
 }
 

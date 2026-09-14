@@ -35,7 +35,7 @@ import {
   type HighscoreKind,
 } from '@/game/menuRows';
 import { styles } from '@/game/menuSheetStyles';
-import { LiquidSkinSwitch, SkinShop } from '@/game/SkinShop';
+import { SkinShop } from '@/game/SkinShop';
 import { captureAndShare, shareScoreCaption } from '@/game/share';
 import { SKIN_IDS, unlockedSkinCount } from '@/game/skins';
 import { formatScore } from '@/game/format';
@@ -410,7 +410,7 @@ export function MenuSheet({
                     <View style={styles.divider} />
                     <ActionRow
                       label={gt('Settings')}
-                      subtitle={gt('Sound, haptics, liquid & language')}
+                      subtitle={gt('Sound, haptics & language')}
                       onPress={() => setView('settings')}
                     />
                     <View style={styles.divider} />
@@ -594,7 +594,7 @@ export function MenuSheet({
                       <Text style={styles.rowLabel}>{gt('Skins')}</Text>
                       <Text style={styles.rowSub}>
                         {gt(
-                          'Perfect, Great, and Nice hits pay coins. Spend them in Skins to unlock Lava, Ice, and Gold liquids, then switch the meter gradient in Settings.',
+                          'Perfect, Great, and Nice hits pay coins. Spend them in Skins to unlock Lava, Ice, and Gold, then equip the look you want on the meter.',
                         )}
                       </Text>
                     </View>
@@ -646,15 +646,6 @@ export function MenuSheet({
                   nestedScrollEnabled
                   keyboardShouldPersistTaps="handled"
                 >
-                  <LiquidSkinSwitch
-                    coins={coins}
-                    unlockedSkins={unlockedSkins}
-                    equippedSkin={equippedSkin}
-                    onUnlock={onUnlockSkin}
-                    onEquip={onEquipSkin}
-                    onBrowseShop={() => setView('skins')}
-                  />
-
                   <View style={styles.card}>
                     <ToggleRow
                       label={gt('Sound')}
