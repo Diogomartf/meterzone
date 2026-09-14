@@ -16,7 +16,7 @@ import path from 'node:path';
 /** Files allowed to opt out, with the reason they do. */
 const ALLOWED_SKIPS = new Map([
   [
-    'src/game/useTapGesture.ts',
+    'src/game/useMeterTap.ts',
     'declares "use no memo": a gesture worklet reading shared values is ' +
       'indistinguishable from a ref read during render. Memoized by hand.',
   ],

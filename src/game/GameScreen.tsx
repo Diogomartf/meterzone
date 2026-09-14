@@ -84,7 +84,7 @@ import { useRunState } from '@/game/useRunState';
 import { usePersistState } from '@/game/usePersistState';
 import { useSounds } from '@/game/useSounds';
 import { useTapCoach } from '@/game/useTapCoach';
-import { useTapGesture } from '@/game/useTapGesture';
+import { useMeterTap } from '@/game/useMeterTap';
 
 const LOGO = require('../../assets/images/zone-meter-logo.webp');
 const GAME_BG = require('../../assets/images/game-bg.webp');
@@ -943,7 +943,7 @@ export function GameScreen() {
     finishRound(stoppedAt);
   };
 
-  const tapGesture = useTapGesture({
+  const tapGesture = useMeterTap({
     fill,
     isFilling,
     zoneTarget,

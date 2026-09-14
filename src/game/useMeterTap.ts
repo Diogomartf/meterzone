@@ -25,6 +25,13 @@ type Params = {
 /**
  * The player's tap, handled on the UI thread.
  *
+ * NOTE ON THE NAME: this must not be called `useTapGesture`. The worklets babel
+ * plugin keeps a list of gesture hook names — useTapGesture, usePanGesture,
+ * usePinchGesture and friends — and auto-workletizes the object passed to any
+ * call matching one. Under that name `onSettled` was compiled into a worklet,
+ * and `runOnJS` then rejected it at runtime: "Locally defined function passed
+ * to scheduleOnRN". Renaming the hook is the whole fix; keep it renamed.
+ *
  * Routed through `Pressable` the touch had to reach the JS thread first, so
  * anything in flight there — a re-render, a settled AsyncStorage write — meant
  * `fill` was sampled later than the frame the player actually saw. In a timing
@@ -37,7 +44,7 @@ type Params = {
  * would make the compiler skip all of GameScreen. Nothing here re-renders, and
  * the gesture is memoized by hand below, so the opt-out costs nothing.
  */
-export function useTapGesture({
+export function useMeterTap({
   fill,
   isFilling,
   zoneTarget,
