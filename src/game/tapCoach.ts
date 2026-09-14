@@ -67,7 +67,6 @@ export function shouldShowTapHowTo({
   phase,
 }: HintInput): boolean {
   if (phase === 'gameover') return false;
-  if (phase === 'ready') return true;
   if (howToThisRun) return true;
   return totalRuns < TAP_HOW_TO_PLAYS;
 }

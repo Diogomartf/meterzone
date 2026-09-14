@@ -332,23 +332,6 @@ export const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 0,
   },
-  /**
-   * Home placement sits above the meter — muted so PLAY stays the focus. It is
-   * a hint you read once, not a label competing with the button under it.
-   */
-  tapHowToHome: {
-    marginTop: 0,
-    maxWidth: 280,
-    color: 'rgba(214, 224, 232, 0.5)',
-    textShadowColor: 'rgba(26, 28, 44, 0.18)',
-  },
-  tapHowToHomeSlot: {
-    position: 'absolute',
-    left: 28,
-    right: 28,
-    alignItems: 'center',
-    zIndex: 40,
-  },
   newBestTag: {
     marginTop: 4,
     fontFamily: GameFonts.display,

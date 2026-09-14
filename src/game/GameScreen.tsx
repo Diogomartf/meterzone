@@ -1420,15 +1420,6 @@ export function GameScreen() {
         {phase === 'ready' ? (
           <>
             <View
-              style={[
-                styles.tapHowToHomeSlot,
-                { bottom: meterBottom + meterH + 48 },
-              ]}
-              pointerEvents="none"
-            >
-              <TapHowToLine visible={showTapHowTo} persistent />
-            </View>
-            <View
               style={[styles.menuCol, { bottom: menuBottom }]}
               pointerEvents="box-none"
             >
