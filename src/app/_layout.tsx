@@ -58,12 +58,12 @@ const NATIVE_SPLASH: SplashArt =
   Platform.OS === 'android'
     ? {
         source: require('@/assets/images/splash-android.png'),
-        backgroundColor: '#000000',
+        backgroundColor: '#214A7C',
         imageWidth: 200,
       }
     : {
         source: require('@/assets/images/splash.png'),
-        backgroundColor: '#000BB2',
+        backgroundColor: '#0008BF',
         imageWidth: null,
       };
 
