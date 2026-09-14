@@ -39,21 +39,27 @@ describe('skinAction', () => {
   });
 
   test('enough coins unlocks a locked look', () => {
-    expect(skinAction(SKINS.lava, 'toxic', ['toxic'], 120)).toBe('unlock');
+    expect(skinAction(SKINS.lava, 'toxic', ['toxic'], SKINS.lava.cost)).toBe(
+      'unlock',
+    );
     expect(skinAction(SKINS.gold, 'toxic', ['toxic'], SKINS.gold.cost)).toBe(
       'unlock',
     );
   });
 
   test('short coins stay locked', () => {
-    expect(skinAction(SKINS.lava, 'toxic', ['toxic'], 119)).toBe('locked');
+    expect(
+      skinAction(SKINS.lava, 'toxic', ['toxic'], SKINS.lava.cost - 1),
+    ).toBe('locked');
     expect(skinAction(SKINS.ice, 'toxic', ['toxic'], 0)).toBe('locked');
   });
 
   test('an equipped id that is not unlocked is treated as locked or unlockable', () => {
     // Save corruption / stale equip should not look "equipped".
     expect(skinAction(SKINS.lava, 'lava', ['toxic'], 0)).toBe('locked');
-    expect(skinAction(SKINS.lava, 'lava', ['toxic'], 120)).toBe('unlock');
+    expect(skinAction(SKINS.lava, 'lava', ['toxic'], SKINS.lava.cost)).toBe(
+      'unlock',
+    );
   });
 });
 

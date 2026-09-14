@@ -18,6 +18,7 @@ import {
   unlockSkin,
 } from '@/game/storage';
 import { TAP_HINT_PLAYS } from '@/game/tapCoach';
+import { SKINS } from '@/game/skins';
 
 import {
   readAsyncStorage,
@@ -443,20 +444,20 @@ describe('settings toggles', () => {
 
 describe('unlockSkin and equipSkin', () => {
   test('unlocks, spends coins, and equips the new look', async () => {
-    seed({ coins: 150, unlockedSkins: ['toxic'], equippedSkin: 'toxic' });
-    const unlocked = await unlockSkin('lava', 120);
+    seed({ coins: 250, unlockedSkins: ['toxic'], equippedSkin: 'toxic' });
+    const unlocked = await unlockSkin('lava', SKINS.lava.cost);
     expect(unlocked).not.toBeNull();
-    expect(unlocked!.coins).toBe(30);
+    expect(unlocked!.coins).toBe(250 - SKINS.lava.cost);
     expect(unlocked!.unlockedSkins).toEqual(['toxic', 'lava']);
     expect(unlocked!.equippedSkin).toBe('lava');
     expect((await loadPersist()).equippedSkin).toBe('lava');
   });
 
   test('refuses when coins are short', async () => {
-    seed({ coins: 119, unlockedSkins: ['toxic'] });
-    expect(await unlockSkin('lava', 120)).toBeNull();
+    seed({ coins: SKINS.lava.cost - 1, unlockedSkins: ['toxic'] });
+    expect(await unlockSkin('lava', SKINS.lava.cost)).toBeNull();
     const s = await loadPersist();
-    expect(s.coins).toBe(119);
+    expect(s.coins).toBe(SKINS.lava.cost - 1);
     expect(s.unlockedSkins).toEqual(['toxic']);
   });
 
@@ -466,7 +467,7 @@ describe('unlockSkin and equipSkin', () => {
       unlockedSkins: ['toxic', 'lava'],
       equippedSkin: 'toxic',
     });
-    const again = await unlockSkin('lava', 120);
+    const again = await unlockSkin('lava', SKINS.lava.cost);
     expect(again!.coins).toBe(400);
     expect(again!.equippedSkin).toBe('toxic');
   });
