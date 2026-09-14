@@ -71,7 +71,7 @@ const NATIVE_SPLASH: SplashArt =
 const FIRST_SCREEN_IMAGES: number[] = [
   require('@/assets/images/game-bg.png'),
   require('@/assets/images/zone-meter-logo.png'),
-  require('@/assets/images/coins.png'),
+  require('@/assets/images/coin.png'),
 ];
 
 /** Decodes an image up front so it paints on its very first frame. */

@@ -6,7 +6,7 @@ import { msg, useGT, useMessages } from 'gt-react-native';
 import { formatScore } from '@/game/format';
 import { styles } from '@/game/menuSheetStyles';
 
-const COIN = require('../../assets/images/coins.png');
+const COIN = require('../../assets/images/coin.png');
 import {
   SKINS,
   SKIN_IDS,

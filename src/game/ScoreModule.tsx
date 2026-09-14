@@ -6,7 +6,7 @@ import { formatScore } from '@/game/format';
 import { styles } from '@/game/gameScreenStyles';
 
 const TROPHY = require('../../assets/images/trophy.png');
-const COIN = require('../../assets/images/coins.png');
+const COIN = require('../../assets/images/coin.png');
 
 type ScoreModuleProps = {
   best: number;
