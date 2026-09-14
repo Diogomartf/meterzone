@@ -236,8 +236,17 @@ export const styles = StyleSheet.create({
     lineHeight: 19,
     color: GameColors.ink,
   },
-  resultCoins: {
+  resultCoinsRow: {
     marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  resultCoinsIcon: {
+    width: 20,
+    height: 20,
+  },
+  resultCoins: {
     fontFamily: GameFonts.body,
     fontSize: 16,
     lineHeight: 20,
@@ -323,12 +332,15 @@ export const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 0,
   },
-  /** Home placement sits above the meter — muted so PLAY stays the focus. */
+  /**
+   * Home placement sits above the meter — muted so PLAY stays the focus. It is
+   * a hint you read once, not a label competing with the button under it.
+   */
   tapHowToHome: {
     marginTop: 0,
     maxWidth: 280,
-    color: 'rgba(214, 224, 232, 0.68)',
-    textShadowColor: 'rgba(26, 28, 44, 0.28)',
+    color: 'rgba(214, 224, 232, 0.5)',
+    textShadowColor: 'rgba(26, 28, 44, 0.18)',
   },
   tapHowToHomeSlot: {
     position: 'absolute',

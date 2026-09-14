@@ -42,7 +42,7 @@ import { formatScore } from '@/game/format';
 import type { SkinId } from '@/game/types';
 import gtConfig from '../../gt.config.json';
 
-const LOGO = require('../../assets/images/zone-meter-logo.png');
+const LOGO = require('../../assets/images/zone-meter-logo.webp');
 
 /**
  * Display order for the picker. `useLocaleSelector` otherwise sorts locales
@@ -188,6 +188,13 @@ export function MenuSheet({
     transform: [{ translateY: translateY.value }],
   }));
 
+  // `Modal` renders nothing while closed, but everything below — 60-odd
+  // translation lookups, the locale list, a fresh Pan gesture, the element tree
+  // for all seven views — is built by *this* render first. The sheet is shut
+  // for almost every GameScreen render, so stop before paying for it. Every
+  // hook above still runs, so the open/close animation is untouched.
+  if (!visible) return null;
+
   const title =
     view === 'menu'
       ? gt('MENU')
@@ -255,13 +262,17 @@ export function MenuSheet({
     // Re-renders the card with its logo and without the share button, so the
     // capture below picks up the shareable framing.
     setSharingKind(kind);
-    try {
-      await captureAndShare(target, { message: shareScoreCaption(m) });
-    } catch {
-      Alert.alert(gt('Share failed'), gt('Could not create the share image.'));
-    } finally {
-      setSharingKind(null);
-    }
+    // `finally` would read better, but React Compiler cannot lower a try block
+    // with a finalizer and would skip optimizing this whole file.
+    await captureAndShare(target, { message: shareScoreCaption(m) }).catch(
+      () => {
+        Alert.alert(
+          gt('Share failed'),
+          gt('Could not create the share image.'),
+        );
+      },
+    );
+    setSharingKind(null);
   };
 
   // Handle + header only. Wrapping the whole sheet in a Pan gesture steals

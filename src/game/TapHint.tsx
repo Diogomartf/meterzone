@@ -14,7 +14,7 @@ import Animated, {
 
 import { GameFonts } from '@/constants/gameTheme';
 
-const TAP_HAND = require('../../assets/images/tap-hand.png');
+const TAP_HAND = require('../../assets/images/tap-hand.webp');
 /** 30% transparent — the meter stays readable underneath. */
 const HAND_OPACITY = 0.7;
 

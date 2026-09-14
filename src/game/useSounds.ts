@@ -26,8 +26,18 @@ const VOLUME: Record<Sfx, number> = {
   miss: 0.68,
 };
 
+/**
+ * Voices per cue. A player that is still mid-clip ignores `play()`, so two
+ * voices let a cue retrigger before the previous one has finished — and let
+ * the idle voice be the one that is already rewound.
+ */
+const VOICES = 2;
+
+type Voice = { player: AudioPlayer; remove: () => void };
+
 export function useSounds(muted: boolean) {
-  const players = useRef<Partial<Record<Sfx, AudioPlayer>>>({});
+  const voices = useRef<Partial<Record<Sfx, Voice[]>>>({});
+  const cursor = useRef<Partial<Record<Sfx, number>>>({});
   const mutedRef = useRef(muted);
 
   useEffect(() => {
@@ -37,7 +47,7 @@ export function useSounds(muted: boolean) {
   useEffect(() => {
     let alive = true;
 
-    (async () => {
+    const setup = async () => {
       try {
         await setAudioModeAsync({
           playsInSilentMode: true,
@@ -50,39 +60,61 @@ export function useSounds(muted: boolean) {
       if (!alive) return;
 
       (Object.keys(SOURCES) as Sfx[]).forEach((key) => {
-        const player = createAudioPlayer(SOURCES[key], {
-          // SFX must not deactivate the session on pause/finish — iOS
-          // otherwise drops the next play, especially in the simulator.
-          keepAudioSessionActive: true,
+        voices.current[key] = Array.from({ length: VOICES }, () => {
+          const player = createAudioPlayer(SOURCES[key], {
+            // SFX must not deactivate the session on pause/finish — iOS
+            // otherwise drops the next play, especially in the simulator.
+            keepAudioSessionActive: true,
+          });
+          player.volume = VOLUME[key];
+          // Rewind as soon as the clip ends, so the next `play()` is a single
+          // synchronous call. Seeking on the tap itself cost a native
+          // round-trip before the sound could start.
+          const sub = player.addListener('playbackStatusUpdate', (status) => {
+            if (status.didJustFinish) void player.seekTo(0);
+          });
+          return { player, remove: () => sub.remove() };
         });
-        player.volume = VOLUME[key];
-        players.current[key] = player;
       });
-    })();
+    };
+
+    void setup();
 
     return () => {
       alive = false;
-      Object.values(players.current).forEach((player) => {
-        try {
-          player?.remove();
-        } catch {
-          // ignore
-        }
+      Object.values(voices.current).forEach((list) => {
+        list?.forEach((voice) => {
+          try {
+            voice.remove();
+            voice.player.remove();
+          } catch {
+            // ignore
+          }
+        });
       });
-      players.current = {};
+      voices.current = {};
+      cursor.current = {};
     };
   }, []);
 
   const play = useCallback((key: Sfx) => {
     if (mutedRef.current) return;
-    const player = players.current[key];
-    if (!player) return;
+    const list = voices.current[key];
+    if (!list || list.length === 0) return;
+
+    // Round-robin so a retrigger lands on the voice that already finished.
+    const at = cursor.current[key] ?? 0;
+    cursor.current[key] = (at + 1) % list.length;
+    const player = list[at].player;
+
     try {
       player.volume = VOLUME[key];
-      // `currentTime` is read-only on iOS — rewind has to go through seekTo.
-      void player.seekTo(0).then(() => {
-        player.play();
-      });
+      if (player.currentTime > 0) {
+        // Not yet rewound (still playing, or the finish event was missed).
+        void player.seekTo(0).then(() => player.play());
+        return;
+      }
+      player.play();
     } catch {
       // ignore
     }

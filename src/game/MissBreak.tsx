@@ -14,7 +14,7 @@ import { useGT } from 'gt-react-native';
 
 import { GameColors, GameFonts, fillParent } from '@/constants/gameTheme';
 
-const HEART = require('../../assets/images/heart-filled.png');
+const HEART = require('../../assets/images/heart-filled.webp');
 
 type Props = {
   visible: boolean;

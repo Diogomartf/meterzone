@@ -59,6 +59,7 @@
     "web": "bunx expo start --web",
     "lint": "bunx expo lint",
     "typecheck": "bunx tsc --noEmit",
+    "check:compiler": "bun scripts/check-react-compiler.mjs",
     "test": "bun test",
     "format": "bunx prettier --write \"src/**/*.{ts,tsx}\"",
     "translate": "bunx gt translate",

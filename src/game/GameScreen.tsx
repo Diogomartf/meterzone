@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Linking,
@@ -9,6 +9,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -19,6 +20,7 @@ import Animated, {
   withDelay,
   withSequence,
   withTiming,
+  type SharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -82,10 +84,12 @@ import { useRunState } from '@/game/useRunState';
 import { usePersistState } from '@/game/usePersistState';
 import { useSounds } from '@/game/useSounds';
 import { useTapCoach } from '@/game/useTapCoach';
+import { useMeterTap } from '@/game/useMeterTap';
 
-const LOGO = require('../../assets/images/zone-meter-logo.png');
-const GAME_BG = require('../../assets/images/game-bg.png');
-const TROPHY = require('../../assets/images/trophy.png');
+const LOGO = require('../../assets/images/zone-meter-logo.webp');
+const GAME_BG = require('../../assets/images/game-bg.webp');
+const TROPHY = require('../../assets/images/trophy.webp');
+const COIN = require('../../assets/images/coin.webp');
 const FEEDBACK_EMAIL = 'hello@meterzone.net';
 
 /** Yellow pad surface in game-bg.png (fraction of image height from top). */
@@ -155,6 +159,9 @@ const LABEL_TEXT: Record<RoundLabel, string> = {
   Miss: msg('MISS'),
 };
 
+/** Stable so the hit layer's props do not churn between renders. */
+const ACTIVATE_ACTION = [{ name: 'activate' as const }];
+
 const LABEL_COLORS: Record<RoundLabel, string> = {
   Perfect: '#FFE14A',
   Great: '#E24B2D',
@@ -163,6 +170,36 @@ const LABEL_COLORS: Record<RoundLabel, string> = {
   Close: '#FFC800',
   Miss: '#6B7280',
 };
+
+/**
+ * The shared values that describe where the zone sits and how it travels
+ * during a fill. Bundled so the writer below can live at module scope: a
+ * component-level function would have to name every one of these in a hook
+ * dependency array, and React Compiler refuses to compile a component that
+ * mutates values listed as dependencies.
+ */
+type ZoneMotion = {
+  zoneTarget: SharedValue<number>;
+  zoneHalf: SharedValue<number>;
+  zoneFrom: SharedValue<number>;
+  zoneTo: SharedValue<number>;
+  zoneMoves: SharedValue<number>;
+  halfFrom: SharedValue<number>;
+  halfTo: SharedValue<number>;
+  zoneShrinks: SharedValue<number>;
+};
+
+/** Point the painted zone at a round's start/end geometry. */
+function syncZoneMotion(zone: ZoneMotion, config: RoundConfig) {
+  zone.zoneFrom.set(config.target);
+  zone.zoneTo.set(config.targetEnd ?? config.target);
+  zone.zoneMoves.set(config.moving && config.targetEnd != null ? 1 : 0);
+  zone.halfFrom.set(config.zoneHalf);
+  zone.halfTo.set(config.zoneHalfEnd ?? config.zoneHalf);
+  zone.zoneShrinks.set(config.shrinking && config.zoneHalfEnd != null ? 1 : 0);
+  zone.zoneTarget.set(config.target);
+  zone.zoneHalf.set(config.zoneHalf);
+}
 
 export function GameScreen() {
   const gt = useGT();
@@ -240,29 +277,33 @@ export function GameScreen() {
   const newBestPulse = useSharedValue(1);
   const isFilling = useSharedValue(0);
 
-  const syncZoneMotion = useCallback(
-    (config: RoundConfig) => {
-      zoneFrom.set(config.target);
-      zoneTo.set(config.targetEnd ?? config.target);
-      zoneMoves.set(config.moving && config.targetEnd != null ? 1 : 0);
-      halfFrom.set(config.zoneHalf);
-      halfTo.set(config.zoneHalfEnd ?? config.zoneHalf);
-      zoneShrinks.value =
-        config.shrinking && config.zoneHalfEnd != null ? 1 : 0;
-      zoneTarget.set(config.target);
-      zoneHalf.set(config.zoneHalf);
-    },
-    // Shared values are stable refs — listing them as deps makes the React Compiler
-    // treat the `.value` writes above as forbidden mutation and bail out of the file.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+  const zone = useMemo(
+    () => ({
+      zoneTarget,
+      zoneHalf,
+      zoneFrom,
+      zoneTo,
+      zoneMoves,
+      halfFrom,
+      halfTo,
+      zoneShrinks,
+    }),
+    [
+      zoneTarget,
+      zoneHalf,
+      zoneFrom,
+      zoneTo,
+      zoneMoves,
+      halfFrom,
+      halfTo,
+      zoneShrinks,
+    ],
   );
 
   /** Best score at run start — used to detect a live / final new high. */
   const runBestBaselineRef = useRef(0);
   /** "COMBO" label only once per streak, then multiplier alone */
   const comboIntroShownRef = useRef(false);
-  const lockingTap = useRef(false);
   const rngRef = useRef<() => number>(Math.random);
   const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -275,26 +316,9 @@ export function GameScreen() {
   const skin = SKINS[persist?.equippedSkin ?? DEFAULT_SKIN];
 
   useEffect(() => {
-    syncZoneMotion(round);
-  }, [round, syncZoneMotion]);
+    syncZoneMotion(zone, round);
+  }, [round, zone]);
 
-  // Keep the painted zone locked to fill progress (same lerp as zoneAt / scoreFill).
-  // Skip writes when the zone is static — fill still drives zone-enter haptics below.
-  useAnimatedReaction(
-    () => fill.value,
-    (t) => {
-      const moves = zoneMoves.value;
-      const shrinks = zoneShrinks.value;
-      if (!moves && !shrinks) return;
-      if (moves) {
-        zoneTarget.set(zoneFrom.value + (zoneTo.value - zoneFrom.value) * t);
-      }
-      if (shrinks) {
-        zoneHalf.set(halfFrom.value + (halfTo.value - halfFrom.value) * t);
-      }
-    },
-    [],
-  );
   useEffect(() => {
     return () => {
       if (autoTimer.current) clearTimeout(autoTimer.current);
@@ -303,7 +327,7 @@ export function GameScreen() {
   }, []);
 
   /** Animation side of a judged round — the chip itself lives in run state. */
-  const showFeedback = useCallback((next: Omit<Feedback, 'slot'>) => {
+  const showFeedback = (next: Omit<Feedback, 'slot'>) => {
     const isPerfect = next.label === 'Perfect';
     const isMiss = next.label === 'Miss';
 
@@ -369,11 +393,9 @@ export function GameScreen() {
     if (next.comboGrew && next.combo > 1) {
       pulseCombo(!comboIntroShownRef.current);
     }
-    // Shared values only — all stable refs.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  };
 
-  const announceNewBest = useCallback(() => {
+  const announceNewBest = () => {
     // `isNewBest` doubles as the "already announced" latch — the reducer makes
     // the action a no-op once it is set, so the cue fires once per run.
     if (stateRef.current.isNewBest) return;
@@ -385,37 +407,33 @@ export function GameScreen() {
       ),
     );
     void gameHaptics.result('Great');
-  }, [dispatch, newBestPulse, stateRef]);
+  };
 
-  const endRun = useCallback(
-    async (finalScore: number, session: SessionStats) => {
-      // Snapshot the pre-run best so the results screen can show the record
-      // that was standing (previous score / difference from it).
-      setPreviousBest(runBestBaselineRef.current);
-      await flushCoachWrite();
-      const next = await commitRunResult({
-        score: finalScore,
-        coinsEarned: session.coinsEarned,
-        bestCombo: session.bestCombo,
-        bestLevel: stateRef.current.round.level,
-        isDaily: stateRef.current.dailyMode,
-      });
-      applyPersist(next);
-      const beatBest =
-        finalScore > 0 && finalScore >= runBestBaselineRef.current;
-      dispatch({ type: 'gameOver', isNewBest: beatBest });
+  const endRun = async (finalScore: number, session: SessionStats) => {
+    // Snapshot the pre-run best so the results screen can show the record
+    // that was standing (previous score / difference from it).
+    setPreviousBest(runBestBaselineRef.current);
+    await flushCoachWrite();
+    const next = await commitRunResult({
+      score: finalScore,
+      coinsEarned: session.coinsEarned,
+      bestCombo: session.bestCombo,
+      bestLevel: stateRef.current.round.level,
+      isDaily: stateRef.current.dailyMode,
+    });
+    applyPersist(next);
+    const beatBest = finalScore > 0 && finalScore >= runBestBaselineRef.current;
+    dispatch({ type: 'gameOver', isNewBest: beatBest });
 
-      // Soft prompt only — native Store Review waits for a positive tap.
-      if (shouldShowReviewPrompt(next, { isNewHighScore: beatBest })) {
-        if (reviewPromptTimer.current) clearTimeout(reviewPromptTimer.current);
-        reviewPromptTimer.current = setTimeout(() => {
-          reviewPromptTimer.current = null;
-          setReviewPromptVisible(true);
-        }, TIMING.reviewPromptDelay);
-      }
-    },
-    [applyPersist, dispatch, flushCoachWrite, stateRef],
-  );
+    // Soft prompt only — native Store Review waits for a positive tap.
+    if (shouldShowReviewPrompt(next, { isNewHighScore: beatBest })) {
+      if (reviewPromptTimer.current) clearTimeout(reviewPromptTimer.current);
+      reviewPromptTimer.current = setTimeout(() => {
+        reviewPromptTimer.current = null;
+        setReviewPromptVisible(true);
+      }, TIMING.reviewPromptDelay);
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -423,103 +441,87 @@ export function GameScreen() {
     };
   }, []);
 
-  const onReviewAccept = useCallback(() => {
+  const onReviewAccept = () => {
     setReviewPromptVisible(false);
     // Persist before native UI so we never re-prompt even if they bounce.
     void markReviewAccepted().then(applyPersist);
-  }, [applyPersist]);
+  };
 
-  const onReviewDecline = useCallback(() => {
+  const onReviewDecline = () => {
     setReviewPromptVisible(false);
     void recordReviewPromptDecline().then(applyPersist);
-  }, [applyPersist]);
+  };
 
   /**
    * Queue the move to the next meter. If the menu opens before it fires, the
    * advance is parked on the run state and replayed when the sheet closes.
    */
-  const scheduleAdvance = useCallback(
-    (delayMs: number) => {
-      if (autoTimer.current) clearTimeout(autoTimer.current);
-      dispatch({ type: 'pendingTimer', pending: 'advance' });
-      autoTimer.current = setTimeout(() => {
-        dispatch({ type: 'pendingTimer', pending: null });
-        if (stateRef.current.paused) {
-          dispatch({ type: 'park', resume: { kind: 'advance' } });
-          return;
-        }
-        advanceRef.current();
-      }, delayMs);
-    },
-    [dispatch, stateRef],
-  );
+  const scheduleAdvance = (delayMs: number) => {
+    if (autoTimer.current) clearTimeout(autoTimer.current);
+    dispatch({ type: 'pendingTimer', pending: 'advance' });
+    autoTimer.current = setTimeout(() => {
+      dispatch({ type: 'pendingTimer', pending: null });
+      if (stateRef.current.paused) {
+        dispatch({ type: 'park', resume: { kind: 'advance' } });
+        return;
+      }
+      advanceRef.current();
+    }, delayMs);
+  };
 
-  const finishRound = useCallback(
-    (value: number) => {
-      const before = stateRef.current;
-      const result = scoreFill(value, before.round, before.combo);
-      const comboGrew = result.combo > before.combo;
-      isFilling.set(0);
-      void gameHaptics.result(result.label === 'Close' ? 'Nice' : result.label);
+  const finishRound = (value: number) => {
+    const before = stateRef.current;
+    const result = scoreFill(value, before.round, before.combo);
+    const comboGrew = result.combo > before.combo;
+    isFilling.set(0);
+    void gameHaptics.result(result.label === 'Close' ? 'Nice' : result.label);
 
-      // One dispatch folds combo, score, lives, stats, phase and the callout
-      // together, so they can never be left half-applied. Everything below is a
-      // side effect and stays out of it.
-      dispatch({
-        type: 'scored',
-        result,
-        feedback: {
-          label: result.label,
-          points: result.points,
-          combo: result.combo,
-          comboGrew,
-          slot: feedbackSlotFor(result.label),
-        },
-      });
-      const after = stateRef.current;
-      endFill();
-
-      showFeedback({
+    // One dispatch folds combo, score, lives, stats, phase and the callout
+    // together, so they can never be left half-applied. Everything below is a
+    // side effect and stays out of it.
+    dispatch({
+      type: 'scored',
+      result,
+      feedback: {
         label: result.label,
         points: result.points,
         combo: result.combo,
         comboGrew,
-      });
+        slot: feedbackSlotFor(result.label),
+      },
+    });
+    const after = stateRef.current;
+    endFill();
 
-      if (result.costsLife) {
-        play('miss');
-        if (after.lives <= 0) {
-          void endRun(after.score, after.stats);
-        } else {
-          scheduleAdvance(TIMING.advanceAfterMiss);
-        }
-        return;
+    showFeedback({
+      label: result.label,
+      points: result.points,
+      combo: result.combo,
+      comboGrew,
+    });
+
+    if (result.costsLife) {
+      play('miss');
+      if (after.lives <= 0) {
+        void endRun(after.score, after.stats);
+      } else {
+        scheduleAdvance(TIMING.advanceAfterMiss);
       }
+      return;
+    }
 
-      play(result.result === 'perfect' ? 'perfect' : 'zone');
-      if (after.score > runBestBaselineRef.current) {
-        announceNewBest();
-      }
-      scheduleAdvance(
-        result.result === 'perfect'
-          ? TIMING.advanceAfterPerfect
-          : TIMING.advanceAfterHit,
-      );
-    },
-    [
-      announceNewBest,
-      dispatch,
-      endRun,
-      isFilling,
-      play,
-      endFill,
-      scheduleAdvance,
-      showFeedback,
-      stateRef,
-    ],
-  );
+    play(result.result === 'perfect' ? 'perfect' : 'zone');
+    if (after.score > runBestBaselineRef.current) {
+      announceNewBest();
+    }
+    scheduleAdvance(
+      result.result === 'perfect'
+        ? TIMING.advanceAfterPerfect
+        : TIMING.advanceAfterHit,
+    );
+  };
 
-  const startFill = useCallback(() => {
+  const startFill = () => {
     if (stateRef.current.paused) {
       dispatch({ type: 'park', resume: { kind: 'startFill' } });
       return;
@@ -531,7 +533,7 @@ export function GameScreen() {
     feedbackOpacity.set(0);
     dispatch({ type: 'phase', phase: 'filling' });
     isFilling.set(1);
-    syncZoneMotion(current);
+    syncZoneMotion(zone, current);
     fill.set(0);
     const fromGo = fillAfterGoRef.current;
     fillAfterGoRef.current = false;
@@ -545,146 +547,139 @@ export function GameScreen() {
           easing: Easing.bezier(0.2, 0.05, 0.35, 1),
         },
         (finished) => {
-          if (finished) runOnJS(finishRound)(1);
+          if (!finished) return;
+          // Drop the UI-thread lock here, not in `finishRound`. The round is
+          // over the moment the fill lands; leaving `isFilling` set until the
+          // JS thread gets around to `finishRound` leaves a window where a tap
+          // passes the gesture's guard and scores the same round a second time.
+          isFilling.set(0);
+          runOnJS(finishRound)(1);
         },
       ),
     );
-  }, [
-    beginFill,
-    dispatch,
-    fill,
-    feedbackOpacity,
-    finishRound,
-    isFilling,
-    play,
-    stateRef,
-    syncZoneMotion,
-  ]);
+  };
 
+  // No dep array on purpose: these three refs exist to break definition-order
+  // cycles, and must always point at the newest closure. React Compiler keeps
+  // the function identities stable, so this is a ref write, not a re-subscribe.
   useEffect(() => {
     startFillRef.current = startFill;
-  }, [startFill]);
+  });
 
-  const runCountdownFrom = useCallback(
-    (current: number) => {
-      if (countTimer.current) clearTimeout(countTimer.current);
+  const runCountdownFrom = (current: number) => {
+    if (countTimer.current) clearTimeout(countTimer.current);
 
-      if (current <= 0) {
-        fillAfterGoRef.current = true;
-        dispatch({ type: 'pendingTimer', pending: 'startFill' });
-        countTimer.current = setTimeout(() => {
-          dispatch({ type: 'pendingTimer', pending: null });
-          if (stateRef.current.paused) {
-            dispatch({ type: 'park', resume: { kind: 'startFill' } });
-            return;
-          }
-          startFillRef.current();
-        }, TIMING.countdownToFill);
-        return;
-      }
-
-      dispatch({ type: 'pendingTimer', pending: 'countdown' });
+    if (current <= 0) {
+      fillAfterGoRef.current = true;
+      dispatch({ type: 'pendingTimer', pending: 'startFill' });
       countTimer.current = setTimeout(() => {
         dispatch({ type: 'pendingTimer', pending: null });
-        if (stateRef.current.paused) {
-          dispatch({
-            type: 'park',
-            resume: { kind: 'countdown', countAt: current },
-          });
-          return;
-        }
-        const next = current - 1;
-        dispatch({ type: 'countdown', value: next });
-        if (next > 0) {
-          play('tick');
-          void gameHaptics.countdownTick(next);
-          runCountdownFromRef.current(next);
-        } else {
-          play('start');
-          void gameHaptics.countdownTick(0);
-          runCountdownFromRef.current(0);
-        }
-      }, TIMING.countdownTick);
-    },
-    [dispatch, play, stateRef],
-  );
-
-  useEffect(() => {
-    runCountdownFromRef.current = runCountdownFrom;
-  }, [runCountdownFrom]);
-
-  const beginRound = useCallback(
-    (next: RoundConfig, animateIn: boolean) => {
-      dispatch({ type: 'beginRound', round: next });
-      fill.set(0);
-      syncZoneMotion(next);
-
-      // Only countdown on the very first meter of a run
-      if (next.level === 1) {
-        meterX.set(0);
-        dispatch({ type: 'phase', phase: 'countdown' });
-        dispatch({ type: 'countdown', value: INITIAL_COUNTDOWN });
-        play('tick');
-        void gameHaptics.countdownTick(INITIAL_COUNTDOWN);
-        runCountdownFromRef.current(INITIAL_COUNTDOWN);
-        return;
-      }
-
-      // Later levels: land the meter, pause so the zone is readable, then fill
-      const startAfterReadPause = () => {
         if (stateRef.current.paused) {
           dispatch({ type: 'park', resume: { kind: 'startFill' } });
           return;
         }
-        if (countTimer.current) clearTimeout(countTimer.current);
-        dispatch({ type: 'pendingTimer', pending: 'startFill' });
-        countTimer.current = setTimeout(() => {
-          dispatch({ type: 'pendingTimer', pending: null });
-          if (stateRef.current.paused) {
-            dispatch({ type: 'park', resume: { kind: 'startFill' } });
-            return;
-          }
-          startFillRef.current();
-        }, TIMING.levelReadPause);
-      };
+        startFillRef.current();
+      }, TIMING.countdownToFill);
+      return;
+    }
 
-      if (animateIn) {
-        meterX.set(METER_ENTER_X);
-        meterX.set(
-          withTiming(
-            0,
-            { duration: TIMING.meterSlideIn, easing: Easing.out(Easing.cubic) },
-            (done) => {
-              if (done) runOnJS(startAfterReadPause)();
-            },
-          ),
-        );
-      } else {
-        meterX.set(0);
-        startAfterReadPause();
+    dispatch({ type: 'pendingTimer', pending: 'countdown' });
+    countTimer.current = setTimeout(() => {
+      dispatch({ type: 'pendingTimer', pending: null });
+      if (stateRef.current.paused) {
+        dispatch({
+          type: 'park',
+          resume: { kind: 'countdown', countAt: current },
+        });
+        return;
       }
-    },
-    [dispatch, fill, meterX, play, stateRef, syncZoneMotion],
-  );
+      const next = current - 1;
+      dispatch({ type: 'countdown', value: next });
+      if (next > 0) {
+        play('tick');
+        void gameHaptics.countdownTick(next);
+        runCountdownFromRef.current(next);
+      } else {
+        play('start');
+        void gameHaptics.countdownTick(0);
+        runCountdownFromRef.current(0);
+      }
+    }, TIMING.countdownTick);
+  };
 
-  const spawnNextLevel = useCallback(() => {
+  useEffect(() => {
+    runCountdownFromRef.current = runCountdownFrom;
+  });
+
+  const beginRound = (next: RoundConfig, animateIn: boolean) => {
+    dispatch({ type: 'beginRound', round: next });
+    fill.set(0);
+    syncZoneMotion(zone, next);
+
+    // Only countdown on the very first meter of a run
+    if (next.level === 1) {
+      meterX.set(0);
+      dispatch({ type: 'phase', phase: 'countdown' });
+      dispatch({ type: 'countdown', value: INITIAL_COUNTDOWN });
+      play('tick');
+      void gameHaptics.countdownTick(INITIAL_COUNTDOWN);
+      runCountdownFromRef.current(INITIAL_COUNTDOWN);
+      return;
+    }
+
+    // Later levels: land the meter, pause so the zone is readable, then fill
+    const startAfterReadPause = () => {
+      if (stateRef.current.paused) {
+        dispatch({ type: 'park', resume: { kind: 'startFill' } });
+        return;
+      }
+      if (countTimer.current) clearTimeout(countTimer.current);
+      dispatch({ type: 'pendingTimer', pending: 'startFill' });
+      countTimer.current = setTimeout(() => {
+        dispatch({ type: 'pendingTimer', pending: null });
+        if (stateRef.current.paused) {
+          dispatch({ type: 'park', resume: { kind: 'startFill' } });
+          return;
+        }
+        startFillRef.current();
+      }, TIMING.levelReadPause);
+    };
+
+    if (animateIn) {
+      meterX.set(METER_ENTER_X);
+      meterX.set(
+        withTiming(
+          0,
+          { duration: TIMING.meterSlideIn, easing: Easing.out(Easing.cubic) },
+          (done) => {
+            if (done) runOnJS(startAfterReadPause)();
+          },
+        ),
+      );
+    } else {
+      meterX.set(0);
+      startAfterReadPause();
+    }
+  };
+
+  const spawnNextLevel = () => {
     const current = stateRef.current.round;
     const next = makeRound(current.level + 1, {
       previousTarget: current.target,
       rng: rngRef.current,
     });
     beginRound(next, true);
-  }, [beginRound, stateRef]);
+  };
 
-  const onMeterSlidOut = useCallback(() => {
+  const onMeterSlidOut = () => {
     if (stateRef.current.paused) {
       dispatch({ type: 'park', resume: { kind: 'advance' } });
       return;
     }
     spawnNextLevel();
-  }, [dispatch, spawnNextLevel, stateRef]);
+  };
 
-  const advanceLevel = useCallback(() => {
+  const advanceLevel = () => {
     if (autoTimer.current) clearTimeout(autoTimer.current);
     dispatch({ type: 'pendingTimer', pending: null });
     // Slide current meter out, then bring next in
@@ -697,19 +692,37 @@ export function GameScreen() {
         },
       ),
     );
-  }, [dispatch, meterX, onMeterSlidOut]);
+  };
 
   useEffect(() => {
     advanceRef.current = advanceLevel;
-  }, [advanceLevel]);
+  });
 
-  const onZoneEnter = useCallback(() => {
+  const onZoneEnter = () => {
     void gameHaptics.zoneEnter();
-  }, []);
+  };
 
+  /**
+   * The only per-frame reaction on `fill`. It was two — one lerping the zone,
+   * one watching for the zone-enter haptic — which meant two worklet
+   * invocations and two sets of shared-value reads every frame of every fill.
+   * The order inside matters: the zone has to be moved to this frame's
+   * position before the crossing is judged against it.
+   */
   useAnimatedReaction(
     () => fill.value,
     (value, prev) => {
+      // Skip the writes when the zone is static; the crossing check below
+      // still runs, since a fixed zone is crossed just the same.
+      if (zoneMoves.value) {
+        zoneTarget.set(
+          zoneFrom.value + (zoneTo.value - zoneFrom.value) * value,
+        );
+      }
+      if (zoneShrinks.value) {
+        zoneHalf.set(halfFrom.value + (halfTo.value - halfFrom.value) * value);
+      }
+
       if (isFilling.value !== 1 || prev == null) return;
       const low = zoneTarget.value - zoneHalf.value;
       if (prev < low && value >= low) runOnJS(onZoneEnter)();
@@ -721,7 +734,7 @@ export function GameScreen() {
    * Stop every pending timer and in-flight animation and drop the pause state,
    * so nothing queued from the previous run can fire into the next one.
    */
-  const haltRun = useCallback(() => {
+  const haltRun = () => {
     haltCoach();
     if (countTimer.current) clearTimeout(countTimer.current);
     if (autoTimer.current) clearTimeout(autoTimer.current);
@@ -734,29 +747,28 @@ export function GameScreen() {
     cancelAnimation(meterX);
     meterX.set(0);
     cancelAnimation(fill);
-  }, [dispatch, fill, haltCoach, meterX]);
+  };
 
   /** Reset the animation layer that sits alongside run state. */
-  const resetRunVisuals = useCallback(() => {
+  const resetRunVisuals = () => {
     comboIntroShownRef.current = false;
     comboLabelOpacity.set(0);
     newBestPulse.set(1);
     feedbackOpacity.set(0);
     isFilling.set(0);
     meterX.set(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  };
 
   /** Back to the home screen with a fresh idle meter. */
-  const resetToIdle = useCallback(() => {
+  const resetToIdle = () => {
     haltRun();
     resetRunVisuals();
     fill.set(0);
     rngRef.current = Math.random;
     const idle = makeRound(1);
     dispatch({ type: 'idle', round: idle });
-    syncZoneMotion(idle);
-  }, [dispatch, fill, haltRun, resetRunVisuals, syncZoneMotion]);
+    syncZoneMotion(zone, idle);
+  };
 
   const startRun = (daily: boolean) => {
     haltRun();
@@ -772,27 +784,30 @@ export function GameScreen() {
     beginRound(makeRound(1, { rng: rngRef.current }), false);
   };
 
-  const resumeFillFrom = useCallback(
-    (from: number) => {
-      const current = stateRef.current.round;
-      const remaining = Math.max(90, Math.round(current.fillMs * (1 - from)));
-      dispatch({ type: 'phase', phase: 'filling' });
-      isFilling.set(1);
-      fill.set(from);
-      fill.set(
-        withTiming(
-          1,
-          { duration: remaining, easing: Easing.bezier(0.2, 0.05, 0.35, 1) },
-          (finished) => {
-            if (finished) runOnJS(finishRound)(1);
-          },
-        ),
-      );
-    },
-    [dispatch, fill, finishRound, isFilling, stateRef],
-  );
+  const resumeFillFrom = (from: number) => {
+    const current = stateRef.current.round;
+    const remaining = Math.max(90, Math.round(current.fillMs * (1 - from)));
+    dispatch({ type: 'phase', phase: 'filling' });
+    isFilling.set(1);
+    fill.set(from);
+    fill.set(
+      withTiming(
+        1,
+        { duration: remaining, easing: Easing.bezier(0.2, 0.05, 0.35, 1) },
+        (finished) => {
+          if (!finished) return;
+          // Drop the UI-thread lock here, not in `finishRound`. The round is
+          // over the moment the fill lands; leaving `isFilling` set until the
+          // JS thread gets around to `finishRound` leaves a window where a tap
+          // passes the gesture's guard and scores the same round a second time.
+          isFilling.set(0);
+          runOnJS(finishRound)(1);
+        },
+      ),
+    );
+  };
 
-  const openMenu = useCallback(() => {
+  const openMenu = () => {
     void gameHaptics.next();
 
     // Freeze the meter before dispatching so the parked position is the exact
@@ -823,47 +838,41 @@ export function GameScreen() {
     if (stateRef.current.pauseResume?.kind === 'startFill') {
       meterX.set(0);
     }
-  }, [dispatch, fill, isFilling, meterX, stateRef]);
+  };
 
-  const openScores = useCallback(() => {
+  const openScores = () => {
     setMenuInitialView('highscores');
     openMenu();
-  }, [openMenu]);
+  };
 
-  const openSkins = useCallback(() => {
+  const openSkins = () => {
     void gameHaptics.next();
     setMenuInitialView('skins');
     openMenu();
-  }, [openMenu]);
+  };
 
-  const onUnlockSkin = useCallback(
-    (id: SkinId) => {
-      void (async () => {
-        const next = await unlockSkin(id, SKINS[id].cost);
-        if (!next) {
-          void gameHaptics.result('Miss');
-          return;
-        }
-        applyPersist(next);
-        void gameHaptics.result('Great');
-      })();
-    },
-    [applyPersist],
-  );
+  const onUnlockSkin = (id: SkinId) => {
+    void (async () => {
+      const next = await unlockSkin(id, SKINS[id].cost);
+      if (!next) {
+        void gameHaptics.result('Miss');
+        return;
+      }
+      applyPersist(next);
+      void gameHaptics.result('Great');
+    })();
+  };
 
-  const onEquipSkin = useCallback(
-    (id: SkinId) => {
-      void (async () => {
-        const next = await equipSkin(id);
-        if (!next) return;
-        applyPersist(next);
-        void gameHaptics.next();
-      })();
-    },
-    [applyPersist],
-  );
+  const onEquipSkin = (id: SkinId) => {
+    void (async () => {
+      const next = await equipSkin(id);
+      if (!next) return;
+      applyPersist(next);
+      void gameHaptics.next();
+    })();
+  };
 
-  const closeMenu = useCallback(() => {
+  const closeMenu = () => {
     // Read the parked resume before dispatching — `resume` clears it.
     const resume = stateRef.current.pauseResume;
     dispatch({ type: 'resume' });
@@ -888,7 +897,7 @@ export function GameScreen() {
         TIMING.advanceAfterResume,
       );
     }
-  }, [dispatch, meterX, resumeFillFrom, stateRef]);
+  };
 
   const toggleSound = async () => {
     const next = await setSoundMuted(!(persist?.soundMuted ?? false));
@@ -940,35 +949,29 @@ export function GameScreen() {
     resetToIdle();
   };
 
-  const onTap = () => {
-    if (lockingTap.current) return;
-    const { phase: p, paused } = stateRef.current;
-    if (paused || p !== 'filling') return;
-
-    lockingTap.current = true;
-    // Freeze fill exactly where it is — zone is derived from fill, so it matches
-    const stoppedAt = fill.value;
-    cancelAnimation(fill);
-    fill.set(stoppedAt);
-    // Snap zone to the scored position (same as zoneAt)
-    if (zoneMoves.value) {
-      zoneTarget.set(
-        zoneFrom.value + (zoneTo.value - zoneFrom.value) * stoppedAt,
-      );
-    }
-    if (zoneShrinks.value) {
-      zoneHalf.set(
-        halfFrom.value + (halfTo.value - halfFrom.value) * stoppedAt,
-      );
-    }
-    isFilling.set(0);
+  /**
+   * Everything after the meter is already frozen. Sound, haptics and scoring
+   * are JS-side work that no longer sits between the finger and the stop.
+   */
+  const onTapSettled = (stoppedAt: number) => {
     play('tap');
     void gameHaptics.stop();
     finishRound(stoppedAt);
-    requestAnimationFrame(() => {
-      lockingTap.current = false;
-    });
   };
+
+  const { gesture: tapGesture, activate: activateTap } = useMeterTap({
+    fill,
+    isFilling,
+    zoneTarget,
+    zoneHalf,
+    zoneFrom,
+    zoneTo,
+    zoneMoves,
+    halfFrom,
+    halfTo,
+    zoneShrinks,
+    onSettled: onTapSettled,
+  });
 
   const meterStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: meterX.value }],
@@ -1009,21 +1012,20 @@ export function GameScreen() {
   // Results-screen best summary (for the mode that was just played).
   const scoreGap = persistedBest - score;
 
-  const shareScoreImage = useCallback(async () => {
+  const shareScoreImage = async () => {
     if (capturingShare || !shareRef.current) return;
     // Re-renders without the Share/Retry/settings chrome before the capture.
     setCapturingShare(true);
-    try {
-      await captureAndShare(shareRef.current, {
-        message: shareScoreCaption(m),
-        dialogTitle: gt('Share your score'),
-      });
-    } catch {
+    // `finally` would read better, but React Compiler cannot lower a try block
+    // with a finalizer and would skip optimizing this whole component.
+    await captureAndShare(shareRef.current, {
+      message: shareScoreCaption(m),
+      dialogTitle: gt('Share your score'),
+    }).catch(() => {
       Alert.alert(gt('Share failed'), gt('Could not create the score image.'));
-    } finally {
-      setCapturingShare(false);
-    }
-  }, [capturingShare, gt, m]);
+    });
+    setCapturingShare(false);
+  };
 
   const hitEnabled = phase === 'filling' && !menuOpen;
   const showTapHint =
@@ -1067,7 +1069,7 @@ export function GameScreen() {
           contentPosition="center"
           priority="high"
           cachePolicy="memory-disk"
-          recyclingKey="game-bg-v2"
+          recyclingKey="game-bg-v3"
         />
       </View>
 
@@ -1202,9 +1204,24 @@ export function GameScreen() {
             ) : null}
             {phase === 'gameover' ? (
               stats.coinsEarned > 0 ? (
-                <Text style={styles.resultCoins}>
-                  {gt('+{earned} coins', { earned: stats.coinsEarned })}
-                </Text>
+                // The coin icon carries the unit, so the number stands alone.
+                // The full phrase stays as the label for screen readers.
+                <View
+                  style={styles.resultCoinsRow}
+                  accessible
+                  accessibilityLabel={gt('+{earned} coins', {
+                    earned: stats.coinsEarned,
+                  })}
+                >
+                  <Image
+                    source={COIN}
+                    style={styles.resultCoinsIcon}
+                    contentFit="contain"
+                  />
+                  <Text style={styles.resultCoins}>
+                    +{formatScore(stats.coinsEarned)}
+                  </Text>
+                </View>
               ) : null
             ) : (
               <>
@@ -1487,13 +1504,23 @@ export function GameScreen() {
       </View>
 
       {hitEnabled ? (
-        <Pressable
-          style={styles.hitLayer}
-          onPressIn={onTap}
-          accessibilityRole="button"
-          accessibilityLabel={gt('Tap to stop the meter')}
-          android_ripple={{ color: 'transparent' }}
-        />
+        <GestureDetector gesture={tapGesture}>
+          <View
+            style={styles.hitLayer}
+            accessible
+            accessibilityRole="button"
+            accessibilityLabel={gt('Tap to stop the meter')}
+            // The gesture only sees real touches. An assistive activation
+            // produces none, so it needs its own route to the same settlement
+            // or the announced button cannot be pressed: `onAccessibilityTap`
+            // for VoiceOver, the activate action for TalkBack.
+            onAccessibilityTap={activateTap}
+            accessibilityActions={ACTIVATE_ACTION}
+            onAccessibilityAction={(event) => {
+              if (event.nativeEvent.actionName === 'activate') activateTap();
+            }}
+          />
+        </GestureDetector>
       ) : null}
 
       <MenuSheet
