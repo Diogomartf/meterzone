@@ -36,5 +36,10 @@ jobs:
       - name: Lint
         run: bun run lint
 
+      # A React Compiler skip is silent: no build error, no warning, just a
+      # component that stops being memoized. Nothing above catches it.
+      - name: React Compiler
+        run: bun run check:compiler
+
       - name: Test
         run: bun test

@@ -159,6 +159,9 @@ const LABEL_TEXT: Record<RoundLabel, string> = {
   Miss: msg('MISS'),
 };
 
+/** Stable so the hit layer's props do not churn between renders. */
+const ACTIVATE_ACTION = [{ name: 'activate' as const }];
+
 const LABEL_COLORS: Record<RoundLabel, string> = {
   Perfect: '#FFE14A',
   Great: '#E24B2D',
@@ -544,7 +547,13 @@ export function GameScreen() {
           easing: Easing.bezier(0.2, 0.05, 0.35, 1),
         },
         (finished) => {
-          if (finished) runOnJS(finishRound)(1);
+          if (!finished) return;
+          // Drop the UI-thread lock here, not in `finishRound`. The round is
+          // over the moment the fill lands; leaving `isFilling` set until the
+          // JS thread gets around to `finishRound` leaves a window where a tap
+          // passes the gesture's guard and scores the same round a second time.
+          isFilling.set(0);
+          runOnJS(finishRound)(1);
         },
       ),
     );
@@ -786,7 +795,13 @@ export function GameScreen() {
         1,
         { duration: remaining, easing: Easing.bezier(0.2, 0.05, 0.35, 1) },
         (finished) => {
-          if (finished) runOnJS(finishRound)(1);
+          if (!finished) return;
+          // Drop the UI-thread lock here, not in `finishRound`. The round is
+          // over the moment the fill lands; leaving `isFilling` set until the
+          // JS thread gets around to `finishRound` leaves a window where a tap
+          // passes the gesture's guard and scores the same round a second time.
+          isFilling.set(0);
+          runOnJS(finishRound)(1);
         },
       ),
     );
@@ -944,7 +959,7 @@ export function GameScreen() {
     finishRound(stoppedAt);
   };
 
-  const tapGesture = useMeterTap({
+  const { gesture: tapGesture, activate: activateTap } = useMeterTap({
     fill,
     isFilling,
     zoneTarget,
@@ -1495,6 +1510,15 @@ export function GameScreen() {
             accessible
             accessibilityRole="button"
             accessibilityLabel={gt('Tap to stop the meter')}
+            // The gesture only sees real touches. An assistive activation
+            // produces none, so it needs its own route to the same settlement
+            // or the announced button cannot be pressed: `onAccessibilityTap`
+            // for VoiceOver, the activate action for TalkBack.
+            onAccessibilityTap={activateTap}
+            accessibilityActions={ACTIVATE_ACTION}
+            onAccessibilityAction={(event) => {
+              if (event.nativeEvent.actionName === 'activate') activateTap();
+            }}
           />
         </GestureDetector>
       ) : null}

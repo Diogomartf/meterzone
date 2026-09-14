@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Gesture } from 'react-native-gesture-handler';
 import {
   cancelAnimation,
   runOnJS,
+  runOnUI,
   type SharedValue,
 } from 'react-native-reanimated';
 
@@ -59,51 +60,69 @@ export function useMeterTap({
 }: Params) {
   'use no memo';
 
-  return useMemo(
+  /**
+   * Freeze the meter where it stands and hand the round to JS. Runs on the UI
+   * thread, from the gesture below and from the accessibility action alike.
+   */
+  const freezeMeter = useCallback(() => {
+    'worklet';
+    // `isFilling` doubles as the re-entrancy lock: it is cleared below on the
+    // UI thread before a second tap can be dispatched, which is what the old
+    // JS-side ref guard and its requestAnimationFrame release were for. The
+    // fill's own completion callback clears it too, so a tap that lands in the
+    // gap before `finishRound` runs cannot score the round again.
+    if (isFilling.value !== 1) return;
+
+    // Freeze fill exactly where it is — zone is derived from fill, so it matches
+    const stoppedAt = fill.value;
+    cancelAnimation(fill);
+    fill.set(stoppedAt);
+    // Snap zone to the scored position (same as zoneAt)
+    if (zoneMoves.value) {
+      zoneTarget.set(
+        zoneFrom.value + (zoneTo.value - zoneFrom.value) * stoppedAt,
+      );
+    }
+    if (zoneShrinks.value) {
+      zoneHalf.set(
+        halfFrom.value + (halfTo.value - halfFrom.value) * stoppedAt,
+      );
+    }
+    isFilling.set(0);
+    runOnJS(onSettled)(stoppedAt);
+  }, [
+    fill,
+    halfFrom,
+    halfTo,
+    isFilling,
+    onSettled,
+    zoneFrom,
+    zoneHalf,
+    zoneMoves,
+    zoneShrinks,
+    zoneTarget,
+    zoneTo,
+  ]);
+
+  /**
+   * VoiceOver and TalkBack activate a control without ever producing a touch,
+   * so the gesture never sees them. They get the same settlement, just hopped
+   * onto the UI thread explicitly; frame accuracy is not the point here.
+   */
+  const activate = useCallback(() => {
+    runOnUI(freezeMeter)();
+  }, [freezeMeter]);
+
+  const gesture = useMemo(
     () =>
       Gesture.Tap()
         // The meter stops the instant a finger lands; a tap that is held or
         // dragged must not be discarded as a failed tap.
         .maxDuration(Number.MAX_SAFE_INTEGER)
         .maxDistance(Number.MAX_SAFE_INTEGER)
-        .onBegin(() => {
-          'worklet';
-          // `isFilling` doubles as the re-entrancy lock: it is cleared below on
-          // the UI thread before a second tap can be dispatched, which is what
-          // the old JS-side ref guard and its requestAnimationFrame release
-          // were for.
-          if (isFilling.value !== 1) return;
-
-          // Freeze fill exactly where it is — zone is derived from fill, so it matches
-          const stoppedAt = fill.value;
-          cancelAnimation(fill);
-          fill.set(stoppedAt);
-          // Snap zone to the scored position (same as zoneAt)
-          if (zoneMoves.value) {
-            zoneTarget.set(
-              zoneFrom.value + (zoneTo.value - zoneFrom.value) * stoppedAt,
-            );
-          }
-          if (zoneShrinks.value) {
-            zoneHalf.set(
-              halfFrom.value + (halfTo.value - halfFrom.value) * stoppedAt,
-            );
-          }
-          isFilling.set(0);
-          runOnJS(onSettled)(stoppedAt);
-        }),
-    [
-      fill,
-      halfFrom,
-      halfTo,
-      isFilling,
-      onSettled,
-      zoneFrom,
-      zoneHalf,
-      zoneMoves,
-      zoneShrinks,
-      zoneTarget,
-      zoneTo,
-    ],
+        .onBegin(freezeMeter),
+    [freezeMeter],
   );
+
+  return { gesture, activate };
 }
