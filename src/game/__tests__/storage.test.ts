@@ -444,10 +444,12 @@ describe('settings toggles', () => {
 
 describe('unlockSkin and equipSkin', () => {
   test('unlocks, spends coins, and equips the new look', async () => {
-    seed({ coins: 250, unlockedSkins: ['toxic'], equippedSkin: 'toxic' });
+    // Priced off the skin itself so retuning costs can't rot this test.
+    const bank = SKINS.lava.cost + 30;
+    seed({ coins: bank, unlockedSkins: ['toxic'], equippedSkin: 'toxic' });
     const unlocked = await unlockSkin('lava', SKINS.lava.cost);
     expect(unlocked).not.toBeNull();
-    expect(unlocked!.coins).toBe(250 - SKINS.lava.cost);
+    expect(unlocked!.coins).toBe(bank - SKINS.lava.cost);
     expect(unlocked!.unlockedSkins).toEqual(['toxic', 'lava']);
     expect(unlocked!.equippedSkin).toBe('lava');
     expect((await loadPersist()).equippedSkin).toBe('lava');
@@ -463,12 +465,12 @@ describe('unlockSkin and equipSkin', () => {
 
   test('re-unlocking an owned skin is a no-op', async () => {
     seed({
-      coins: 400,
+      coins: SKINS.lava.cost + 180,
       unlockedSkins: ['toxic', 'lava'],
       equippedSkin: 'toxic',
     });
     const again = await unlockSkin('lava', SKINS.lava.cost);
-    expect(again!.coins).toBe(400);
+    expect(again!.coins).toBe(SKINS.lava.cost + 180);
     expect(again!.equippedSkin).toBe('toxic');
   });
 

@@ -29,6 +29,38 @@ function coinsFromPerfectRun(levels: number): number {
   return coins;
 }
 
+/** Hard ceiling on the search below — far past anything a person plays. */
+const MAX_SEARCHED_LEVEL = 5000;
+
+/**
+ * Consecutive Perfects, from level 1, that a single run needs to afford `cost`.
+ *
+ * This is the unit the pricing is really denominated in. The game has no
+ * terminal level and Perfect pays `5 + floor(combo / 2)`, so a flawless run
+ * banks coins without bound — no price can put a look beyond one run in
+ * principle. What a price does fix is the depth of flawless play it demands,
+ * and that is what these tests pin down.
+ */
+function perfectLevelsToAfford(cost: number): number {
+  let coins = 0;
+  let combo = 0;
+  for (let level = 1; level <= MAX_SEARCHED_LEVEL; level++) {
+    const round = {
+      ...makeRound(level),
+      target: 0.5,
+      targetEnd: 0.5,
+      moving: false,
+    };
+    const hit = scoreFill(round.target, round, combo);
+    coins += hit.coins;
+    combo = hit.combo;
+    if (coins >= cost) return level;
+  }
+  throw new Error(
+    `cost ${cost} not reachable within ${MAX_SEARCHED_LEVEL} perfect levels`,
+  );
+}
+
 describe('skinAction', () => {
   test('the equipped unlocked skin is equipped', () => {
     expect(skinAction(SKINS.toxic, 'toxic', ['toxic'], 0)).toBe('equipped');
@@ -102,10 +134,39 @@ describe('SKIN_IDS', () => {
     expect(SKINS.ice.cost).toBeLessThan(SKINS.gold.cost);
   });
 
-  test('Gold stays locked through a 100-level Perfect run', () => {
-    const bank = coinsFromPerfectRun(100);
-    expect(bank).toBeGreaterThan(0);
-    expect(SKINS.gold.cost).toBeGreaterThan(bank);
-    expect(skinAction(SKINS.gold, 'toxic', ['toxic'], bank)).toBe('locked');
+  /**
+   * Floors, not exact prices. They fail if a cost is cut or if coin payouts are
+   * inflated — either of which makes a look cheaper in flawless play than the
+   * pricing intends — while leaving room to retune without churning the test.
+   */
+  test('each look costs hundreds of consecutive Perfects in one run', () => {
+    expect(perfectLevelsToAfford(SKINS.lava.cost)).toBeGreaterThanOrEqual(250);
+    expect(perfectLevelsToAfford(SKINS.ice.cost)).toBeGreaterThanOrEqual(450);
+    expect(perfectLevelsToAfford(SKINS.gold.cost)).toBeGreaterThanOrEqual(850);
+  });
+
+  test('a deep, realistic run buys nothing', () => {
+    // 60 levels is already a strong run — far past where an ordinary player
+    // dies — and every level of it Perfect. Nothing should be affordable.
+    const strongRun = coinsFromPerfectRun(60);
+    expect(strongRun).toBeGreaterThan(0);
+    for (const id of SKIN_IDS) {
+      const skin = SKINS[id];
+      if (skin.cost === 0) continue;
+      expect(skin.cost).toBeGreaterThan(strongRun);
+      expect(skinAction(skin, 'toxic', ['toxic'], strongRun)).toBe('locked');
+    }
+  });
+
+  test('each look is a clear step up from the last', () => {
+    // Guards the escalation, not the exact prices: retuning one cost must not
+    // quietly flatten the ladder into three looks that land in the same week.
+    const paid = SKIN_IDS.map((id) => SKINS[id]).filter((s) => s.cost > 0);
+    for (let i = 1; i < paid.length; i++) {
+      const deeper =
+        perfectLevelsToAfford(paid[i].cost) -
+        perfectLevelsToAfford(paid[i - 1].cost);
+      expect(deeper).toBeGreaterThanOrEqual(150);
+    }
   });
 });
