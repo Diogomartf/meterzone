@@ -8,7 +8,8 @@ import { Image, type ImageRef } from 'expo-image';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -69,9 +70,9 @@ const NATIVE_SPLASH: SplashArt =
 
 /** Everything the first screen paints — warmed while the splash is up. */
 const FIRST_SCREEN_IMAGES: number[] = [
-  require('@/assets/images/game-bg.png'),
-  require('@/assets/images/zone-meter-logo.png'),
-  require('@/assets/images/coin.png'),
+  require('@/assets/images/game-bg.webp'),
+  require('@/assets/images/zone-meter-logo.webp'),
+  require('@/assets/images/coin.webp'),
 ];
 
 /** Decodes an image up front so it paints on its very first frame. */
@@ -187,7 +188,10 @@ function RootLayout() {
         };
 
   return (
-    <View
+    // Gesture Handler needs a root view for UI-thread gestures to reach the
+    // game's tap layer. MenuSheet keeps its own inside its Modal, which sits in
+    // a separate native view hierarchy and is not covered by this one.
+    <GestureHandlerRootView
       style={[styles.root, { backgroundColor: NATIVE_SPLASH.backgroundColor }]}
     >
       <StatusBar style="dark" />
@@ -216,7 +220,7 @@ function RootLayout() {
           ) : null}
         </Animated.View>
       ) : null}
-    </View>
+    </GestureHandlerRootView>
   );
 }
 

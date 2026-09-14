@@ -5,8 +5,8 @@ import { useGT } from 'gt-react-native';
 import { formatScore } from '@/game/format';
 import { styles } from '@/game/gameScreenStyles';
 
-const TROPHY = require('../../assets/images/trophy.png');
-const COIN = require('../../assets/images/coin.png');
+const TROPHY = require('../../assets/images/trophy.webp');
+const COIN = require('../../assets/images/coin.webp');
 
 type ScoreModuleProps = {
   best: number;

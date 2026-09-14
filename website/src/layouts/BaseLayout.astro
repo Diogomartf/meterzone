@@ -177,11 +177,20 @@ const structuredData = {
     <meta name="twitter:image" content={imageUrl} />
     <meta name="twitter:image:alt" content={OG_IMAGE.alt} />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    {/*
+      Fredoka is self-hosted. The Google Fonts stylesheet was render-blocking on
+      every page: a DNS lookup, a TLS handshake and a round trip to a third-party
+      origin before the browser even learned which font files it needed, and only
+      then a second trip to fetch them. One variable file from our own origin,
+      preloaded alongside the inlined CSS, removes both hops from the critical
+      path. (Astro-side comment so it does not ship to the client.)
+    */}
     <link
-      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      href="/fonts/fredoka-latin-var.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
 
     <script is:inline type="application/ld+json" set:html={JSON.stringify(structuredData)} />

@@ -17,8 +17,8 @@ type Props = {
   max?: number;
 };
 
-const HEART_FILLED = require('../../assets/images/heart-filled.png');
-const HEART_EMPTY = require('../../assets/images/heart-empty.png');
+const HEART_FILLED = require('../../assets/images/heart-filled.webp');
+const HEART_EMPTY = require('../../assets/images/heart-empty.webp');
 
 function Heart({ filled }: { filled: boolean }) {
   const wasFilled = useRef(filled);
