@@ -102,10 +102,29 @@ describe('SKIN_IDS', () => {
     expect(SKINS.ice.cost).toBeLessThan(SKINS.gold.cost);
   });
 
-  test('Gold stays locked through a 100-level Perfect run', () => {
-    const bank = coinsFromPerfectRun(100);
-    expect(bank).toBeGreaterThan(0);
-    expect(SKINS.gold.cost).toBeGreaterThan(bank);
-    expect(skinAction(SKINS.gold, 'toxic', ['toxic'], bank)).toBe('locked');
+  test('no look is bought by a single run, however good', () => {
+    // The level curve plateaus around 150, so a flawless run to there is close
+    // to the most coins one run can ever bank. Every paid look has to outlast
+    // it — skins are earned across sessions, never off one lucky streak.
+    const bestSingleRun = coinsFromPerfectRun(150);
+    expect(bestSingleRun).toBeGreaterThan(0);
+    for (const id of SKIN_IDS) {
+      const skin = SKINS[id];
+      if (skin.cost === 0) continue;
+      expect(skin.cost).toBeGreaterThan(bestSingleRun);
+      expect(skinAction(skin, 'toxic', ['toxic'], bestSingleRun)).toBe(
+        'locked',
+      );
+    }
+  });
+
+  test('each look costs several perfect runs more than the last', () => {
+    // Guards the escalation, not the exact prices: retuning one cost must not
+    // quietly flatten the ladder into three looks that land in the same week.
+    const perfectRun = coinsFromPerfectRun(150);
+    const paid = SKIN_IDS.map((id) => SKINS[id]).filter((s) => s.cost > 0);
+    for (let i = 1; i < paid.length; i++) {
+      expect(paid[i].cost - paid[i - 1].cost).toBeGreaterThan(perfectRun * 3);
+    }
   });
 });
