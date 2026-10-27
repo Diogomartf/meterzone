@@ -172,8 +172,11 @@ export function RankingScreen({
     setSigningIn(false);
     setSignInFailed(!ok);
     if (ok) {
+      // The sign-in event may already have flipped `signedIn` and loaded a
+      // board before the uploads finished — always load again, after them.
       setLoad({ status: 'loading' });
       setSignedIn(true);
+      setReloadKey((key) => key + 1);
     }
   };
 
