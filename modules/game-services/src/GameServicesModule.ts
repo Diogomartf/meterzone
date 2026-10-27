@@ -9,7 +9,12 @@ export type NativeRankEntry = {
   isYou: boolean;
 };
 
-declare class GameServicesModule extends NativeModule {
+type GameServicesEvents = {
+  /** Fired whenever the platform reports a sign-in or sign-out. */
+  onSignInChange: (event: { signedIn: boolean }) => void;
+};
+
+declare class GameServicesModule extends NativeModule<GameServicesEvents> {
   /** Android only — false until the Play Games project ID is configured. */
   isAvailable?(): boolean;
   isAuthenticated(): boolean;

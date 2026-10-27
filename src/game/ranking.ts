@@ -61,14 +61,40 @@ export async function signInToRankingInteractive(
   bests: SavedBests,
 ): Promise<boolean> {
   if (!rankingAvailable || !GameServices) return false;
+  let signedIn: boolean;
   try {
-    const signedIn = await GameServices.authenticateAsync(true);
-    if (!signedIn) return false;
-    await submitBests(bests);
-    return true;
+    signedIn = await GameServices.authenticateAsync(true);
   } catch {
     return false;
   }
+  if (!signedIn) return false;
+  // Signed in either way — a failed upload is retried at the next sign-in.
+  await submitBests(bests).catch(() => undefined);
+  return true;
+}
+
+/**
+ * Re-reads the sign-in state without prompting — for when the app returns to
+ * the foreground (the player may have signed in from Settings meanwhile).
+ */
+export async function refreshRankingSignIn(): Promise<boolean> {
+  if (!rankingAvailable || !GameServices) return false;
+  try {
+    return await GameServices.authenticateAsync(false);
+  } catch {
+    return false;
+  }
+}
+
+/** Calls back whenever the native sign-in state changes. */
+export function subscribeToRankingSignIn(
+  onChange: (signedIn: boolean) => void,
+): () => void {
+  if (!rankingAvailable || !GameServices) return () => undefined;
+  const subscription = GameServices.addListener('onSignInChange', (event) =>
+    onChange(event.signedIn),
+  );
+  return () => subscription.remove();
 }
 
 export type RankEntry = {
@@ -148,10 +174,17 @@ export async function openRanking(): Promise<void> {
   }
 }
 
+/**
+ * Submits a finished run. `runDay` is the UTC day the run started on: a daily
+ * run that started before midnight played yesterday's sequence, so it must not
+ * land on today's board.
+ */
 export async function submitRunToRanking(
   score: number,
   isDaily: boolean,
+  runDay: string,
 ): Promise<void> {
+  if (isDaily && runDay !== todayKey()) return;
   try {
     await submitBest(
       isDaily ? LEADERBOARD_IDS.daily : LEADERBOARD_IDS.normal,

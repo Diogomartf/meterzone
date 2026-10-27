@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import {
+  AppState,
   Platform,
   Pressable,
   ScrollView,
@@ -34,6 +35,7 @@ import { GameCta } from '@/game/GameCta';
 import { avatarFor } from '@/game/avatars';
 import { styles } from '@/game/menuSheetStyles';
 import { TabSwitch } from '@/game/menuRows';
+import { todayKey } from '@/game/storage';
 import type { PlayerAvatar } from '@/game/types';
 import {
   formatClock,
@@ -42,7 +44,9 @@ import {
   msUntilDailyReset,
   openRanking,
   pointsToPass,
+  refreshRankingSignIn,
   signInToRankingInteractive,
+  subscribeToRankingSignIn,
   type RankBoard,
   type RankEntry,
   type RankingKind,
@@ -103,6 +107,33 @@ export function RankingScreen({
   const [reloadKey, setReloadKey] = useState(0);
   const [signingIn, setSigningIn] = useState(false);
   const [signInFailed, setSignInFailed] = useState(false);
+  /** UTC day the daily board belongs to — reloads when it rolls over. */
+  const [day, setDay] = useState(todayKey);
+  const dayRef = useRef(day);
+
+  // Keep sign-in and the day current while the page stays open: sign-in can
+  // finish after it mounts, or happen in Settings while the app is away.
+  useEffect(() => {
+    const unsubscribe = subscribeToRankingSignIn(setSignedIn);
+    const checkDay = () => {
+      const now = todayKey();
+      if (now === dayRef.current) return;
+      dayRef.current = now;
+      setLoad({ status: 'loading' });
+      setDay(now);
+    };
+    const interval = setInterval(checkDay, 15_000);
+    const appState = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return;
+      checkDay();
+      void refreshRankingSignIn().then(setSignedIn);
+    });
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+      appState.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (!signedIn) return;
@@ -118,7 +149,7 @@ export function RankingScreen({
     return () => {
       cancelled = true;
     };
-  }, [signedIn, kind, reloadKey]);
+  }, [signedIn, kind, reloadKey, day]);
 
   const switchKind = (next: RankingKind) => {
     if (next === kind) return;

@@ -25,6 +25,8 @@ class GameServicesModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("GameServices")
 
+    Events("onSignInChange")
+
     OnCreate {
       if (hasAppId()) PlayGamesSdk.initialize(context)
     }
@@ -44,8 +46,11 @@ class GameServicesModule : Module() {
       val client = PlayGames.getGamesSignInClient(activity)
       val task = if (interactive) client.signIn() else client.isAuthenticated
       task.addOnCompleteListener {
-        authenticated = it.isSuccessful && it.result.isAuthenticated
-        promise.resolve(authenticated)
+        val signedIn = it.isSuccessful && it.result.isAuthenticated
+        val changed = signedIn != authenticated
+        authenticated = signedIn
+        promise.resolve(signedIn)
+        if (changed) sendEvent("onSignInChange", mapOf("signedIn" to signedIn))
       }
     }
 

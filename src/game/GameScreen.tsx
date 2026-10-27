@@ -308,6 +308,11 @@ export function GameScreen() {
 
   /** Best score at run start — used to detect a live / final new high. */
   const runBestBaselineRef = useRef(0);
+  /**
+   * UTC day the run started on — it picks the daily sequence, so a daily run
+   * belongs to that day's challenge even if it ends after midnight.
+   */
+  const runDayRef = useRef(todayKey());
   /** "COMBO" label only once per streak, then multiplier alone */
   const comboIntroShownRef = useRef(false);
   const rngRef = useRef<() => number>(Math.random);
@@ -434,9 +439,14 @@ export function GameScreen() {
       bestCombo: session.bestCombo,
       bestLevel: stateRef.current.round.level,
       isDaily: stateRef.current.dailyMode,
+      day: runDayRef.current,
     });
     applyPersist(next);
-    void submitRunToRanking(finalScore, stateRef.current.dailyMode);
+    void submitRunToRanking(
+      finalScore,
+      stateRef.current.dailyMode,
+      runDayRef.current,
+    );
     const beatBest = finalScore > 0 && finalScore >= runBestBaselineRef.current;
     dispatch({ type: 'gameOver', isNewBest: beatBest });
 
@@ -789,8 +799,11 @@ export function GameScreen() {
     haltRun();
     resetRunVisuals();
     beginCoachRun(persistRef.current?.totalRuns ?? persist?.totalRuns ?? 0);
+    runDayRef.current = todayKey();
     dispatch({ type: 'startRun', daily });
-    rngRef.current = daily ? createRng(dailySeed()) : Math.random;
+    rngRef.current = daily
+      ? createRng(dailySeed(runDayRef.current))
+      : Math.random;
     runBestBaselineRef.current = daily
       ? persist?.dailyBest.date === todayKey()
         ? persist.dailyBest.score

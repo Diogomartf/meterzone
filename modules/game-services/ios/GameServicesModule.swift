@@ -14,6 +14,8 @@ public class GameServicesModule: Module {
   public func definition() -> ModuleDefinition {
     Name("GameServices")
 
+    Events("onSignInChange")
+
     Function("isAuthenticated") { () -> Bool in
       return GKLocalPlayer.local.isAuthenticated
     }
@@ -55,7 +57,11 @@ public class GameServicesModule: Module {
           return
         }
         self.signInSheetShown = false
-        self.finishAuth(signedIn: GKLocalPlayer.local.isAuthenticated)
+        let signedIn = GKLocalPlayer.local.isAuthenticated
+        self.finishAuth(signedIn: signedIn)
+        // GameKit keeps this handler and calls it again on later sign-ins,
+        // e.g. from Settings — let open screens catch up.
+        self.sendEvent("onSignInChange", ["signedIn": signedIn])
       }
     }.runOnQueue(.main)
 

@@ -276,18 +276,31 @@ export async function commitRunResult(input: {
   bestCombo: number;
   bestLevel: number;
   isDaily: boolean;
+  /**
+   * UTC day the run started on. A daily run belongs to that day's challenge
+   * even when it ends after midnight. Defaults to today.
+   */
+  day?: string;
 }): Promise<PersistState> {
   return withPersistLock(async () => {
     const prev = await loadPersist();
-    const today = todayKey();
-    const sameDailyDay = prev.dailyBest.date === today;
+    const day = input.day ?? todayKey();
+    const sameDailyDay = prev.dailyBest.date === day;
 
     let dailyBest = prev.dailyBest;
     let dailyRecord = prev.dailyRecord;
 
-    if (input.isDaily) {
+    // A finished run from an older day than the stored best can still set the
+    // all-time daily record, but must not replace a newer day's best.
+    if (input.isDaily && day < prev.dailyBest.date) {
+      dailyRecord = betterDaily(prev.dailyRecord, {
+        date: day,
+        score: input.score,
+        level: input.bestLevel,
+      });
+    } else if (input.isDaily) {
       dailyBest = {
-        date: today,
+        date: day,
         score: sameDailyDay
           ? Math.max(prev.dailyBest.score, input.score)
           : input.score,
@@ -439,8 +452,9 @@ export async function unlockAvatarPack(
   });
 }
 
-export function dailySeed(): number {
-  const d = todayKey();
+/** Seed for a day's shared daily sequence — today unless a run's day is given. */
+export function dailySeed(day: string = todayKey()): number {
+  const d = day;
   let h = 2166136261;
   for (let i = 0; i < d.length; i++) {
     h ^= d.charCodeAt(i);

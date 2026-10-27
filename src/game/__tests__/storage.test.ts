@@ -583,3 +583,43 @@ describe('avatars', () => {
     expect(s.avatar).toBeNull();
   });
 });
+
+describe('daily runs that cross midnight UTC', () => {
+  const run = (score: number, day: string) =>
+    commitRunResult({
+      score,
+      coinsEarned: 0,
+      bestCombo: 0,
+      bestLevel: 3,
+      isDaily: true,
+      day,
+    });
+
+  test("a run started yesterday is not recorded as today's best", async () => {
+    const today = todayKey();
+    const yesterday = new Date(Date.parse(`${today}T00:00:00Z`) - 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+    const next = await run(500, yesterday);
+    expect(next.dailyBest.date).toBe(yesterday);
+    expect(next.dailyBest.date).not.toBe(today);
+  });
+
+  test("an older day's run never overwrites a newer day's best", async () => {
+    seed({ dailyBest: { date: '2026-10-27', score: 100, level: 2 } });
+    const next = await run(900, '2026-10-26');
+    expect(next.dailyBest).toEqual({
+      date: '2026-10-27',
+      score: 100,
+      level: 2,
+    });
+    // …but it still counts toward the all-time daily record.
+    expect(next.dailyRecord.score).toBe(900);
+    expect(next.dailyRecord.date).toBe('2026-10-26');
+  });
+
+  test("dailySeed follows the run's day, not the clock", () => {
+    expect(dailySeed(todayKey())).toBe(dailySeed());
+    expect(dailySeed('2026-10-26')).not.toBe(dailySeed('2026-10-27'));
+  });
+});
