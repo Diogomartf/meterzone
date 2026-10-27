@@ -16,7 +16,10 @@
           "mailto"
         ]
       },
-      "appleTeamId": "B55TJK4Q32"
+      "appleTeamId": "B55TJK4Q32",
+      "entitlements": {
+        "com.apple.developer.game-center": true
+      }
     },
     "android": {
       "package": "com.diogomartf.meterzone",
@@ -69,7 +72,14 @@
           "enableBackgroundPlayback": false
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "./modules/game-services/app.plugin.js",
+        {
+          "playGamesAppId": ""
+        }
+      ],
+      "./plugins/withSceneLifecycle.js"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -1,9 +1,23 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import {
+  avatarPack,
+  FREE_AVATAR_PACK,
+  isAvatarPackId,
+  isValidAvatar,
+  packOfEmoji,
+  randomAvatar,
+} from '@/game/avatars';
 import { DEFAULT_SKIN } from '@/game/skins';
 import { REVIEW_PROMPT_MAX } from '@/game/review';
 import { migrateTapHintPlays, nextTapHintPlays } from '@/game/tapCoach';
-import type { PersistState, ReviewPromptStatus, SkinId } from '@/game/types';
+import type {
+  AvatarPackId,
+  PersistState,
+  PlayerAvatar,
+  ReviewPromptStatus,
+  SkinId,
+} from '@/game/types';
 
 const KEY = 'zone-meter:persist-v1';
 /**
@@ -23,6 +37,8 @@ const DEFAULT_STATE: PersistState = {
   coins: 0,
   unlockedSkins: ['toxic'],
   equippedSkin: DEFAULT_SKIN,
+  avatar: null,
+  unlockedAvatarPacks: [FREE_AVATAR_PACK],
   bestComboAllTime: 0,
   bestLevel: 0,
   dailyBest: { ...EMPTY_DAILY },
@@ -76,10 +92,16 @@ function betterDaily(a: DailyScore, b: DailyScore): DailyScore {
   return a;
 }
 
+function parseAvatarPacks(value: unknown): AvatarPackId[] {
+  const owned = Array.isArray(value) ? value.filter(isAvatarPackId) : [];
+  return [FREE_AVATAR_PACK, ...owned.filter((id) => id !== FREE_AVATAR_PACK)];
+}
+
 function freshPersist(): PersistState {
   return {
     ...DEFAULT_STATE,
     unlockedSkins: [...DEFAULT_STATE.unlockedSkins],
+    unlockedAvatarPacks: [...DEFAULT_STATE.unlockedAvatarPacks],
   };
 }
 
@@ -126,6 +148,8 @@ export async function loadPersist(): Promise<PersistState> {
         ? (parsed.unlockedSkins as SkinId[])
         : ['toxic'],
       equippedSkin: parsed.equippedSkin ?? DEFAULT_SKIN,
+      avatar: isValidAvatar(parsed.avatar) ? parsed.avatar : null,
+      unlockedAvatarPacks: parseAvatarPacks(parsed.unlockedAvatarPacks),
       dailyBest,
       dailyRecord: betterDaily(dailyRecord, dailyBest),
       soundMuted: Boolean(parsed.soundMuted),
@@ -363,6 +387,53 @@ export async function equipSkin(skin: SkinId): Promise<PersistState | null> {
     const prev = await loadPersist();
     if (!prev.unlockedSkins.includes(skin)) return null;
     const next = { ...prev, equippedSkin: skin };
+    await savePersist(next);
+    return next;
+  });
+}
+
+/** Gives a player with no avatar yet a random free one, once. */
+export async function ensureAvatar(
+  rng: () => number = Math.random,
+): Promise<PersistState> {
+  return withPersistLock(async () => {
+    const prev = await loadPersist();
+    if (prev.avatar) return prev;
+    const next = { ...prev, avatar: randomAvatar(rng) };
+    await savePersist(next);
+    return next;
+  });
+}
+
+/** Picks an emoji + color; null when the emoji's pack isn't unlocked. */
+export async function setAvatar(
+  avatar: PlayerAvatar,
+): Promise<PersistState | null> {
+  return withPersistLock(async () => {
+    const prev = await loadPersist();
+    const pack = packOfEmoji(avatar.emoji);
+    if (!isValidAvatar(avatar) || !pack) return null;
+    if (!prev.unlockedAvatarPacks.includes(pack.id)) return null;
+    const next = { ...prev, avatar: { ...avatar } };
+    await savePersist(next);
+    return next;
+  });
+}
+
+/** Spends coins on an emoji pack; null when the player can't afford it. */
+export async function unlockAvatarPack(
+  id: AvatarPackId,
+): Promise<PersistState | null> {
+  return withPersistLock(async () => {
+    const prev = await loadPersist();
+    if (prev.unlockedAvatarPacks.includes(id)) return prev;
+    const { cost } = avatarPack(id);
+    if (prev.coins < cost) return null;
+    const next: PersistState = {
+      ...prev,
+      coins: prev.coins - cost,
+      unlockedAvatarPacks: [...prev.unlockedAvatarPacks, id],
+    };
     await savePersist(next);
     return next;
   });

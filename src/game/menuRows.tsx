@@ -1,6 +1,13 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { SymbolView } from 'expo-symbols';
-import { Alert, Pressable, Text, View } from 'react-native';
+import {
+  Alert,
+  Pressable,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { useGT, useMessages } from 'gt-react-native';
 
 import { GameColors } from '@/constants/gameTheme';
@@ -270,5 +277,41 @@ export function ModeRow({
       </View>
       {selected ? <Text style={styles.selectedMark}>✓</Text> : null}
     </Pressable>
+  );
+}
+
+/** Chunky two-or-more way switch used at the top of menu pages. */
+export function TabSwitch<T extends string>({
+  tabs,
+  value,
+  onChange,
+  style,
+}: {
+  tabs: readonly { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+  style?: StyleProp<ViewStyle>;
+}) {
+  return (
+    <View style={[styles.rankTabs, style]} accessibilityRole="tablist">
+      {tabs.map((tab) => {
+        const active = tab.value === value;
+        return (
+          <Pressable
+            key={tab.value}
+            onPress={() => onChange(tab.value)}
+            style={[styles.rankTab, active && styles.rankTabActive]}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+          >
+            <Text
+              style={[styles.rankTabText, active && styles.rankTabTextActive]}
+            >
+              {tab.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }

@@ -66,20 +66,26 @@ import {
   clearPersist,
   commitRunResult,
   dailySeed,
+  ensureAvatar,
   equipSkin,
   markReviewAccepted,
   recordReviewPromptDecline,
+  setAvatar,
   setHapticsEnabled,
   setSoundMuted,
   todayKey,
+  unlockAvatarPack,
   unlockSkin,
 } from '@/game/storage';
 import type {
+  AvatarPackId,
+  PlayerAvatar,
   RoundConfig,
   RoundLabel,
   SessionStats,
   SkinId,
 } from '@/game/types';
+import { signInToRanking, submitRunToRanking } from '@/game/ranking';
 import { useRunState } from '@/game/useRunState';
 import { usePersistState } from '@/game/usePersistState';
 import { useSounds } from '@/game/useSounds';
@@ -319,6 +325,14 @@ export function GameScreen() {
     syncZoneMotion(zone, round);
   }, [round, zone]);
 
+  // Sign in once the saved bests are loaded so they can be backfilled.
+  const rankingSignInStarted = useRef(false);
+  useEffect(() => {
+    if (!persist || rankingSignInStarted.current) return;
+    rankingSignInStarted.current = true;
+    void signInToRanking(persist);
+  }, [persist]);
+
   useEffect(() => {
     return () => {
       if (autoTimer.current) clearTimeout(autoTimer.current);
@@ -422,6 +436,7 @@ export function GameScreen() {
       isDaily: stateRef.current.dailyMode,
     });
     applyPersist(next);
+    void submitRunToRanking(finalScore, stateRef.current.dailyMode);
     const beatBest = finalScore > 0 && finalScore >= runBestBaselineRef.current;
     dispatch({ type: 'gameOver', isNewBest: beatBest });
 
@@ -872,6 +887,27 @@ export function GameScreen() {
     })();
   };
 
+  const onSelectAvatar = (avatar: PlayerAvatar) => {
+    void (async () => {
+      const next = await setAvatar(avatar);
+      if (!next) return;
+      applyPersist(next);
+      void gameHaptics.next();
+    })();
+  };
+
+  const onUnlockAvatarPack = (id: AvatarPackId) => {
+    void (async () => {
+      const next = await unlockAvatarPack(id);
+      if (!next) {
+        void gameHaptics.result('Miss');
+        return;
+      }
+      applyPersist(next);
+      void gameHaptics.result('Great');
+    })();
+  };
+
   const closeMenu = () => {
     // Read the parked resume before dispatching — `resume` clears it.
     const resume = stateRef.current.pauseResume;
@@ -945,6 +981,8 @@ export function GameScreen() {
     void gameHaptics.next();
     const next = await clearPersist();
     applyPersist(next);
+    // A fresh start gets a fresh random avatar, like a first launch.
+    void ensureAvatar().then(applyPersist);
     setGameHapticsEnabled(next.hapticsEnabled !== false);
     resetToIdle();
   };
@@ -1535,6 +1573,8 @@ export function GameScreen() {
         coins={persist?.coins ?? 0}
         unlockedSkins={persist?.unlockedSkins ?? ['toxic']}
         equippedSkin={persist?.equippedSkin ?? DEFAULT_SKIN}
+        avatar={persist?.avatar ?? null}
+        unlockedAvatarPacks={persist?.unlockedAvatarPacks ?? ['animals']}
         onClose={closeMenu}
         onToggleSound={() => void toggleSound()}
         onToggleHaptics={() => void toggleHaptics()}
@@ -1544,6 +1584,8 @@ export function GameScreen() {
         onDeleteData={() => void deleteData()}
         onUnlockSkin={onUnlockSkin}
         onEquipSkin={onEquipSkin}
+        onSelectAvatar={onSelectAvatar}
+        onUnlockAvatarPack={onUnlockAvatarPack}
       />
 
       <ReviewPromptModal

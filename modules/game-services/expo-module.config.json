@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["GameServicesModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.gameservices.GameServicesModule"]
+  }
+}

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { setGameHapticsEnabled } from '@/game/haptics';
-import { loadPersist } from '@/game/storage';
+import { ensureAvatar, loadPersist } from '@/game/storage';
 import type { PersistState } from '@/game/types';
 
 /**
@@ -25,6 +25,7 @@ export function usePersistState() {
     void loadPersist().then((state) => {
       applyPersist(state);
       setGameHapticsEnabled(state.hapticsEnabled !== false);
+      if (!state.avatar) void ensureAvatar().then(applyPersist);
     });
   }, [applyPersist]);
 
