@@ -30,6 +30,12 @@ mock.module('gt-react-native', () => ({
   msg: (message: string) => message,
 }));
 
+// Local native modules (game-services, share-sheet) load as unavailable.
+mock.module('expo', () => ({
+  NativeModule: class {},
+  requireOptionalNativeModule: () => null,
+}));
+
 mock.module('expo-store-review', () => ({
   isAvailableAsync: async () => false,
   hasAction: async () => false,

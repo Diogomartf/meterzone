@@ -506,6 +506,10 @@ export const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 320,
   },
+  ctaPressableFull: {
+    maxWidth: '100%',
+    alignSelf: 'stretch',
+  },
   ctaPressableDown: {
     transform: [{ scale: 0.97 }],
   },
@@ -523,6 +527,12 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+  },
+  ctaFaceCompact: {
+    minHeight: 50,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 10,
   },
   ctaFaceUp: {
     marginBottom: 5,
@@ -550,6 +560,62 @@ export const styles = StyleSheet.create({
     textShadowColor: 'rgba(26,28,44,0.35)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 0,
+  },
+  // Ink on yellow reads far better than white at this size.
+  ctaTextCompact: {
+    fontSize: 19,
+    lineHeight: 24,
+    letterSpacing: 0.3,
+    alignSelf: 'stretch',
+    textAlign: 'center',
+    color: GameColors.ink,
+    textShadowColor: 'transparent',
+  },
+  ctaLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'stretch',
+    gap: 8,
+  },
+  // A triangle from borders — no glyph, so it never renders as an emoji.
+  ctaPlayIcon: {
+    width: 0,
+    height: 0,
+    marginRight: 2,
+    borderTopWidth: 12,
+    borderBottomWidth: 12,
+    borderLeftWidth: 20,
+    borderTopColor: 'transparent',
+    borderBottomColor: 'transparent',
+    borderLeftColor: GameColors.white,
+  },
+  ctaPlayIconCompact: {
+    borderTopWidth: 9,
+    borderBottomWidth: 9,
+    borderLeftWidth: 15,
+    borderLeftColor: GameColors.ink,
+  },
+  ctaTextLoading: {
+    // Shares the row with the spinner, so it can't claim the full width.
+    alignSelf: 'auto',
+    flexShrink: 1,
+  },
+  ctaSheenTrack: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    overflow: 'hidden',
+  },
+  ctaSheen: {
+    position: 'absolute',
+    top: -10,
+    bottom: -10,
+    left: 0,
+    width: 56,
+    backgroundColor: 'rgba(255,255,255,0.45)',
   },
   ctaSub: {
     marginTop: 1,

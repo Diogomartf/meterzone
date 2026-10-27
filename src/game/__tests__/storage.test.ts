@@ -5,6 +5,7 @@ import {
   clearPersist,
   commitRunResult,
   dailySeed,
+  ensureAvatar,
   equipSkin,
   loadPersist,
   markReviewAccepted,
@@ -12,11 +13,14 @@ import {
   recordTapHintPlay,
   restoreTapHintPlays,
   savePersist,
+  setAvatar,
   setHapticsEnabled,
   setSoundMuted,
   todayKey,
+  unlockAvatarPack,
   unlockSkin,
 } from '@/game/storage';
+import { AVATAR_COLORS, avatarPack } from '@/game/avatars';
 import { TAP_HINT_PLAYS } from '@/game/tapCoach';
 import { SKINS } from '@/game/skins';
 
@@ -525,5 +529,97 @@ describe('todayKey and dailySeed', () => {
     expect(Number.isInteger(a)).toBe(true);
     expect(a).toBeGreaterThanOrEqual(0);
     expect(a).toBeLessThanOrEqual(0xffffffff);
+  });
+});
+
+describe('avatars', () => {
+  test('a fresh save has no avatar and only the free pack', async () => {
+    const s = await loadPersist();
+    expect(s.avatar).toBeNull();
+    expect(s.unlockedAvatarPacks).toEqual(['animals']);
+  });
+
+  test('ensureAvatar picks one once and keeps it', async () => {
+    const first = await ensureAvatar(() => 0);
+    expect(first.avatar).not.toBeNull();
+    const again = await ensureAvatar(() => 0.99);
+    expect(again.avatar).toEqual(first.avatar);
+  });
+
+  test('setAvatar refuses emoji from a locked pack', async () => {
+    seed({ coins: 0 });
+    expect(
+      await setAvatar({ emoji: '🍕', color: AVATAR_COLORS[0] }),
+    ).toBeNull();
+    const ok = await setAvatar({ emoji: '🐼', color: AVATAR_COLORS[1] });
+    expect(ok!.avatar).toEqual({ emoji: '🐼', color: AVATAR_COLORS[1] });
+  });
+
+  test('unlockAvatarPack spends coins and opens the pack', async () => {
+    const { cost } = avatarPack('food');
+    seed({ coins: cost + 5 });
+    const next = await unlockAvatarPack('food');
+    expect(next!.coins).toBe(5);
+    expect(next!.unlockedAvatarPacks).toEqual(['animals', 'food']);
+    expect(
+      (await setAvatar({ emoji: '🍕', color: AVATAR_COLORS[0] }))!.avatar!
+        .emoji,
+    ).toBe('🍕');
+  });
+
+  test('unlockAvatarPack refuses when coins are short', async () => {
+    seed({ coins: avatarPack('space').cost - 1 });
+    expect(await unlockAvatarPack('space')).toBeNull();
+    expect((await loadPersist()).unlockedAvatarPacks).toEqual(['animals']);
+  });
+
+  test('drops unknown packs and invalid avatars from old saves', async () => {
+    seed({
+      unlockedAvatarPacks: ['food', 'bogus'],
+      avatar: { emoji: '🫠', color: '#000' },
+    });
+    const s = await loadPersist();
+    expect(s.unlockedAvatarPacks).toEqual(['animals', 'food']);
+    expect(s.avatar).toBeNull();
+  });
+});
+
+describe('daily runs that cross midnight UTC', () => {
+  const run = (score: number, day: string) =>
+    commitRunResult({
+      score,
+      coinsEarned: 0,
+      bestCombo: 0,
+      bestLevel: 3,
+      isDaily: true,
+      day,
+    });
+
+  test("a run started yesterday is not recorded as today's best", async () => {
+    const today = todayKey();
+    const yesterday = new Date(Date.parse(`${today}T00:00:00Z`) - 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+    const next = await run(500, yesterday);
+    expect(next.dailyBest.date).toBe(yesterday);
+    expect(next.dailyBest.date).not.toBe(today);
+  });
+
+  test("an older day's run never overwrites a newer day's best", async () => {
+    seed({ dailyBest: { date: '2026-10-27', score: 100, level: 2 } });
+    const next = await run(900, '2026-10-26');
+    expect(next.dailyBest).toEqual({
+      date: '2026-10-27',
+      score: 100,
+      level: 2,
+    });
+    // …but it still counts toward the all-time daily record.
+    expect(next.dailyRecord.score).toBe(900);
+    expect(next.dailyRecord.date).toBe('2026-10-26');
+  });
+
+  test("dailySeed follows the run's day, not the clock", () => {
+    expect(dailySeed(todayKey())).toBe(dailySeed());
+    expect(dailySeed('2026-10-26')).not.toBe(dailySeed('2026-10-27'));
   });
 });

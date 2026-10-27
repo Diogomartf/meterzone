@@ -53,6 +53,11 @@ export type SessionStats = {
 
 export type SkinId = 'toxic' | 'lava' | 'ice' | 'gold';
 
+export type AvatarPackId = 'animals' | 'food' | 'space' | 'sports' | 'legends';
+
+/** The player's leaderboard avatar — an emoji on a colored disc. */
+export type PlayerAvatar = { emoji: string; color: string };
+
 /**
  * Soft review prompt — native Store Review only after `accepted`.
  * At most a few spaced asks (see REVIEW_PROMPT_MILESTONES); always + high score.
@@ -64,6 +69,10 @@ export type PersistState = {
   coins: number;
   unlockedSkins: SkinId[];
   equippedSkin: SkinId;
+  /** Chosen leaderboard avatar — null until the first load picks a random one. */
+  avatar: PlayerAvatar | null;
+  /** Emoji packs bought with coins; the free pack is always included. */
+  unlockedAvatarPacks: AvatarPackId[];
   bestComboAllTime: number;
   /** Deepest level reached in a normal (non-daily) run */
   bestLevel: number;

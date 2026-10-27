@@ -31,15 +31,19 @@ import {
   HighscoreCard,
   ModeRow,
   SupportCard,
+  TabSwitch,
   ToggleRow,
   type HighscoreKind,
 } from '@/game/menuRows';
+import { AvatarPicker } from '@/game/AvatarPicker';
 import { styles } from '@/game/menuSheetStyles';
+import { rankingAvailable } from '@/game/ranking';
+import { RankingScreen } from '@/game/RankingScreen';
 import { SkinShop } from '@/game/SkinShop';
 import { captureAndShare, shareScoreCaption } from '@/game/share';
 import { SKIN_IDS, unlockedSkinCount } from '@/game/skins';
 import { formatScore } from '@/game/format';
-import type { SkinId } from '@/game/types';
+import type { AvatarPackId, PlayerAvatar, SkinId } from '@/game/types';
 import gtConfig from '../../gt.config.json';
 
 const LOGO = require('../../assets/images/zone-meter-logo.webp');
@@ -52,7 +56,14 @@ const LOGO = require('../../assets/images/zone-meter-logo.webp');
 const LOCALE_ORDER = [gtConfig.defaultLocale, ...gtConfig.locales];
 
 type MenuView =
-  'menu' | 'mode' | 'highscores' | 'howto' | 'settings' | 'language' | 'skins';
+  | 'menu'
+  | 'mode'
+  | 'highscores'
+  | 'ranking'
+  | 'howto'
+  | 'settings'
+  | 'language'
+  | 'skins';
 
 type MenuSheetProps = {
   visible: boolean;
@@ -73,6 +84,8 @@ type MenuSheetProps = {
   coins: number;
   unlockedSkins: readonly SkinId[];
   equippedSkin: SkinId;
+  avatar: PlayerAvatar | null;
+  unlockedAvatarPacks: readonly AvatarPackId[];
   onClose: () => void;
   onToggleSound: () => void;
   onToggleHaptics: () => void;
@@ -82,6 +95,8 @@ type MenuSheetProps = {
   onDeleteData: () => void;
   onUnlockSkin: (id: SkinId) => void;
   onEquipSkin: (id: SkinId) => void;
+  onSelectAvatar: (avatar: PlayerAvatar) => void;
+  onUnlockAvatarPack: (id: AvatarPackId) => void;
 };
 
 export function MenuSheet({
@@ -101,6 +116,8 @@ export function MenuSheet({
   coins,
   unlockedSkins,
   equippedSkin,
+  avatar,
+  unlockedAvatarPacks,
   onClose,
   onToggleSound,
   onToggleHaptics,
@@ -110,6 +127,8 @@ export function MenuSheet({
   onDeleteData,
   onUnlockSkin,
   onEquipSkin,
+  onSelectAvatar,
+  onUnlockAvatarPack,
 }: MenuSheetProps) {
   const gt = useGT();
   const m = useMessages();
@@ -125,6 +144,8 @@ export function MenuSheet({
   const translateY = useSharedValue(sheetH);
   const overlayOpacity = useSharedValue(0);
   const [view, setView] = useState<MenuView>('menu');
+  const [shopTab, setShopTab] = useState<'skins' | 'avatar'>('skins');
+
   const [sharingKind, setSharingKind] = useState<HighscoreKind | null>(null);
   const normalShareRef = useRef<View>(null);
   const todayShareRef = useRef<View>(null);
@@ -202,13 +223,15 @@ export function MenuSheet({
         ? gt('PLAY MODE')
         : view === 'highscores'
           ? gt('HALL OF FAME')
-          : view === 'howto'
-            ? gt('HOW TO PLAY')
-            : view === 'language'
-              ? gt('LANGUAGE')
-              : view === 'skins'
-                ? gt('SKINS')
-                : gt('SETTINGS');
+          : view === 'ranking'
+            ? gt('RANKING')
+            : view === 'howto'
+              ? gt('HOW TO PLAY')
+              : view === 'language'
+                ? gt('LANGUAGE')
+                : view === 'skins'
+                  ? gt('AVATAR & SKINS')
+                  : gt('SETTINGS');
 
   const formatDay = (iso: string) =>
     new Date(iso + 'T12:00:00').toLocaleDateString(locale, {
@@ -307,14 +330,17 @@ export function MenuSheet({
       statusBarTranslucent
     >
       <GestureHandlerRootView style={styles.overlayRoot}>
+        {/* Only the dim layer fades on drag — the sheet stays opaque. */}
         <Animated.View
-          style={[styles.overlay, styles.overlayHidden, overlayStyle]}
+          style={[styles.backdrop, styles.overlayHidden, overlayStyle]}
         >
           <Pressable
             style={styles.dismissArea}
             onPress={dismiss}
             accessibilityLabel={gt('Dismiss menu')}
           />
+        </Animated.View>
+        <View style={styles.sheetContainer} pointerEvents="box-none">
           <Animated.View
             collapsable={false}
             style={[
@@ -408,9 +434,19 @@ export function MenuSheet({
                       subtitle={gt('Normal, today & best daily')}
                       onPress={() => setView('highscores')}
                     />
+                    {rankingAvailable ? (
+                      <>
+                        <View style={styles.divider} />
+                        <ActionRow
+                          label={gt('Ranking')}
+                          subtitle={gt('Compete with players worldwide')}
+                          onPress={() => setView('ranking')}
+                        />
+                      </>
+                    ) : null}
                     <View style={styles.divider} />
                     <ActionRow
-                      label={gt('Skins')}
+                      label={gt('Avatar & skins')}
                       subtitle={gt('{count} coins · {owned} of {total}', {
                         count: formatScore(coins),
                         owned: unlockedSkinCount(unlockedSkins),
@@ -440,6 +476,15 @@ export function MenuSheet({
 
                   <Text style={styles.version}>MeterZone · v{version}</Text>
                 </ScrollView>
+              ) : null}
+
+              {view === 'ranking' ? (
+                <RankingScreen
+                  myAvatar={avatar}
+                  highScore={highScore}
+                  dailyTodayScore={dailyTodayScore}
+                  onPlay={(kind) => onStartMode(kind === 'daily')}
+                />
               ) : null}
 
               {view === 'mode' ? (
@@ -639,13 +684,34 @@ export function MenuSheet({
               ) : null}
 
               {view === 'skins' ? (
-                <SkinShop
-                  coins={coins}
-                  unlockedSkins={unlockedSkins}
-                  equippedSkin={equippedSkin}
-                  onUnlock={onUnlockSkin}
-                  onEquip={onEquipSkin}
-                />
+                <View style={styles.shopBody}>
+                  <TabSwitch
+                    style={styles.shopTabs}
+                    value={shopTab}
+                    onChange={setShopTab}
+                    tabs={[
+                      { value: 'skins', label: gt('SKINS') },
+                      { value: 'avatar', label: gt('AVATAR') },
+                    ]}
+                  />
+                  {shopTab === 'skins' ? (
+                    <SkinShop
+                      coins={coins}
+                      unlockedSkins={unlockedSkins}
+                      equippedSkin={equippedSkin}
+                      onUnlock={onUnlockSkin}
+                      onEquip={onEquipSkin}
+                    />
+                  ) : (
+                    <AvatarPicker
+                      avatar={avatar}
+                      unlockedPacks={unlockedAvatarPacks}
+                      coins={coins}
+                      onSelect={onSelectAvatar}
+                      onUnlock={onUnlockAvatarPack}
+                    />
+                  )}
+                </View>
               ) : null}
 
               {view === 'settings' ? (
@@ -693,7 +759,7 @@ export function MenuSheet({
               ) : null}
             </View>
           </Animated.View>
-        </Animated.View>
+        </View>
       </GestureHandlerRootView>
     </Modal>
   );
