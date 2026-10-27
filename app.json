@@ -2,7 +2,7 @@
   "expo": {
     "name": "MeterZone",
     "slug": "meterzone",
-    "version": "1.1.1",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "meterzone",
@@ -79,7 +79,10 @@
           "playGamesAppId": ""
         }
       ],
-      "./plugins/withSceneLifecycle.js"
+      "./plugins/withSceneLifecycle.js",
+      "expo-font",
+      "expo-image",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
