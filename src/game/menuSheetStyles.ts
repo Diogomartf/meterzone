@@ -993,10 +993,10 @@ export const styles = StyleSheet.create({
   },
   skinBankLabel: {
     flex: 1,
-    fontFamily: GameFonts.body,
-    fontSize: 13,
-    lineHeight: 16,
-    letterSpacing: 0.8,
+    fontFamily: GameFonts.display,
+    fontSize: 19,
+    lineHeight: 24,
+    letterSpacing: 0.5,
     color: GameColors.ink,
   },
   skinBankCoin: {
