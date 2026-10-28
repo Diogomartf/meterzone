@@ -166,14 +166,23 @@ export function CoinBank({ coins }: { coins: number }) {
   const gt = useGT();
   return (
     <View style={styles.skinBank}>
-      <View style={styles.skinBankValueRow}>
+      <View style={styles.skinBankText}>
         <Text style={styles.skinBankLabel}>{gt('YOUR COINS')}</Text>
-        <Image source={COIN} style={styles.skinBankCoin} contentFit="contain" />
-        <Text style={styles.skinBankValue}>{formatScore(coins)}</Text>
+        <Text style={styles.skinBankHint}>
+          {gt('Perfect, Great, and Nice hits pay coins.')}
+        </Text>
       </View>
-      <Text style={styles.skinBankHint}>
-        {gt('Perfect, Great, and Nice hits pay coins.')}
-      </Text>
+      <View style={styles.skinBankValueRow}>
+        <Image source={COIN} style={styles.skinBankCoin} contentFit="contain" />
+        <Text
+          style={styles.skinBankValue}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.6}
+        >
+          {formatScore(coins)}
+        </Text>
+      </View>
     </View>
   );
 }
