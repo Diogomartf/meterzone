@@ -22,7 +22,6 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGT, useLocaleSelector, useMessages } from 'gt-react-native';
 
 import { GameColors } from '@/constants/gameTheme';
@@ -43,6 +42,7 @@ import { CoinBank, SkinShop } from '@/game/SkinShop';
 import { captureAndShare, shareScoreCaption } from '@/game/share';
 import { formatScore } from '@/game/format';
 import type { AvatarPackId, PlayerAvatar, SkinId } from '@/game/types';
+import { useSheetBottomPad } from '@/game/useSheetBottomPad';
 import gtConfig from '../../gt.config.json';
 
 const LOGO = require('../../assets/images/zone-meter-logo.webp');
@@ -137,7 +137,7 @@ export function MenuSheet({
     setLocale,
     getLocaleProperties,
   } = useLocaleSelector(LOCALE_ORDER);
-  const insets = useSafeAreaInsets();
+  const bottomPad = useSheetBottomPad();
   const { height: windowH } = useWindowDimensions();
   const sheetH = Math.round(windowH * 0.92);
   const translateY = useSharedValue(sheetH);
@@ -342,14 +342,7 @@ export function MenuSheet({
         <View style={styles.sheetContainer} pointerEvents="box-none">
           <Animated.View
             collapsable={false}
-            style={[
-              styles.sheet,
-              {
-                height: sheetH,
-                paddingBottom: Math.max(insets.bottom, 18) + 10,
-              },
-              sheetStyle,
-            ]}
+            style={[styles.sheet, { height: sheetH }, sheetStyle]}
           >
             <GestureDetector gesture={pan}>
               <View collapsable={false}>
@@ -376,17 +369,19 @@ export function MenuSheet({
                   >
                     {title}
                   </Text>
-                  <Pressable
-                    onPress={dismiss}
-                    style={({ pressed }) => [
-                      styles.closeBtn,
-                      pressed && styles.closeBtnPressed,
-                    ]}
-                    hitSlop={10}
-                    accessibilityLabel={gt('Close')}
-                  >
-                    <Text style={styles.closeBtnText}>{gt('DONE')}</Text>
-                  </Pressable>
+                  {view === 'menu' ? (
+                    <Pressable
+                      onPress={dismiss}
+                      style={({ pressed }) => [
+                        styles.backBtn,
+                        pressed && styles.closeBtnPressed,
+                      ]}
+                      hitSlop={10}
+                      accessibilityLabel={gt('Close')}
+                    >
+                      <Text style={styles.closeBtnText}>×</Text>
+                    </Pressable>
+                  ) : null}
                 </View>
               </View>
             </GestureDetector>
@@ -395,7 +390,7 @@ export function MenuSheet({
               {view === 'menu' ? (
                 <ScrollView
                   style={styles.menuScroll}
-                  contentContainerStyle={styles.menuScrollContent}
+                  contentContainerStyle={[styles.menuScrollContent, bottomPad]}
                   showsVerticalScrollIndicator={false}
                   bounces={false}
                   nestedScrollEnabled
@@ -411,10 +406,10 @@ export function MenuSheet({
                         pressed && styles.closeBtnPressed,
                       ]}
                       accessibilityRole="button"
-                      accessibilityLabel={gt('Go back')}
+                      accessibilityLabel={gt('Go home')}
                     >
                       <Text style={styles.startOverBtnText}>
-                        {gt('GO BACK')}
+                        {gt('GO HOME')}
                       </Text>
                     </Pressable>
                   ) : null}
@@ -505,7 +500,7 @@ export function MenuSheet({
               {view === 'highscores' ? (
                 <ScrollView
                   style={styles.hsScroll}
-                  contentContainerStyle={styles.hsList}
+                  contentContainerStyle={[styles.hsList, bottomPad]}
                   showsVerticalScrollIndicator={false}
                   nestedScrollEnabled
                   keyboardShouldPersistTaps="handled"
@@ -609,7 +604,7 @@ export function MenuSheet({
               {view === 'howto' ? (
                 <ScrollView
                   style={styles.menuScroll}
-                  contentContainerStyle={styles.menuScrollContent}
+                  contentContainerStyle={[styles.menuScrollContent, bottomPad]}
                   showsVerticalScrollIndicator={false}
                   bounces={false}
                   nestedScrollEnabled
@@ -658,7 +653,7 @@ export function MenuSheet({
               {view === 'language' ? (
                 <ScrollView
                   style={styles.menuScroll}
-                  contentContainerStyle={styles.menuScrollContent}
+                  contentContainerStyle={[styles.menuScrollContent, bottomPad]}
                   showsVerticalScrollIndicator={false}
                   bounces={false}
                   nestedScrollEnabled
@@ -715,7 +710,7 @@ export function MenuSheet({
               {view === 'settings' ? (
                 <ScrollView
                   style={styles.menuScroll}
-                  contentContainerStyle={styles.menuScrollContent}
+                  contentContainerStyle={[styles.menuScrollContent, bottomPad]}
                   showsVerticalScrollIndicator={false}
                   bounces={false}
                   nestedScrollEnabled

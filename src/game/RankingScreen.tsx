@@ -37,6 +37,7 @@ import { styles } from '@/game/menuSheetStyles';
 import { TabSwitch } from '@/game/menuRows';
 import { todayKey } from '@/game/storage';
 import type { PlayerAvatar } from '@/game/types';
+import { useSheetBottomPad } from '@/game/useSheetBottomPad';
 import {
   formatClock,
   isSignedInToRanking,
@@ -101,6 +102,7 @@ export function RankingScreen({
   onPlay: (kind: RankingKind) => void;
 }) {
   const gt = useGT();
+  const bottomPad = useSheetBottomPad();
   const [kind, setKind] = useState<RankingKind>('daily');
   const [signedIn, setSignedIn] = useState(isSignedInToRanking);
   const [load, setLoad] = useState<LoadState>({ status: 'loading' });
@@ -184,7 +186,7 @@ export function RankingScreen({
     <MyAvatarContext value={myAvatar}>
       <ScrollView
         style={styles.hsScroll}
-        contentContainerStyle={styles.rankScreen}
+        contentContainerStyle={[styles.rankScreen, bottomPad]}
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
       >

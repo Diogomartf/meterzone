@@ -83,21 +83,15 @@ export const styles = StyleSheet.create({
     color: GameColors.ink,
     marginTop: -2,
   },
-  closeBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 12,
-    backgroundColor: GameColors.playBlue,
-    borderWidth: 2.5,
-    borderColor: GameColors.ink,
-  },
   closeBtnPressed: {
     transform: [{ translateY: 2 }],
   },
   closeBtnText: {
-    fontFamily: GameFonts.body,
-    fontSize: 13,
-    color: GameColors.white,
+    fontFamily: GameFonts.display,
+    fontSize: 30,
+    lineHeight: 32,
+    color: GameColors.ink,
+    marginTop: -2,
   },
   startOverBtn: {
     alignItems: 'center',
@@ -123,9 +117,6 @@ export const styles = StyleSheet.create({
   },
   menuScrollContent: {
     gap: 16,
-    // Breathing room at the cut line so the last row reads as scrollable
-    // rather than clipped by the sheet edge.
-    paddingBottom: 24,
   },
   supportCard: {
     borderRadius: 20,
@@ -225,7 +216,6 @@ export const styles = StyleSheet.create({
   },
   hsList: {
     gap: 14,
-    paddingBottom: 24,
   },
   hsCapture: {
     backgroundColor: '#E8F7FF',
@@ -413,7 +403,6 @@ export const styles = StyleSheet.create({
   // Ranking page — crowned podium, full list, gap to the next spot.
   rankScreen: {
     gap: 12,
-    paddingBottom: 28,
   },
   rankAim: {
     fontFamily: GameFonts.display,

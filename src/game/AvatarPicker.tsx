@@ -11,6 +11,7 @@ import {
 import { formatScore } from '@/game/format';
 import { styles } from '@/game/menuSheetStyles';
 import type { AvatarPackId, PlayerAvatar } from '@/game/types';
+import { useSheetBottomPad } from '@/game/useSheetBottomPad';
 
 const COIN = require('../../assets/images/coin.webp');
 
@@ -35,11 +36,12 @@ export function AvatarPicker({
 }: AvatarPickerProps) {
   const gt = useGT();
   const current = avatar ?? { emoji: '🦊', color: AVATAR_COLORS[0] };
+  const bottomPad = useSheetBottomPad();
 
   return (
     <ScrollView
       style={styles.menuScroll}
-      contentContainerStyle={styles.menuScrollContent}
+      contentContainerStyle={[styles.menuScrollContent, bottomPad]}
       showsVerticalScrollIndicator={false}
       bounces={false}
       nestedScrollEnabled
