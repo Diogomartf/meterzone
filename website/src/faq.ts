@@ -28,7 +28,7 @@ export const GAME_FAQS = [
   {
     question: 'What do I win for a top daily finish?',
     answer:
-      'When the daily board closes at midnight UTC, the top 10 earn coins: 500 for first, 300 for second, 200 for third, and 100 for fourth to tenth. The coins arrive the next time you open the game while signed in to Game Center.',
+      'When the daily board closes at midnight UTC, the top 10 earn coins: 500 for first, 300 for second, 200 for third, and 100 for fourth to tenth. To collect them, open the game while signed in to Game Center before the next reset — the following UTC day. Rewards from earlier days can’t be claimed later.',
   },
   {
     question: 'Can I play MeterZone offline?',
