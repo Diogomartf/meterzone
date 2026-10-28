@@ -5,8 +5,6 @@ import { msg, useGT, useMessages } from 'gt-react-native';
 
 import { formatScore } from '@/game/format';
 import { styles } from '@/game/menuSheetStyles';
-
-const COIN = require('../../assets/images/coin.webp');
 import {
   SKINS,
   SKIN_IDS,
@@ -15,6 +13,9 @@ import {
   type SkinDef,
 } from '@/game/skins';
 import type { SkinId } from '@/game/types';
+import { useSheetBottomPad } from '@/game/useSheetBottomPad';
+
+const COIN = require('../../assets/images/coin.webp');
 
 const SKIN_NAME: Record<SkinId, string> = {
   toxic: msg('Toxic'),
@@ -195,10 +196,12 @@ export function SkinShop({
   onUnlock,
   onEquip,
 }: SkinShopProps) {
+  const bottomPad = useSheetBottomPad();
+
   return (
     <ScrollView
       style={styles.menuScroll}
-      contentContainerStyle={styles.menuScrollContent}
+      contentContainerStyle={[styles.menuScrollContent, bottomPad]}
       showsVerticalScrollIndicator={false}
       bounces={false}
       nestedScrollEnabled
