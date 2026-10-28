@@ -39,6 +39,7 @@ import { Hearts } from '@/game/Hearts';
 import { MenuSheet } from '@/game/MenuSheet';
 import { MissBreak } from '@/game/MissBreak';
 import { PerfectSwoosh } from '@/game/PerfectSwoosh';
+import { DailyRewardModal } from '@/game/DailyRewardModal';
 import { ReviewPromptModal } from '@/game/ReviewPromptModal';
 import { ScoreModule } from '@/game/ScoreModule';
 import { TapHint, TAP_BALL_GAP } from '@/game/TapHint';
@@ -87,6 +88,7 @@ import type {
 } from '@/game/types';
 import { signInToRanking, submitRunToRanking } from '@/game/ranking';
 import { useRunState } from '@/game/useRunState';
+import { useDailyReward } from '@/game/useDailyReward';
 import { usePersistState } from '@/game/usePersistState';
 import { useSounds } from '@/game/useSounds';
 import { useTapCoach } from '@/game/useTapCoach';
@@ -332,11 +334,14 @@ export function GameScreen() {
 
   // Sign in once the saved bests are loaded so they can be backfilled.
   const rankingSignInStarted = useRef(false);
+  const [rankingSignInDone, setRankingSignInDone] = useState(false);
   useEffect(() => {
     if (!persist || rankingSignInStarted.current) return;
     rankingSignInStarted.current = true;
-    void signInToRanking(persist);
+    void signInToRanking(persist).then(() => setRankingSignInDone(true));
   }, [persist]);
+
+  const dailyReward = useDailyReward(rankingSignInDone, applyPersist);
 
   useEffect(() => {
     return () => {
@@ -1599,6 +1604,16 @@ export function GameScreen() {
         onEquipSkin={onEquipSkin}
         onSelectAvatar={onSelectAvatar}
         onUnlockAvatarPack={onUnlockAvatarPack}
+      />
+
+      {/* Waits for the home screen, so it never lands mid-run. */}
+      <DailyRewardModal
+        reward={
+          phase === 'ready' && !menuOpen && !reviewPromptVisible
+            ? dailyReward.reward
+            : null
+        }
+        onClose={dailyReward.dismiss}
       />
 
       <ReviewPromptModal

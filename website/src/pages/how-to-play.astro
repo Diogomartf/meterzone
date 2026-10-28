@@ -2,7 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { APP_STORE_URL, SITE_URL } from '../site';
 
-const description = 'Learn how to play MeterZone on iPhone: aim for Perfect stops, build combos up to 5×, protect your three hearts, unlock meter skins with coins, and take on the daily challenge offline.';
+const description = 'Learn how to play MeterZone on iPhone: aim for Perfect stops, build combos up to 5×, protect your three hearts, unlock skins and avatars with coins, take on the daily challenge, and climb the Game Center leaderboards.';
 const jsonLd = [{
   '@type': 'BreadcrumbList',
   itemListElement: [
@@ -24,8 +24,9 @@ const jsonLd = [{
     <nav class="contents" aria-label="On this page">
       <a href="#timing">Timing your tap</a>
       <a href="#scoring">Scores and combos</a>
-      <a href="#skins">Coins and skins</a>
+      <a href="#skins">Coins, skins and avatars</a>
       <a href="#daily">Daily challenge</a>
+      <a href="#leaderboards">Leaderboards</a>
       <a href="#offline">Playing offline</a>
     </nav>
 
@@ -62,9 +63,11 @@ const jsonLd = [{
     </section>
 
     <section id="skins">
-      <h2>Coins and meter skins</h2>
-      <p>Every Perfect, Great, and Nice hit pays coins. Misses pay nothing. Open Skins from the menu, or tap the coin counter on the home screen, to spend what you have earned.</p>
-      <p>Toxic is the default liquid. Lava and Ice unlock after a stretch of play. Gold is the rare look — even a long Perfect run of a hundred levels will not quite pay for it. Equip a look any time in Skins. Unlocks stay on your iPhone with your high scores and settings — there is no account and no extra purchase.</p>
+      <h2>Coins, meter skins, and avatars</h2>
+      <p>Every Perfect, Great, and Nice hit pays coins, and a top-10 daily finish pays a bonus. Misses pay nothing. Open Avatar &amp; skins from the menu, or tap the coin counter on the home screen, to spend what you have earned. Your balance sits above both tabs.</p>
+      <p><strong>Skins.</strong> Toxic is the default liquid. Lava and Ice unlock after a stretch of play. Gold is the rare look — even a long Perfect run of a hundred levels will not quite pay for it. Equip a look any time.</p>
+      <p><strong>Avatars.</strong> Your avatar is an emoji on a coloured disc, shown next to your own entries on the leaderboard. Every background colour and the Animals pack are free. The Food, Space, Sports, and Legends packs unlock with coins, from 1,500 up to 30,000.</p>
+      <p>Unlocks stay on your iPhone with your high scores and settings — there is no extra purchase.</p>
     </section>
 
     <section id="daily">
@@ -72,11 +75,20 @@ const jsonLd = [{
       <p>The daily challenge uses a sequence based on the current UTC date, so players on the same game version get the same daily sequence. A new challenge begins at midnight UTC, which may differ from midnight where you live.</p>
       <p>Replay the challenge to practice that day’s timing and try to improve your daily best. Your daily result stays on your device. Use the game’s share option to send a score image to friends and compare runs.</p>
       <p>Regular play gives you a new randomized sequence when you start a run. Use it for variety, and return to the daily challenge when you want another attempt at the same sequence.</p>
+      <h3>Daily rewards</h3>
+      <p>When the daily board closes at midnight UTC, the top 10 earn coins: 500 for first, 300 for second, 200 for third, and 100 for fourth to tenth. The coins arrive the next time you open the game while signed in to Game Center.</p>
+    </section>
+
+    <section id="leaderboards">
+      <h2>Climbing the leaderboards</h2>
+      <p>Open Ranking from the menu and choose a board. <strong>Daily</strong> ranks the best score on that day’s challenge, shows a countdown to the reset, and puts the top three on a podium. <strong>Endless</strong> ranks your all-time best in regular play.</p>
+      <p>Each board shows the top 10, highlights your row, and tells you how many points you need to pass the player above you. Players appear with their Game Center nickname.</p>
+      <p>Leaderboards use Game Center, so there is no email or password — tap <em>Continue with Game Center</em> once. Your saved bests are sent when you sign in, so you do not start from zero.</p>
     </section>
 
     <section id="offline">
       <h2>A timing game you can play offline</h2>
-      <p>Once you have downloaded MeterZone from the App Store, you can play without an internet connection or an account. High scores, settings, and unlocks are saved on your phone. Sound and haptics can be adjusted in the game’s settings.</p>
+      <p>Once you have downloaded MeterZone from the App Store, you can play without an internet connection or an account. High scores, settings, and unlocks are saved on your phone. Leaderboards are optional and need a connection. Sound and haptics can be adjusted in the game’s settings.</p>
       <p>MeterZone is available for iPhone. There is no Android version currently available.</p>
     </section>
 

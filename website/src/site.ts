@@ -6,7 +6,7 @@ export const APP_NAME = 'MeterZone';
 /** Default SEO copy — keep under ~155 chars for meta descriptions. */
 export const SITE_TAGLINE = 'A free one-tap timing game for iPhone';
 export const SITE_DESCRIPTION =
-  'Play MeterZone, a free offline timing game for iPhone. Tap to stop the rising meter, stack combos, and beat the daily challenge. No account needed.';
+  'Play MeterZone, a free timing game for iPhone. Tap to stop the meter, stack combos, beat the daily challenge, and climb the Game Center leaderboards.';
 export const SITE_TITLE = `${APP_NAME} — Free Offline Timing Game for iPhone`;
 
 /** Social share image (1200×630). */

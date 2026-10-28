@@ -107,6 +107,29 @@ public class GameServicesModule: Module {
       return result
     }
 
+    /**
+     * The player's final entry on the occurrence before the current one of a
+     * recurring board — yesterday's daily. `start` is that occurrence's start,
+     * so the caller can tell days apart without trusting the device clock.
+     * Null when the board has no earlier occurrence.
+     */
+    AsyncFunction("loadPreviousOccurrenceAsync") { (leaderboardId: String) async throws -> [String: Any]? in
+      guard GKLocalPlayer.local.isAuthenticated else { throw NotSignedInException() }
+      guard let board = try await GKLeaderboard.loadLeaderboards(IDs: [leaderboardId]).first else {
+        throw LeaderboardNotFoundException(leaderboardId)
+      }
+      guard board.type == .recurring,
+        let previous = try await board.loadPreviousOccurrence(),
+        let start = previous.startDate
+      else { return nil }
+      let (you, _, _) = try await previous.loadEntries(
+        for: .global, timeScope: .allTime, range: NSRange(location: 1, length: 1))
+
+      var result: [String: Any] = ["start": start.timeIntervalSince1970 * 1000]
+      if let you { result["you"] = Self.serialize(you) }
+      return result
+    }
+
     // GKGameCenterViewController is deprecated from iOS 26; the access point
     // opens the same leaderboards (in the Games app overlay on iOS 26+).
     AsyncFunction("showLeaderboardsAsync") { (promise: Promise) in

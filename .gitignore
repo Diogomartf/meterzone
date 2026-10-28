@@ -56,3 +56,6 @@ example
 /ios
 /android
 tmp/
+
+# Local EAS build output (bun run build:*:local)
+/build/

@@ -368,7 +368,7 @@ function LiveBoard({
       {kind === 'daily' ? (
         <GameCta
           fullWidth
-          icon="play"
+          compact
           label={gt('PLAY DAILY')}
           face="#FFC800"
           depth="#D97706"

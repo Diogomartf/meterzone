@@ -26,8 +26,8 @@ const steps = [
     body: 'Stop the meter inside the sweet spot for Perfect, Great, or Nice. Miss and you lose a heart.',
   },
   {
-    title: 'Climb the daily challenge',
-    body: 'Build combos, chase high scores, and take on the same daily sequence as everyone else.',
+    title: 'Climb the leaderboards',
+    body: 'Take on the same daily sequence as everyone else, then see where you rank worldwide with Game Center.',
   },
 ];
 
@@ -42,11 +42,19 @@ const features = [
   },
   {
     title: 'Daily challenge',
-    body: 'The same sequence for everyone each day — race friends on a level playing field.',
+    body: 'The same sequence for everyone each day. Finish in the top 10 and win up to 500 coins.',
+  },
+  {
+    title: 'Worldwide leaderboards',
+    body: 'Daily and Endless rankings with Game Center — your nickname, a podium, and the points you need to pass the next player.',
+  },
+  {
+    title: 'Skins & avatars',
+    body: 'Spend coins on new meter skins, and pick an emoji avatar for the leaderboard from five packs.',
   },
   {
     title: 'Play offline',
-    body: 'No account required. Progress stays on your device, with optional sound and haptics.',
+    body: 'No account required. Progress stays on your device; leaderboards are optional and need a connection.',
   },
 ];
 
@@ -104,7 +112,7 @@ const jsonLd = [
               </span>
             </h1>
             <p class="hero-kicker">{HERO_KICKER}</p>
-            <p class="hero-description">MeterZone is a free offline timing game for iPhone. Tap to stop the rising meter inside the zone, stack combos, and beat the daily challenge. No account needed.</p>
+            <p class="hero-description">MeterZone is a free offline timing game for iPhone. Tap to stop the rising meter inside the zone, stack combos, beat the daily challenge, and climb the leaderboards. No account needed.</p>
           </header>
 
           <div class="hero-phone" aria-label="Game preview">
@@ -168,8 +176,8 @@ const jsonLd = [
     <section class="features" aria-labelledby="features-title">
       <h2 id="features-title">Why players love {APP_NAME}</h2>
       <p class="features-intro">
-        A simple arcade-style timing challenge with daily competition, offline
-        play, and just enough pressure for one more try.
+        A simple arcade-style timing challenge with worldwide leaderboards,
+        coins to spend, offline play, and just enough pressure for one more try.
       </p>
       <ul class="feature-grid">
         {features.map((feature) => (

@@ -8,7 +8,6 @@ import {
   hexAlpha,
   liquidSurface,
   skinAction,
-  unlockedSkinCount,
 } from '@/game/skins';
 
 /** Bank from `levels` consecutive Perfects on a fresh run. */
@@ -92,14 +91,6 @@ describe('skinAction', () => {
     expect(skinAction(SKINS.lava, 'lava', ['toxic'], SKINS.lava.cost)).toBe(
       'unlock',
     );
-  });
-});
-
-describe('unlockedSkinCount', () => {
-  test('counts known skins only', () => {
-    expect(unlockedSkinCount(['toxic'])).toBe(1);
-    expect(unlockedSkinCount(['toxic', 'lava', 'ice', 'gold'])).toBe(4);
-    expect(unlockedSkinCount(['toxic', 'toxic', 'mystery' as never])).toBe(1);
   });
 });
 

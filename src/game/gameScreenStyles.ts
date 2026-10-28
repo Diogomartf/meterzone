@@ -578,24 +578,6 @@ export const styles = StyleSheet.create({
     alignSelf: 'stretch',
     gap: 8,
   },
-  // A triangle from borders — no glyph, so it never renders as an emoji.
-  ctaPlayIcon: {
-    width: 0,
-    height: 0,
-    marginRight: 2,
-    borderTopWidth: 12,
-    borderBottomWidth: 12,
-    borderLeftWidth: 20,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-    borderLeftColor: GameColors.white,
-  },
-  ctaPlayIconCompact: {
-    borderTopWidth: 9,
-    borderBottomWidth: 9,
-    borderLeftWidth: 15,
-    borderLeftColor: GameColors.ink,
-  },
   ctaTextLoading: {
     // Shares the row with the spinner, so it can't claim the full width.
     alignSelf: 'auto',

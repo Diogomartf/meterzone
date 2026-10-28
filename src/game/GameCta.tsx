@@ -21,8 +21,6 @@ type GameCtaProps = {
   compact?: boolean;
   /** Spinner + a sweeping sheen, and presses ignored, while work is pending. */
   loading?: boolean;
-  /** Drawn play triangle before the label. */
-  icon?: 'play';
   /** Stretch to the container instead of capping at the home-screen width. */
   fullWidth?: boolean;
   onPress: () => void;
@@ -36,7 +34,6 @@ export function GameCta({
   depth,
   compact,
   loading,
-  icon,
   fullWidth,
   onPress,
 }: GameCtaProps) {
@@ -69,13 +66,6 @@ export function GameCta({
                 <ActivityIndicator
                   size="small"
                   color={compact ? GameColors.ink : GameColors.white}
-                />
-              ) : icon === 'play' ? (
-                <View
-                  style={[
-                    styles.ctaPlayIcon,
-                    compact && styles.ctaPlayIconCompact,
-                  ]}
                 />
               ) : null}
               <Text

@@ -58,14 +58,6 @@ export function AvatarPicker({
         <Text style={styles.avatarPreviewHint}>
           {gt('Your face on the leaderboard')}
         </Text>
-        <View style={styles.avatarCoins}>
-          <Image
-            source={COIN}
-            style={styles.avatarCoinIcon}
-            contentFit="contain"
-          />
-          <Text style={styles.avatarCoinsText}>{formatScore(coins)}</Text>
-        </View>
       </View>
 
       <Text style={styles.avatarSection}>{gt('BACKGROUND')}</Text>

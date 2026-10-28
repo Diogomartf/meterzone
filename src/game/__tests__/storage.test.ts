@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 
 import { REVIEW_PROMPT_MAX } from '@/game/review';
 import {
+  claimDailyReward,
   clearPersist,
   commitRunResult,
   dailySeed,
@@ -621,5 +622,27 @@ describe('daily runs that cross midnight UTC', () => {
   test("dailySeed follows the run's day, not the clock", () => {
     expect(dailySeed(todayKey())).toBe(dailySeed());
     expect(dailySeed('2026-10-26')).not.toBe(dailySeed('2026-10-27'));
+  });
+});
+
+describe('daily rewards', () => {
+  test('pays a finished day once', async () => {
+    seed({ coins: 40 });
+    const paid = await claimDailyReward('2026-10-27', 300);
+    expect(paid!.coins).toBe(340);
+    expect(paid!.dailyRewardDay).toBe('2026-10-27');
+    expect(await claimDailyReward('2026-10-27', 300)).toBeNull();
+    expect((await loadPersist()).coins).toBe(340);
+  });
+
+  test('never pays a day older than the last one paid', async () => {
+    seed({ coins: 0, dailyRewardDay: '2026-10-27' });
+    expect(await claimDailyReward('2026-10-26', 500)).toBeNull();
+    expect((await claimDailyReward('2026-10-28', 100))!.coins).toBe(100);
+  });
+
+  test('old saves start with nothing paid', async () => {
+    seed({ coins: 5 });
+    expect((await loadPersist()).dailyRewardDay).toBe('');
   });
 });

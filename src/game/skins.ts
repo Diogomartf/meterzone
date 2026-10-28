@@ -71,11 +71,6 @@ export function skinAction(
   return 'locked';
 }
 
-export function unlockedSkinCount(unlocked: readonly SkinId[]): number {
-  const owned = new Set(unlocked);
-  return SKIN_IDS.filter((id) => owned.has(id)).length;
-}
-
 /** `#RGB` / `#RRGGBB` → `rgba(...)` so foam and glow can fade. */
 export function hexAlpha(hex: string, alpha: number): string {
   const raw = hex.startsWith('#') ? hex.slice(1) : hex;

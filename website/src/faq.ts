@@ -18,11 +18,21 @@ export const GAME_FAQS = [
   {
     question: 'Do I need an account?',
     answer:
-      'No. There is no sign-in. Scores, settings, and unlocks are stored on your device.',
+      'No. Scores, settings, and unlocks are stored on your device. To appear on the leaderboards, sign in with the Game Center account already on your iPhone — no email or password.',
+  },
+  {
+    question: 'How do the MeterZone leaderboards work?',
+    answer:
+      'Open Ranking from the menu. Daily ranks the best score on that day’s challenge and resets at midnight UTC; Endless ranks your all-time best in regular play. Both use Game Center, show the top 10 with your nickname, and tell you how many points you need to pass the next player.',
+  },
+  {
+    question: 'What do I win for a top daily finish?',
+    answer:
+      'When the daily board closes at midnight UTC, the top 10 earn coins: 500 for first, 300 for second, 200 for third, and 100 for fourth to tenth. The coins arrive the next time you open the game while signed in to Game Center.',
   },
   {
     question: 'Can I play MeterZone offline?',
-    answer: 'Yes. After downloading MeterZone from the App Store, you can play without an internet connection. Scores, settings, and unlocks stay on your iPhone.',
+    answer: 'Yes. After downloading MeterZone from the App Store, you can play without an internet connection. Scores, settings, and unlocks stay on your iPhone. Leaderboards need a connection; your bests are sent the next time you are online and signed in.',
   },
   {
     question: 'When does the daily challenge reset?',
@@ -31,6 +41,11 @@ export const GAME_FAQS = [
   {
     question: 'How do I unlock meter skins?',
     answer:
-      'Perfect, Great, and Nice hits pay coins. Open Skins from the menu or the home coin counter to unlock Lava, Ice, and Gold. Gold is the rarest — it takes more than a hundred levels even on a strong Perfect run. Equip a look any time in Skins. Unlocks stay on your device.',
+      'Perfect, Great, and Nice hits pay coins, and a top-10 daily finish pays more. Open Avatar & skins from the menu or the home coin counter to unlock Lava, Ice, and Gold. Gold is the rarest — it takes more than a hundred levels even on a strong Perfect run. Equip a look any time. Unlocks stay on your device.',
+  },
+  {
+    question: 'How do I change my leaderboard avatar?',
+    answer:
+      'Open Avatar & skins and switch to the Avatar tab. Pick any background colour and an emoji from the free Animals pack, or spend coins on the Food, Space, Sports, and Legends packs. Your avatar shows next to your own entries on the leaderboard.',
   },
 ];
