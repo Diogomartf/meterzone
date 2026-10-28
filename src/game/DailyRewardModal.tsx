@@ -47,9 +47,7 @@ export function DailyRewardModal({ reward, onClose }: DailyRewardModalProps) {
             </Text>
             <View style={styles.prize}>
               <Image source={COIN} style={styles.coin} contentFit="contain" />
-              <Text style={styles.prizeText}>
-                +{formatScore(reward.coins)}
-              </Text>
+              <Text style={styles.prizeText}>+{formatScore(reward.coins)}</Text>
             </View>
             <Pressable
               onPress={onClose}
