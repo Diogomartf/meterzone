@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import { avatarFor } from '@/game/avatars';
 import {
+  dailyRewardCoins,
   formatClock,
   msUntilDailyReset,
   pointsToPass,
@@ -56,5 +57,19 @@ describe('formatClock', () => {
 
   test('never goes negative', () => {
     expect(formatClock(-500)).toBe('00:00:00');
+  });
+});
+
+describe('dailyRewardCoins', () => {
+  test('pays the podium most, then a flat amount to #10', () => {
+    expect([1, 2, 3, 4, 10].map(dailyRewardCoins)).toEqual([
+      500, 300, 200, 100, 100,
+    ]);
+  });
+
+  test('pays nothing outside the top ten', () => {
+    expect([0, 11, 250, -1, 1.5].map(dailyRewardCoins)).toEqual([
+      0, 0, 0, 0, 0,
+    ]);
   });
 });

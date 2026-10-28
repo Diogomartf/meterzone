@@ -41,6 +41,14 @@ declare class GameServicesModule extends NativeModule<GameServicesEvents> {
     you?: NativeRankEntry;
     above?: NativeRankEntry;
   }>;
+  /**
+   * iOS only — the player's final entry on yesterday's occurrence of a
+   * recurring board, and when that occurrence started (ms since epoch). Null
+   * when there is no earlier occurrence. Throws when signed out.
+   */
+  loadPreviousOccurrenceAsync?(
+    leaderboardId: string,
+  ): Promise<{ start: number; you?: NativeRankEntry } | null>;
   /** Opens the platform's leaderboards screen over the app. */
   showLeaderboardsAsync(): Promise<void>;
 }

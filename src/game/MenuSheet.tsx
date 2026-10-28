@@ -39,9 +39,8 @@ import { AvatarPicker } from '@/game/AvatarPicker';
 import { styles } from '@/game/menuSheetStyles';
 import { rankingAvailable } from '@/game/ranking';
 import { RankingScreen } from '@/game/RankingScreen';
-import { SkinShop } from '@/game/SkinShop';
+import { CoinBank, SkinShop } from '@/game/SkinShop';
 import { captureAndShare, shareScoreCaption } from '@/game/share';
-import { SKIN_IDS, unlockedSkinCount } from '@/game/skins';
 import { formatScore } from '@/game/format';
 import type { AvatarPackId, PlayerAvatar, SkinId } from '@/game/types';
 import gtConfig from '../../gt.config.json';
@@ -447,10 +446,8 @@ export function MenuSheet({
                     <View style={styles.divider} />
                     <ActionRow
                       label={gt('Avatar & skins')}
-                      subtitle={gt('{count} coins · {owned} of {total}', {
+                      subtitle={gt('{count} coins', {
                         count: formatScore(coins),
-                        owned: unlockedSkinCount(unlockedSkins),
-                        total: SKIN_IDS.length,
                       })}
                       onPress={() => setView('skins')}
                     />
@@ -685,6 +682,7 @@ export function MenuSheet({
 
               {view === 'skins' ? (
                 <View style={styles.shopBody}>
+                  <CoinBank coins={coins} />
                   <TabSwitch
                     style={styles.shopTabs}
                     value={shopTab}

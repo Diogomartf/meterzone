@@ -11,7 +11,6 @@ import {
   SKINS,
   SKIN_IDS,
   skinAction,
-  unlockedSkinCount,
   type SkinAction,
   type SkinDef,
 } from '@/game/skins';
@@ -162,6 +161,23 @@ function SkinRow({
   );
 }
 
+/** The coin balance above the Skins | Avatar tabs, shared by both. */
+export function CoinBank({ coins }: { coins: number }) {
+  const gt = useGT();
+  return (
+    <View style={styles.skinBank}>
+      <View style={styles.skinBankValueRow}>
+        <Text style={styles.skinBankLabel}>{gt('YOUR COINS')}</Text>
+        <Image source={COIN} style={styles.skinBankCoin} contentFit="contain" />
+        <Text style={styles.skinBankValue}>{formatScore(coins)}</Text>
+      </View>
+      <Text style={styles.skinBankHint}>
+        {gt('Perfect, Great, and Nice hits pay coins.')}
+      </Text>
+    </View>
+  );
+}
+
 /** Menu shop — spend run coins on meter looks that are already in save data. */
 export function SkinShop({
   coins,
@@ -170,9 +186,6 @@ export function SkinShop({
   onUnlock,
   onEquip,
 }: SkinShopProps) {
-  const gt = useGT();
-  const owned = unlockedSkinCount(unlockedSkins);
-
   return (
     <ScrollView
       style={styles.menuScroll}
@@ -182,29 +195,6 @@ export function SkinShop({
       nestedScrollEnabled
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.skinBank}>
-        <Text style={styles.skinBankLabel}>{gt('YOUR COINS')}</Text>
-        <View style={styles.skinBankValueRow}>
-          <Image
-            source={COIN}
-            style={styles.skinBankCoin}
-            contentFit="contain"
-          />
-          <Text style={styles.skinBankValue}>{formatScore(coins)}</Text>
-        </View>
-        <Text style={styles.skinBankHint}>
-          {gt(
-            'Perfect, Great, and Nice hits pay coins. Spend them on a new look for the meter.',
-          )}
-        </Text>
-        <Text style={styles.skinBankOwned}>
-          {gt('{owned} of {total} unlocked', {
-            owned,
-            total: SKIN_IDS.length,
-          })}
-        </Text>
-      </View>
-
       <View style={styles.card}>
         {SKIN_IDS.map((id, i) => {
           const skin = SKINS[id];

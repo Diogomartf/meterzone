@@ -204,3 +204,39 @@ async function submitBest(leaderboardId: string, score: number) {
   if (!rankingAvailable || !GameServices || score <= 0) return;
   await GameServices.submitScoreAsync(score, [leaderboardId]);
 }
+
+/** Coins for a final daily rank: the podium, then a flat amount for the rest of the top ten. */
+export const DAILY_REWARDS = { podium: [500, 300, 200], topTen: 100 } as const;
+
+/** Coins a final daily rank earns — 0 outside the top ten. */
+export function dailyRewardCoins(rank: number): number {
+  if (!Number.isInteger(rank) || rank < 1 || rank > RANKING_SIZE) return 0;
+  return DAILY_REWARDS.podium[rank - 1] ?? DAILY_REWARDS.topTen;
+}
+
+/** A finished daily the player placed on, keyed by its UTC day. */
+export type DailyFinish = { day: string; rank: number; coins: number };
+
+/**
+ * The player's final place on yesterday's daily board, when it earns coins.
+ * The day comes from Game Center, not the device clock. Null when signed out,
+ * offline, unranked, or outside the top ten — rewards are a bonus, never an
+ * error. iOS only; Play Games has no closed daily boards to read.
+ */
+export async function loadDailyFinish(): Promise<DailyFinish | null> {
+  if (!isSignedInToRanking() || !GameServices?.loadPreviousOccurrenceAsync) {
+    return null;
+  }
+  try {
+    const previous = await GameServices.loadPreviousOccurrenceAsync(
+      LEADERBOARD_IDS.daily,
+    );
+    if (!previous?.you) return null;
+    const coins = dailyRewardCoins(previous.you.rank);
+    if (coins === 0) return null;
+    const day = new Date(previous.start).toISOString().slice(0, 10);
+    return { day, rank: previous.you.rank, coins };
+  } catch {
+    return null;
+  }
+}

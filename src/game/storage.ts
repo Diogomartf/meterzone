@@ -50,6 +50,7 @@ const DEFAULT_STATE: PersistState = {
   reviewPromptsShown: 0,
   reviewLastPromptAtRuns: 0,
   tapHintPlays: 0,
+  dailyRewardDay: '',
 };
 
 function parseReviewPromptStatus(value: unknown): ReviewPromptStatus {
@@ -168,6 +169,8 @@ export async function loadPersist(): Promise<PersistState> {
         ? Math.max(0, Number(parsed.reviewLastPromptAtRuns))
         : 0,
       tapHintPlays: migrateTapHintPlays(parsed),
+      dailyRewardDay:
+        typeof parsed.dailyRewardDay === 'string' ? parsed.dailyRewardDay : '',
     };
   } catch {
     const base = freshPersist();
@@ -461,6 +464,27 @@ export function dailySeed(day: string = todayKey()): number {
     h = Math.imul(h, 16777619);
   }
   return h >>> 0;
+}
+
+/**
+ * Pays a top-ten daily finish once. Null when that day — or a later one — was
+ * already paid, so re-checking on every launch never pays twice.
+ */
+export async function claimDailyReward(
+  day: string,
+  coins: number,
+): Promise<PersistState | null> {
+  return withPersistLock(async () => {
+    const prev = await loadPersist();
+    if (coins <= 0 || day <= prev.dailyRewardDay) return null;
+    const next: PersistState = {
+      ...prev,
+      coins: prev.coins + coins,
+      dailyRewardDay: day,
+    };
+    await savePersist(next);
+    return next;
+  });
 }
 
 export { todayKey };

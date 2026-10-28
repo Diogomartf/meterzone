@@ -100,4 +100,6 @@ export type PersistState = {
    * New installs start at 0; players from before this field skip the coach.
    */
   tapHintPlays: number;
+  /** UTC day of the last daily finish paid out — never paid twice. */
+  dailyRewardDay: string;
 };
