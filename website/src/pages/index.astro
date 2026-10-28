@@ -88,11 +88,13 @@ const jsonLd = [
 ---
 
 <BaseLayout title={APP_NAME} description={SITE_DESCRIPTION} jsonLd={jsonLd}>
-  <main class="page">
+  <main id="main" class="page">
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-bg" aria-hidden="true">
         <img
           src="/images/web-bg.webp"
+          srcset="/images/web-bg-640.webp 640w, /images/web-bg.webp 1024w"
+          sizes="100vw"
           alt=""
           width="1024"
           height="576"
@@ -123,6 +125,8 @@ const jsonLd = [
             <img
               class="hero-logo"
               src="/images/zone-meter-logo.webp"
+              srcset="/images/zone-meter-logo-320.webp 320w, /images/zone-meter-logo.webp 611w"
+              sizes="(min-width: 900px) 13rem, min(12rem, 52vw)"
               alt={`${APP_NAME} logo`}
               width="611"
               height="439"
@@ -195,7 +199,7 @@ const jsonLd = [
         <div class="faq-list">
           {faqs.map((faq) => (
             <details class="faq-item">
-              <summary>{faq.question}</summary>
+              <summary><h3 class="faq-question">{faq.question}</h3></summary>
               <div class="faq-body">
                 <p>{faq.answer}</p>
               </div>
@@ -769,6 +773,11 @@ const jsonLd = [
     padding: 0.9rem 0;
     font-weight: 600;
     color: var(--ink);
+  }
+
+  .faq-question {
+    margin: 0;
+    font: inherit;
   }
 
   .faq-item summary::-webkit-details-marker {
