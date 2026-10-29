@@ -44,6 +44,7 @@ const DEFAULT_STATE: PersistState = {
   dailyBest: { ...EMPTY_DAILY },
   dailyRecord: { ...EMPTY_DAILY },
   soundMuted: false,
+  buttonSoundsEnabled: true,
   hapticsEnabled: true,
   totalRuns: 0,
   reviewPromptStatus: 'none',
@@ -154,6 +155,7 @@ export async function loadPersist(): Promise<PersistState> {
       dailyBest,
       dailyRecord: betterDaily(dailyRecord, dailyBest),
       soundMuted: Boolean(parsed.soundMuted),
+      buttonSoundsEnabled: parsed.buttonSoundsEnabled !== false,
       hapticsEnabled: parsed.hapticsEnabled !== false,
       bestLevel: Number.isFinite(parsed.bestLevel)
         ? Number(parsed.bestLevel)
@@ -196,6 +198,17 @@ export async function setSoundMuted(muted: boolean): Promise<PersistState> {
   return withPersistLock(async () => {
     const prev = await loadPersist();
     const next = { ...prev, soundMuted: muted };
+    await savePersist(next);
+    return next;
+  });
+}
+
+export async function setButtonSoundsEnabled(
+  enabled: boolean,
+): Promise<PersistState> {
+  return withPersistLock(async () => {
+    const prev = await loadPersist();
+    const next = { ...prev, buttonSoundsEnabled: enabled };
     await savePersist(next);
     return next;
   });

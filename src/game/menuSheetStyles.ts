@@ -668,6 +668,60 @@ export const styles = StyleSheet.create({
     width: 36,
     height: 36,
   },
+  // Matches the high-score share card's backdrop, so shared images match.
+  rankShareWrap: {
+    borderRadius: 24,
+    gap: 12,
+  },
+  rankShareWrapShot: {
+    padding: 20,
+    alignItems: 'center',
+    backgroundColor: '#E8F7FF',
+  },
+  rankYouCard: {
+    alignSelf: 'stretch',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  rankYouRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  rankYouText: {
+    flex: 1,
+  },
+  rankYouLabel: {
+    fontFamily: GameFonts.display,
+    fontSize: 11,
+    lineHeight: 14,
+    letterSpacing: 1,
+    color: GameColors.panelInk,
+  },
+  rankYouName: {
+    fontFamily: GameFonts.display,
+    fontSize: 18,
+    lineHeight: 22,
+    color: GameColors.ink,
+  },
+  rankYouScore: {
+    fontFamily: GameFonts.display,
+    fontSize: 20,
+    color: GameColors.ink,
+    fontVariant: ['tabular-nums'],
+  },
+  rankYouGap: {
+    paddingTop: 10,
+    borderTopWidth: 2,
+    borderTopColor: 'rgba(26,28,44,0.08)',
+  },
+  rankYouGapTitle: {
+    fontFamily: GameFonts.display,
+    fontSize: 16,
+    lineHeight: 20,
+    color: GameColors.ink,
+  },
   rankPrize: {
     flexDirection: 'row',
     alignItems: 'center',

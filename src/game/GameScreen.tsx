@@ -65,6 +65,7 @@ import {
   markReviewAccepted,
   recordReviewPromptDecline,
   setAvatar,
+  setButtonSoundsEnabled,
   setHapticsEnabled,
   setSoundMuted,
   todayKey,
@@ -217,7 +218,8 @@ export function GameScreen() {
   const { height: windowH, width: windowW } = useWindowDimensions();
   const { persist, persistRef, applyPersist } = usePersistState();
   const muted = Boolean(persist?.soundMuted);
-  const { play } = useSounds(muted);
+  const buttonSounds = persist?.buttonSoundsEnabled !== false;
+  const { play } = useSounds(muted, buttonSounds);
 
   const [state, dispatch, stateRef] = useRunState();
   const {
@@ -1000,6 +1002,12 @@ export function GameScreen() {
     void gameHaptics.next();
   };
 
+  const toggleButtonSounds = async () => {
+    const next = await setButtonSoundsEnabled(!buttonSounds);
+    applyPersist(next);
+    void gameHaptics.next();
+  };
+
   const toggleHaptics = async () => {
     const enabled = !(persist?.hapticsEnabled !== false);
     setGameHapticsEnabled(enabled);
@@ -1533,6 +1541,8 @@ export function GameScreen() {
                 style={styles.mainCta}
                 label={gt('PLAY')}
                 subtitle={gt('TAP THE ZONE')}
+                // Silent: it drops straight into the game and its countdown.
+                clickSound={false}
                 onPress={() => startRun(false)}
               />
             </View>
@@ -1610,6 +1620,7 @@ export function GameScreen() {
       <MenuSheet
         visible={menuOpen}
         soundOn={!muted}
+        buttonSoundsOn={buttonSounds}
         hapticsOn={persist?.hapticsEnabled !== false}
         canGoBack={phase !== 'ready'}
         dailyMode={dailyMode}
@@ -1632,6 +1643,7 @@ export function GameScreen() {
         unlockedAvatarPacks={persist?.unlockedAvatarPacks ?? ['animals']}
         onClose={closeMenu}
         onToggleSound={() => void toggleSound()}
+        onToggleButtonSounds={() => void toggleButtonSounds()}
         onToggleHaptics={() => void toggleHaptics()}
         onGoBack={goBackFromMenu}
         onStartMode={startModeFromMenu}

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import { GameColors, GameFonts } from '@/constants/gameTheme';
+import { playClick } from '@/game/useSounds';
 
 /**
  * Colours per tone, top to bottom: the outline, the face (a light bevel band
@@ -70,6 +71,8 @@ type MainButtonProps = {
   loading?: boolean;
   /** Outer layout only, like a max width. */
   style?: StyleProp<ViewStyle>;
+  /** Click on press. Off where the action brings its own sound, like PLAY. */
+  clickSound?: boolean;
 };
 
 /**
@@ -85,12 +88,15 @@ export function MainButton({
   icon,
   loading,
   style,
+  clickSound = true,
 }: MainButtonProps) {
   const colors = TONES[tone];
   const lip = LIP[size];
 
   return (
     <Pressable
+      // On press-in, so the click lands with the visual drop.
+      onPressIn={clickSound ? playClick : undefined}
       onPress={onPress}
       disabled={loading}
       style={[

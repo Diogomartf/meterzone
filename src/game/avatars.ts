@@ -156,6 +156,10 @@ export const AVATAR_COLORS: readonly string[] = [
   '#FF8FC8',
   '#FF6A6A',
   '#C9D4E3',
+  '#8B5CF6',
+  '#3D5AFE',
+  '#FF3DA5',
+  '#C68B59',
 ];
 
 export function avatarPack(id: AvatarPackId): AvatarPack {

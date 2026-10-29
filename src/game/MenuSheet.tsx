@@ -76,6 +76,7 @@ type MenuView =
 type MenuSheetProps = {
   visible: boolean;
   soundOn: boolean;
+  buttonSoundsOn: boolean;
   hapticsOn: boolean;
   /** Show go-back when a run is in progress or finished */
   canGoBack: boolean;
@@ -96,6 +97,7 @@ type MenuSheetProps = {
   unlockedAvatarPacks: readonly AvatarPackId[];
   onClose: () => void;
   onToggleSound: () => void;
+  onToggleButtonSounds: () => void;
   onToggleHaptics: () => void;
   onGoBack: () => void;
   onStartMode: (daily: boolean) => void;
@@ -110,6 +112,7 @@ type MenuSheetProps = {
 export function MenuSheet({
   visible,
   soundOn,
+  buttonSoundsOn,
   hapticsOn,
   canGoBack,
   dailyMode,
@@ -128,6 +131,7 @@ export function MenuSheet({
   unlockedAvatarPacks,
   onClose,
   onToggleSound,
+  onToggleButtonSounds,
   onToggleHaptics,
   onGoBack,
   onStartMode,
@@ -783,6 +787,13 @@ export function MenuSheet({
                         subtitle={gt('Effects & countdown ticks')}
                         value={soundOn}
                         onPress={onToggleSound}
+                      />
+                      <View style={styles.divider} />
+                      <ToggleRow
+                        label={gt('Button sounds')}
+                        subtitle={gt('A click on the big buttons')}
+                        value={buttonSoundsOn}
+                        onPress={onToggleButtonSounds}
                       />
                       <View style={styles.divider} />
                       <ToggleRow

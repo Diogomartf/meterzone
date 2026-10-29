@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import {
+  Alert,
   AppState,
   Platform,
   Pressable,
@@ -35,6 +36,8 @@ import { formatScore } from '@/game/format';
 import { FlatButton } from '@/game/FlatButton';
 import { MainButton } from '@/game/MainButton';
 import { RankBadge } from '@/game/RankBadge';
+import { MARKETING_URL } from '@/game/review';
+import { captureAndShare } from '@/game/share';
 import { avatarFor } from '@/game/avatars';
 import { styles } from '@/game/menuSheetStyles';
 import { TabSwitch } from '@/game/menuRows';
@@ -60,6 +63,7 @@ import {
 const COIN = require('../../assets/images/coin.webp');
 const CROWN = require('../../assets/images/crown.webp');
 const STAR = require('../../assets/images/star.webp');
+const LOGO = require('../../assets/images/zone-meter-logo.webp');
 
 const SERVICE_NAME =
   Platform.OS === 'ios' ? 'Game Center' : 'Google Play Games';
@@ -458,32 +462,36 @@ function LiveBoard({
         </View>
       ) : null}
 
-      <View style={[styles.card, styles.rankGap]}>
-        <View style={styles.rankGapCoin}>
-          <Image source={COIN} style={styles.rankGapCoinImage} />
+      {you ? (
+        <YourSpotCard kind={kind} you={you} above={above} gap={gap} />
+      ) : (
+        <View style={[styles.card, styles.rankGap]}>
+          <View style={styles.rankGapCoin}>
+            <Image source={COIN} style={styles.rankGapCoinImage} />
+          </View>
+          <View style={styles.rankGapText}>
+            <Text style={styles.rankGapTitle}>
+              {gap != null && above
+                ? gt('{points} POINTS TO #{rank}', {
+                    points: formatScore(gap),
+                    rank: above.rank,
+                  })
+                : you
+                  ? gt("YOU'RE #1!")
+                  : gt('GET ON THE BOARD')}
+            </Text>
+            <Text style={styles.rankGapSub}>
+              {gap != null
+                ? gt('Your next run could do it.')
+                : you
+                  ? gt('Defend the crown.')
+                  : kind === 'daily'
+                    ? gt("Play today's run to claim a spot.")
+                    : gt('Finish a run to claim a spot.')}
+            </Text>
+          </View>
         </View>
-        <View style={styles.rankGapText}>
-          <Text style={styles.rankGapTitle}>
-            {gap != null && above
-              ? gt('{points} POINTS TO #{rank}', {
-                  points: formatScore(gap),
-                  rank: above.rank,
-                })
-              : you
-                ? gt("YOU'RE #1!")
-                : gt('GET ON THE BOARD')}
-          </Text>
-          <Text style={styles.rankGapSub}>
-            {gap != null
-              ? gt('Your next run could do it.')
-              : you
-                ? gt('Defend the crown.')
-                : kind === 'daily'
-                  ? gt("Play today's run to claim a spot.")
-                  : gt('Finish a run to claim a spot.')}
-          </Text>
-        </View>
-      </View>
+      )}
 
       {kind === 'daily' ? (
         <MainButton tone="gold" label={gt('PLAY DAILY')} onPress={onPlay} />
@@ -499,6 +507,115 @@ function LiveBoard({
         </Text>
       </Pressable>
     </>
+  );
+}
+
+const SHARE_ICON = {
+  ios: 'square.and.arrow.up',
+  android: 'share',
+  web: 'share',
+} as const;
+
+/**
+ * The player's own place: rank badge, avatar, score and the gap to the next
+ * spot, with a share button. Sharing captures the card with the logo and the
+ * board's name added, and the share button and gap line left out.
+ */
+function YourSpotCard({
+  kind,
+  you,
+  above,
+  gap,
+}: {
+  kind: RankingKind;
+  you: RankEntry;
+  above: RankEntry | null;
+  gap: number | null;
+}) {
+  const gt = useGT();
+  const captureRef = useRef<View>(null);
+  const [sharing, setSharing] = useState(false);
+
+  const share = async () => {
+    if (sharing) return;
+    const dare =
+      kind === 'daily'
+        ? gt("I'm #{rank} on today's MeterZone daily. Can you beat me? 👀", {
+            rank: you.rank,
+          })
+        : gt(
+            "I'm #{rank} on the MeterZone all-time board. Come take my spot 👀",
+            {
+              rank: you.rank,
+            },
+          );
+    // Re-renders with the logo and without the button before the capture.
+    setSharing(true);
+    // `finally` would read better, but React Compiler cannot lower a try block
+    // with a finalizer and would skip optimizing this whole file.
+    await captureAndShare(captureRef.current, {
+      message: `${dare}\n${MARKETING_URL}`,
+    }).catch(() => {
+      Alert.alert(gt('Share failed'), gt('Could not create the share image.'));
+    });
+    setSharing(false);
+  };
+
+  return (
+    <View
+      ref={captureRef}
+      collapsable={false}
+      style={[styles.rankShareWrap, sharing && styles.rankShareWrapShot]}
+    >
+      {sharing ? (
+        <Image source={LOGO} style={styles.hsLogo} contentFit="contain" />
+      ) : null}
+      <View style={[styles.card, styles.rankYouCard]}>
+        <View style={styles.rankYouRow}>
+          <RankBadge rank={you.rank} size={44} />
+          <Avatar name={you.name} isYou size={42} />
+          <View style={styles.rankYouText}>
+            <Text style={styles.rankYouLabel}>
+              {sharing
+                ? kind === 'daily'
+                  ? gt("TODAY'S DAILY")
+                  : gt('ALL-TIME')
+                : gt('YOUR SPOT')}
+            </Text>
+            <Text style={styles.rankYouName} numberOfLines={1}>
+              {you.name}
+            </Text>
+          </View>
+          <Text style={styles.rankYouScore}>{formatScore(you.score)}</Text>
+          {!sharing ? (
+            <FlatButton
+              icon={SHARE_ICON}
+              size={36}
+              hitSlop={8}
+              accessibilityLabel={gt('Share your ranking')}
+              onPress={() => void share()}
+            />
+          ) : null}
+        </View>
+        {!sharing ? (
+          <View style={styles.rankYouGap}>
+            <Text style={styles.rankYouGapTitle}>
+              {gap != null && above
+                ? gt('{points} POINTS TO #{rank}', {
+                    points: formatScore(gap),
+                    rank: above.rank,
+                  })
+                : gt("YOU'RE #1!")}
+            </Text>
+            <Text style={styles.rankGapSub}>
+              {gap != null
+                ? gt('Your next run could do it.')
+                : gt('Defend the crown.')}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+    </View>
   );
 }
 

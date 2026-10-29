@@ -81,6 +81,8 @@ export type PersistState = {
   /** Best daily score ever, with the day it was set */
   dailyRecord: { date: string; score: number; level: number };
   soundMuted: boolean;
+  /** Click when pressing a MainButton; Sound off silences it too */
+  buttonSoundsEnabled: boolean;
   /** Vibration / haptic feedback during play */
   hapticsEnabled: boolean;
   /** Finished runs across all modes (normal + daily) */
