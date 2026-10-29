@@ -4,22 +4,22 @@
   "entries": [
     {
       "fileId": "879f3a5f954ee8b75bf1e91f4ea9916b41c933e5beba7eb6362647a637c9c66d",
-      "versionId": "40658f354d5a38be25bc41852b7f9ba42b59b064b22f46cee5101bb777a6e5c6",
+      "versionId": "b30f964bf6eab940e80ebd5de4731c5409e6ee6d88a6efa3ff9b07c6bfe1d007",
       "translations": {
-        "es": {
-          "updatedAt": "2026-10-28T16:44:51.617Z",
-          "fileName": "src/_gt/es.json",
-          "postProcessHash": "cda2538ac91c7e85124da38fb08ae9c55448944698cda0f23c617411ce43110e"
-        },
         "pt-PT": {
-          "updatedAt": "2026-10-28T16:44:51.619Z",
+          "updatedAt": "2026-10-29T15:48:27.126Z",
           "fileName": "src/_gt/pt-PT.json",
-          "postProcessHash": "2384af238cacb6d32cc998b3179baba3d8ad673462c9d491515b39c8db393306"
+          "postProcessHash": "761637295d83678ae7a091298ff1086b6ad2009bbc02979e739ed73515361a0f"
         },
         "pt": {
-          "updatedAt": "2026-10-28T16:44:51.620Z",
+          "updatedAt": "2026-10-29T15:48:27.131Z",
           "fileName": "src/_gt/pt.json",
-          "postProcessHash": "fecf265864ac30889500b4242030fa568ce2ccd180078e85a25e6aff641638db"
+          "postProcessHash": "066e39ed2771e6c3d96926589a92071e29ae460e7b9375fc3772002b845cd0b3"
+        },
+        "es": {
+          "updatedAt": "2026-10-29T15:48:27.132Z",
+          "fileName": "src/_gt/es.json",
+          "postProcessHash": "b121226adaa1dfee170798407df8ed227402f2ce5558db3f288e5221f7b6a041"
         }
       },
       "fileName": "__INTERNAL_GT_TEMPLATE_NAME__"

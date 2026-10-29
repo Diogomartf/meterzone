@@ -2,6 +2,23 @@
 
 Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing any code.
 
+# Buttons
+
+Use only the two button components, never a one-off `Pressable` styled as a button:
+
+- `MainButton` (`src/game/MainButton.tsx`): the 3D pill that drops onto its lip when pressed, for the main action of a screen or card (PLAY, RETRY, Collect, PLAY DAILY). Tones `blue` / `green` / `gold`, sizes `small` / `regular` / `large`. Add a tone to `TONES` rather than overriding colours.
+- `FlatButton` (`src/game/FlatButton.tsx`): flat and outlined, for everything else. With `label` it's a text button (GO HOME, Not now); without, a square icon button (back, close, share). Tones `white` / `blue` / `glass` (on coloured cards).
+
+Rows, tabs, cards and swatches that happen to be tappable aren't buttons and keep their own styles.
+
+# Dev menu previews
+
+Any card, modal or sheet that only appears behind a hard-to-reach condition (a real top-ten finish, a streak of good runs, a network result…) gets a dev-menu entry so it can be opened on demand in the simulator. Register it with `registerDevMenuItems` from `expo-dev-menu` inside the existing `__DEV__` effect in `src/game/GameScreen.tsx`, next to the "Reward card" and "Review prompt" items. Open the menu with Cmd+D (iOS simulator) or Cmd+M (Android emulator).
+
+- Previews only show UI: never pay coins, save progress or call services from a preview callback. Expose a separate `preview` setter (see `useDailyReward`) rather than reusing the real trigger.
+- `registerDevMenuItems` replaces the whole list, so keep every item in that one call.
+- Keep `expo-dev-menu` on the same version `expo-dev-client` bundles (check `node_modules/expo-dev-client/package.json`); `expo install` may pick a newer SDK's release.
+
 # App Store Connect (`asc` CLI)
 
 ## App

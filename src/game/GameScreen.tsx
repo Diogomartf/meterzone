@@ -1,14 +1,7 @@
+import { registerDevMenuItems } from 'expo-dev-menu';
 import { Image } from 'expo-image';
-import { SymbolView } from 'expo-symbols';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Alert,
-  Linking,
-  Pressable,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import { Alert, Linking, Text, useWindowDimensions, View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   cancelAnimation,
@@ -31,15 +24,15 @@ import {
   useMessages,
 } from 'gt-react-native';
 
-import { GameColors } from '@/constants/gameTheme';
 import { styles } from '@/game/gameScreenStyles';
 import { CountdownBurst } from '@/game/CountdownBurst';
-import { GameCta, SecondaryCta } from '@/game/GameCta';
+import { FlatButton } from '@/game/FlatButton';
 import { Hearts } from '@/game/Hearts';
 import { MenuSheet } from '@/game/MenuSheet';
 import { MissBreak } from '@/game/MissBreak';
 import { PerfectSwoosh } from '@/game/PerfectSwoosh';
 import { DailyRewardModal } from '@/game/DailyRewardModal';
+import { previewSampleRanking } from '@/game/RankingScreen';
 import { ReviewPromptModal } from '@/game/ReviewPromptModal';
 import { ScoreModule } from '@/game/ScoreModule';
 import { TapHint, TAP_BALL_GAP } from '@/game/TapHint';
@@ -72,6 +65,7 @@ import {
   markReviewAccepted,
   recordReviewPromptDecline,
   setAvatar,
+  setButtonSoundsEnabled,
   setHapticsEnabled,
   setSoundMuted,
   todayKey,
@@ -86,8 +80,13 @@ import type {
   SessionStats,
   SkinId,
 } from '@/game/types';
-import { signInToRanking, submitRunToRanking } from '@/game/ranking';
+import {
+  dailyRewardCoins,
+  signInToRanking,
+  submitRunToRanking,
+} from '@/game/ranking';
 import { useRunState } from '@/game/useRunState';
+import { MainButton } from '@/game/MainButton';
 import { useDailyReward } from '@/game/useDailyReward';
 import { usePersistState } from '@/game/usePersistState';
 import { useSounds } from '@/game/useSounds';
@@ -219,7 +218,8 @@ export function GameScreen() {
   const { height: windowH, width: windowW } = useWindowDimensions();
   const { persist, persistRef, applyPersist } = usePersistState();
   const muted = Boolean(persist?.soundMuted);
-  const { play } = useSounds(muted);
+  const buttonSounds = persist?.buttonSoundsEnabled !== false;
+  const { play } = useSounds(muted, buttonSounds);
 
   const [state, dispatch, stateRef] = useRunState();
   const {
@@ -261,7 +261,7 @@ export function GameScreen() {
   const [missBurstKey, setMissBurstKey] = useState(0);
   const shareRef = useRef<View>(null);
   const [menuInitialView, setMenuInitialView] = useState<
-    'menu' | 'highscores' | 'language' | 'skins'
+    'menu' | 'highscores' | 'language' | 'skins' | 'ranking'
   >('menu');
   const [capturingShare, setCapturingShare] = useState(false);
   const [reviewPromptVisible, setReviewPromptVisible] = useState(false);
@@ -873,6 +873,49 @@ export function GameScreen() {
     }
   };
 
+  // Dev-menu shortcuts (Cmd+D in the simulator) to open the cards that
+  // otherwise need a real top-ten finish or a run of good games.
+  const previewDailyReward = dailyReward.preview;
+  const openSampleRanking = useEffectEvent((players: number, you: number) => {
+    previewSampleRanking(players, you);
+    setMenuInitialView('ranking');
+    openMenu();
+  });
+  useEffect(() => {
+    if (!__DEV__) return;
+    const reward = (rank: number) => ({
+      name: `Reward card · #${rank}`,
+      callback: () =>
+        previewDailyReward({
+          day: 'preview',
+          rank,
+          coins: dailyRewardCoins(rank),
+        }),
+      shouldCollapse: true,
+    });
+    void registerDevMenuItems([
+      reward(1),
+      reward(2),
+      reward(3),
+      reward(7),
+      {
+        name: 'Review prompt',
+        callback: () => setReviewPromptVisible(true),
+        shouldCollapse: true,
+      },
+      {
+        name: 'Ranking · 8 players, you #5',
+        callback: () => openSampleRanking(8, 5),
+        shouldCollapse: true,
+      },
+      {
+        name: 'Ranking · 30 players, you #23',
+        callback: () => openSampleRanking(30, 23),
+        shouldCollapse: true,
+      },
+    ]);
+  }, [previewDailyReward]);
+
   const openScores = () => {
     setMenuInitialView('highscores');
     openMenu();
@@ -955,6 +998,12 @@ export function GameScreen() {
 
   const toggleSound = async () => {
     const next = await setSoundMuted(!(persist?.soundMuted ?? false));
+    applyPersist(next);
+    void gameHaptics.next();
+  };
+
+  const toggleButtonSounds = async () => {
+    const next = await setButtonSoundsEnabled(!buttonSounds);
     applyPersist(next);
     void gameHaptics.next();
   };
@@ -1450,19 +1499,26 @@ export function GameScreen() {
             ) : null}
             {!capturingShare ? (
               <View style={styles.gameOverActions} pointerEvents="box-none">
-                <GameCta
+                <MainButton
+                  tone="gold"
+                  size="large"
+                  style={styles.mainCta}
                   label={gt('RETRY')}
-                  face={GameColors.xpGold}
-                  depth="#D97706"
                   onPress={() => {
                     void gameHaptics.next();
                     startRun(dailyMode);
                   }}
                 />
-                <GameCta
+                <MainButton
+                  tone="green"
+                  size="large"
+                  style={styles.mainCta}
+                  icon={{
+                    ios: 'square.and.arrow.up',
+                    android: 'share',
+                    web: 'share',
+                  }}
                   label={gt('SHARE')}
-                  face={GameColors.bubble}
-                  depth={GameColors.bubbleDark}
                   onPress={() => {
                     void gameHaptics.next();
                     void shareScoreImage();
@@ -1479,11 +1535,14 @@ export function GameScreen() {
               style={[styles.menuCol, { bottom: menuBottom }]}
               pointerEvents="box-none"
             >
-              <GameCta
+              <MainButton
+                tone="gold"
+                size="large"
+                style={styles.mainCta}
                 label={gt('PLAY')}
                 subtitle={gt('TAP THE ZONE')}
-                face="#FFC800"
-                depth="#D97706"
+                // Silent: it drops straight into the game and its countdown.
+                clickSound={false}
                 onPress={() => startRun(false)}
               />
             </View>
@@ -1499,50 +1558,38 @@ export function GameScreen() {
           pointerEvents={capturingShare ? 'none' : 'box-none'}
         >
           <View style={styles.bottomBarLeft} pointerEvents="box-none">
-            <Pressable
-              style={({ pressed }) => [
-                styles.menuBtn,
-                pressed && styles.ctaPressableDown,
-              ]}
+            <FlatButton
+              tone="blue"
+              icon={{
+                ios: 'line.3.horizontal',
+                android: 'menu',
+                web: 'menu',
+              }}
               onPress={() => {
                 setMenuInitialView('menu');
                 openMenu();
               }}
               hitSlop={10}
               accessibilityLabel={gt('Menu')}
-            >
-              <SymbolView
-                name={{
-                  ios: 'line.3.horizontal',
-                  android: 'menu',
-                  web: 'menu',
-                }}
-                size={22}
-                tintColor={GameColors.white}
-                weight="bold"
-              />
-            </Pressable>
+            />
             {phase === 'ready' ? (
-              <Pressable
-                style={({ pressed }) => [
-                  styles.langBtn,
-                  pressed && styles.ctaPressableDown,
-                ]}
+              <FlatButton
                 onPress={() => {
                   void gameHaptics.next();
                   setMenuInitialView('language');
                   openMenu();
                 }}
                 hitSlop={10}
-                accessibilityRole="button"
                 accessibilityLabel={gt('Change language')}
               >
                 <Text style={styles.langBtnFlag}>{localeFlag}</Text>
-              </Pressable>
+              </FlatButton>
             ) : null}
           </View>
           {phase === 'ready' ? (
-            <SecondaryCta
+            <MainButton
+              tone="green"
+              size="small"
               label={gt('Daily challenge')}
               onPress={() => startRun(true)}
             />
@@ -1573,6 +1620,7 @@ export function GameScreen() {
       <MenuSheet
         visible={menuOpen}
         soundOn={!muted}
+        buttonSoundsOn={buttonSounds}
         hapticsOn={persist?.hapticsEnabled !== false}
         canGoBack={phase !== 'ready'}
         dailyMode={dailyMode}
@@ -1595,6 +1643,7 @@ export function GameScreen() {
         unlockedAvatarPacks={persist?.unlockedAvatarPacks ?? ['animals']}
         onClose={closeMenu}
         onToggleSound={() => void toggleSound()}
+        onToggleButtonSounds={() => void toggleButtonSounds()}
         onToggleHaptics={() => void toggleHaptics()}
         onGoBack={goBackFromMenu}
         onStartMode={startModeFromMenu}
@@ -1613,7 +1662,10 @@ export function GameScreen() {
             ? dailyReward.reward
             : null
         }
-        onClose={dailyReward.dismiss}
+        onClose={() => {
+          play('coins');
+          dailyReward.dismiss();
+        }}
       />
 
       <ReviewPromptModal

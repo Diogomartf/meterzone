@@ -15,6 +15,7 @@ import {
   restoreTapHintPlays,
   savePersist,
   setAvatar,
+  setButtonSoundsEnabled,
   setHapticsEnabled,
   setSoundMuted,
   todayKey,
@@ -48,6 +49,7 @@ describe('loadPersist defaults', () => {
     expect(s.highScore).toBe(0);
     expect(s.totalRuns).toBe(0);
     expect(s.hapticsEnabled).toBe(true);
+    expect(s.buttonSoundsEnabled).toBe(true);
     expect(s.soundMuted).toBe(false);
     expect(s.unlockedSkins).toEqual(['toxic']);
     expect(s.reviewPromptStatus).toBe('none');
@@ -436,14 +438,20 @@ describe('settings toggles', () => {
     expect((await loadPersist()).soundMuted).toBe(true);
     expect((await setHapticsEnabled(false)).hapticsEnabled).toBe(false);
     expect((await loadPersist()).hapticsEnabled).toBe(false);
+    expect((await setButtonSoundsEnabled(false)).buttonSoundsEnabled).toBe(
+      false,
+    );
+    expect((await loadPersist()).buttonSoundsEnabled).toBe(false);
   });
 
   test('toggling one setting preserves the other', async () => {
     await setSoundMuted(true);
     await setHapticsEnabled(false);
+    await setButtonSoundsEnabled(false);
     const s = await loadPersist();
     expect(s.soundMuted).toBe(true);
     expect(s.hapticsEnabled).toBe(false);
+    expect(s.buttonSoundsEnabled).toBe(false);
   });
 });
 

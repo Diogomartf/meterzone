@@ -66,5 +66,8 @@ export function useDailyReward(
 
   const dismiss = useCallback(() => setReward(null), []);
 
-  return { reward, dismiss };
+  /** Shows the card for a made-up finish without paying anything — dev only. */
+  const preview = useCallback((finish: DailyFinish) => setReward(finish), []);
+
+  return { reward, dismiss, preview };
 }

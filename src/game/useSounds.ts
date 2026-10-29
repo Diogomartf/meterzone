@@ -5,25 +5,30 @@ import {
 } from 'expo-audio';
 import { useCallback, useEffect, useRef } from 'react';
 
-type Sfx = 'tap' | 'perfect' | 'zone' | 'miss' | 'start' | 'tick';
+type Sfx =
+  'click' | 'tap' | 'perfect' | 'zone' | 'miss' | 'start' | 'tick' | 'coins';
 
 const SOURCES: Record<Sfx, number> = {
+  click: require('../../assets/sounds/click.wav'),
   tap: require('../../assets/sounds/tap.wav'),
   perfect: require('../../assets/sounds/perfect.wav'),
   zone: require('../../assets/sounds/zone.wav'),
   miss: require('../../assets/sounds/miss.wav'),
   start: require('../../assets/sounds/start.wav'),
   tick: require('../../assets/sounds/tick.wav'),
+  coins: require('../../assets/sounds/coins.wav'),
 };
 
 /** Per-cue levels so ticks stay quiet and rewards punch through. */
 const VOLUME: Record<Sfx, number> = {
+  click: 0.55,
   tap: 0.78,
   tick: 0.38,
   start: 0.52,
   zone: 0.82,
   perfect: 0.92,
   miss: 0.68,
+  coins: 0.85,
 };
 
 /**
@@ -35,14 +40,27 @@ const VOICES = 2;
 
 type Voice = { player: AudioPlayer; remove: () => void };
 
-export function useSounds(muted: boolean) {
+/** The mounted `useSounds` player, for UI sounds outside the game screen. */
+let activePlay: ((key: Sfx) => void) | null = null;
+
+/**
+ * Button click for MainButton. Goes through the game's players, so it
+ * follows the Sound setting; silent until the game screen has mounted.
+ */
+export function playClick() {
+  activePlay?.('click');
+}
+
+export function useSounds(muted: boolean, buttonSounds = true) {
   const voices = useRef<Partial<Record<Sfx, Voice[]>>>({});
   const cursor = useRef<Partial<Record<Sfx, number>>>({});
   const mutedRef = useRef(muted);
+  const buttonSoundsRef = useRef(buttonSounds);
 
   useEffect(() => {
     mutedRef.current = muted;
-  }, [muted]);
+    buttonSoundsRef.current = buttonSounds;
+  }, [muted, buttonSounds]);
 
   useEffect(() => {
     let alive = true;
@@ -99,6 +117,7 @@ export function useSounds(muted: boolean) {
 
   const play = useCallback((key: Sfx) => {
     if (mutedRef.current) return;
+    if (key === 'click' && !buttonSoundsRef.current) return;
     const list = voices.current[key];
     if (!list || list.length === 0) return;
 
@@ -119,6 +138,13 @@ export function useSounds(muted: boolean) {
       // ignore
     }
   }, []);
+
+  useEffect(() => {
+    activePlay = play;
+    return () => {
+      if (activePlay === play) activePlay = null;
+    };
+  }, [play]);
 
   return { play };
 }
