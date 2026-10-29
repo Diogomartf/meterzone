@@ -9,6 +9,7 @@ import {
   type AvatarPack,
 } from '@/game/avatars';
 import { formatScore } from '@/game/format';
+import { MainButton } from '@/game/MainButton';
 import { styles } from '@/game/menuSheetStyles';
 import type { AvatarPackId, PlayerAvatar } from '@/game/types';
 import { useSheetBottomPad } from '@/game/useSheetBottomPad';
@@ -127,17 +128,12 @@ function PackCard({
             {pack.cost === 0 ? gt('FREE') : gt('OWNED')}
           </Text>
         ) : (
-          <Pressable
-            onPress={() => onUnlock(pack.id)}
-            disabled={action === 'locked'}
-            style={({ pressed }) => [
+          <View
+            style={[
               styles.avatarUnlock,
               action === 'locked' && styles.avatarUnlockLocked,
-              pressed && styles.closeBtnPressed,
             ]}
-            accessibilityRole="button"
-            accessibilityLabel={gt('Unlock {pack} for {cost} coins', {
-              pack: m(pack.name),
+            accessibilityLabel={gt('{cost} coins', {
               cost: formatScore(pack.cost),
             })}
           >
@@ -149,37 +145,53 @@ function PackCard({
             <Text style={styles.avatarUnlockText}>
               {formatScore(pack.cost)}
             </Text>
-          </Pressable>
+          </View>
         )}
       </View>
-      {!owned && action === 'locked' ? (
-        <Text style={styles.avatarPackNeed}>
-          {gt('{count} more coins to unlock', {
-            count: formatScore(pack.cost - coins),
+      <View>
+        <View style={styles.avatarGrid}>
+          {pack.emojis.map((emoji) => {
+            const selected = emoji === current.emoji;
+            return (
+              <Pressable
+                key={emoji}
+                onPress={() => onSelect({ ...current, emoji })}
+                disabled={!owned}
+                style={[
+                  styles.avatarCell,
+                  selected && styles.avatarCellOn,
+                  !owned && styles.avatarCellLocked,
+                ]}
+                accessibilityRole="radio"
+                accessibilityState={{ selected, disabled: !owned }}
+                accessibilityLabel={emoji}
+              >
+                <Text style={styles.avatarCellEmoji}>{emoji}</Text>
+              </Pressable>
+            );
           })}
-        </Text>
-      ) : null}
-      <View style={styles.avatarGrid}>
-        {pack.emojis.map((emoji) => {
-          const selected = emoji === current.emoji;
-          return (
-            <Pressable
-              key={emoji}
-              onPress={() => onSelect({ ...current, emoji })}
-              disabled={!owned}
-              style={[
-                styles.avatarCell,
-                selected && styles.avatarCellOn,
-                !owned && styles.avatarCellLocked,
-              ]}
-              accessibilityRole="radio"
-              accessibilityState={{ selected, disabled: !owned }}
-              accessibilityLabel={emoji}
-            >
-              <Text style={styles.avatarCellEmoji}>{emoji}</Text>
-            </Pressable>
-          );
-        })}
+        </View>
+        {/* Locked packs: the way in sits right over the faces it opens. */}
+        {!owned ? (
+          <View style={styles.avatarLockOverlay} pointerEvents="box-none">
+            {action === 'locked' ? (
+              <View style={styles.avatarNeed}>
+                <Text style={styles.avatarNeedText}>
+                  {gt('🔒 {count} more coins', {
+                    count: formatScore(pack.cost - coins),
+                  })}
+                </Text>
+              </View>
+            ) : (
+              <MainButton
+                tone="gold"
+                size="small"
+                label={gt('Unlock')}
+                onPress={() => onUnlock(pack.id)}
+              />
+            )}
+          </View>
+        ) : null}
       </View>
     </View>
   );

@@ -5,7 +5,7 @@ import {
 } from 'expo-audio';
 import { useCallback, useEffect, useRef } from 'react';
 
-type Sfx = 'tap' | 'perfect' | 'zone' | 'miss' | 'start' | 'tick';
+type Sfx = 'tap' | 'perfect' | 'zone' | 'miss' | 'start' | 'tick' | 'coins';
 
 const SOURCES: Record<Sfx, number> = {
   tap: require('../../assets/sounds/tap.wav'),
@@ -14,6 +14,7 @@ const SOURCES: Record<Sfx, number> = {
   miss: require('../../assets/sounds/miss.wav'),
   start: require('../../assets/sounds/start.wav'),
   tick: require('../../assets/sounds/tick.wav'),
+  coins: require('../../assets/sounds/coins.wav'),
 };
 
 /** Per-cue levels so ticks stay quiet and rewards punch through. */
@@ -24,6 +25,7 @@ const VOLUME: Record<Sfx, number> = {
   zone: 0.82,
   perfect: 0.92,
   miss: 0.68,
+  coins: 0.85,
 };
 
 /**

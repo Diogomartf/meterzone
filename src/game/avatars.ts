@@ -35,6 +35,9 @@ export const AVATAR_PACKS: readonly AvatarPack[] = [
       '🐢',
       '🦩',
       '🐝',
+      '🐶',
+      '🐱',
+      '🦒',
     ],
   },
   {
@@ -57,6 +60,9 @@ export const AVATAR_PACKS: readonly AvatarPack[] = [
       '🍪',
       '🍦',
       '🍟',
+      '🍰',
+      '🌭',
+      '🍇',
     ],
   },
   {
@@ -79,6 +85,9 @@ export const AVATAR_PACKS: readonly AvatarPack[] = [
       '🔭',
       '🌠',
       '🌑',
+      '🌟',
+      '🌕',
+      '💫',
     ],
   },
   {
@@ -101,6 +110,9 @@ export const AVATAR_PACKS: readonly AvatarPack[] = [
       '🥋',
       '🛹',
       '🏄',
+      '🏉',
+      '🎳',
+      '🥏',
     ],
   },
   {
@@ -123,6 +135,9 @@ export const AVATAR_PACKS: readonly AvatarPack[] = [
       '🗿',
       '🔱',
       '🌋',
+      '🏰',
+      '🛡️',
+      '🔮',
     ],
   },
 ];

@@ -24,6 +24,7 @@ import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
+  withDelay,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
@@ -31,7 +32,9 @@ import { useGT } from 'gt-react-native';
 
 import { GameColors } from '@/constants/gameTheme';
 import { formatScore } from '@/game/format';
-import { GameCta } from '@/game/GameCta';
+import { FlatButton } from '@/game/FlatButton';
+import { MainButton } from '@/game/MainButton';
+import { RankBadge } from '@/game/RankBadge';
 import { avatarFor } from '@/game/avatars';
 import { styles } from '@/game/menuSheetStyles';
 import { TabSwitch } from '@/game/menuRows';
@@ -45,6 +48,7 @@ import {
   msUntilDailyReset,
   openRanking,
   pointsToPass,
+  RANKING_SIZE,
   refreshRankingSignIn,
   signInToRankingInteractive,
   subscribeToRankingSignIn,
@@ -54,16 +58,102 @@ import {
 } from '@/game/ranking';
 
 const COIN = require('../../assets/images/coin.webp');
+const CROWN = require('../../assets/images/crown.webp');
+const STAR = require('../../assets/images/star.webp');
 
 const SERVICE_NAME =
   Platform.OS === 'ios' ? 'Game Center' : 'Google Play Games';
 
-/** Podium blocks: #1 in the middle with the most headroom, then #2 and #3. */
+/**
+ * Podium blocks: #1 in the middle with the most headroom, then #2 and #3.
+ * `ring` frames the avatar above each block in the block's colour.
+ */
 const PODIUM = {
-  1: { color: GameColors.lemon, lift: 26 },
-  2: { color: GameColors.playBlue, lift: 12 },
-  3: { color: '#FF9F5A', lift: 0 },
+  1: { color: '#FFD60A', ring: GameColors.xpGold, lift: 22, avatar: 72 },
+  2: {
+    color: GameColors.playBlue,
+    ring: GameColors.playBlue,
+    lift: 8,
+    avatar: 62,
+  },
+  3: { color: '#FF9F5A', ring: '#FF8A3D', lift: 0, avatar: 62 },
 } as const;
+
+/** Rank badge width on the podium; its art is a little taller than wide. */
+const PODIUM_BADGE = 30;
+
+/**
+ * Confetti flecks around the podium: position as a share of its width, plus
+ * height in points from the top, a tilt and a colour. Static on purpose.
+ */
+const CONFETTI = [
+  { left: '6%', top: 58, rotate: '-35deg', color: GameColors.playBlue },
+  { left: '13%', top: 30, rotate: '40deg', color: GameColors.xpGold },
+  { left: '27%', top: 6, rotate: '-50deg', color: GameColors.playBlue },
+  { left: '33%', top: 44, rotate: '25deg', color: GameColors.xpGold },
+  { left: '63%', top: 46, rotate: '-25deg', color: GameColors.xpGold },
+  { left: '70%', top: 8, rotate: '50deg', color: GameColors.playBlue },
+  { left: '84%', top: 30, rotate: '-40deg', color: GameColors.xpGold },
+  { left: '92%', top: 62, rotate: '35deg', color: GameColors.playBlue },
+] as const;
+
+/** Dev only: set by `previewSampleRanking`, read when the page mounts. */
+let sampleBoard: RankBoard | null = null;
+
+const SAMPLE_NAMES = [
+  'Mia',
+  'Leo',
+  'Alex',
+  'Sofia',
+  'Tom',
+  'Luna',
+  'Kai',
+  'Ana',
+  'FastThumb',
+  'Noah',
+  'Zoe',
+  'TapKing',
+  'Iris',
+  'Ben',
+  'Maya',
+  'Rui',
+  'Lea',
+  'Max',
+  'Inês',
+  'Theo',
+  'Nina',
+  'Hugo',
+  'Eva',
+  'Sam',
+  'Lia',
+  'Dani',
+  'Olga',
+  'Pedro',
+  'Yuki',
+  'Omar',
+];
+
+/**
+ * Dev only: the next ranking page shows a made-up board of `players` people
+ * with the player at `youRank`, instead of asking Game Center, so the
+ * signed-in layout can be checked in the simulator. Like the real board it
+ * lists the top ten, plus the player's own row when they're below it.
+ */
+export function previewSampleRanking(players: number, youRank: number) {
+  if (!__DEV__) return;
+  const entries = Array.from({ length: players }, (_, i) => ({
+    rank: i + 1,
+    name: i + 1 === youRank ? 'You' : SAMPLE_NAMES[i % SAMPLE_NAMES.length],
+    // Gaps that shrink down the board, like real scores bunching up.
+    score: Math.round(1240 - i * 38 + i * i * 0.6),
+    isYou: i + 1 === youRank,
+  }));
+  sampleBoard = {
+    top: entries.slice(0, RANKING_SIZE),
+    you: entries[youRank - 1] ?? null,
+    above: entries[youRank - 2] ?? null,
+  };
+}
 
 /**
  * Sample rows behind the blur for signed-out players. Never readable — they
@@ -103,8 +193,10 @@ export function RankingScreen({
 }) {
   const gt = useGT();
   const bottomPad = useSheetBottomPad();
+  const [sample] = useState(() => (__DEV__ ? sampleBoard : null));
   const [kind, setKind] = useState<RankingKind>('daily');
-  const [signedIn, setSignedIn] = useState(isSignedInToRanking);
+  const [signedInLive, setSignedIn] = useState(isSignedInToRanking);
+  const signedIn = signedInLive || sample != null;
   const [load, setLoad] = useState<LoadState>({ status: 'loading' });
   const [reloadKey, setReloadKey] = useState(0);
   const [signingIn, setSigningIn] = useState(false);
@@ -134,13 +226,15 @@ export function RankingScreen({
       unsubscribe();
       clearInterval(interval);
       appState.remove();
+      // A sample preview lasts one visit to the page.
+      sampleBoard = null;
     };
   }, []);
 
   useEffect(() => {
     if (!signedIn) return;
     let cancelled = false;
-    loadRanking(kind).then(
+    (sample ? Promise.resolve(sample) : loadRanking(kind)).then(
       (board) => {
         if (!cancelled) setLoad({ status: 'ready', board });
       },
@@ -151,7 +245,7 @@ export function RankingScreen({
     return () => {
       cancelled = true;
     };
-  }, [signedIn, kind, reloadKey, day]);
+  }, [signedIn, sample, kind, reloadKey, day]);
 
   const switchKind = (next: RankingKind) => {
     if (next === kind) return;
@@ -221,16 +315,14 @@ export function RankingScreen({
               <Text style={styles.rankJoinBody}>
                 {gt('Save your best score and challenge players worldwide.')}
               </Text>
-              <GameCta
-                compact
+              <MainButton
+                tone="gold"
                 loading={signingIn}
                 label={
                   signingIn
                     ? gt('Connecting…')
                     : gt('Continue with {service}', { service: SERVICE_NAME })
                 }
-                face="#FFC800"
-                depth="#D97706"
                 onPress={() => void signIn()}
               />
               <Text style={styles.rankHint}>
@@ -253,16 +345,12 @@ export function RankingScreen({
             <Text style={styles.rankStatusText}>
               {gt('Could not load the ranking. Check your connection.')}
             </Text>
-            <Pressable
+            <FlatButton
+              tone="blue"
               onPress={retry}
-              style={({ pressed }) => [
-                styles.startOverBtn,
-                pressed && styles.closeBtnPressed,
-              ]}
-              accessibilityRole="button"
-            >
-              <Text style={styles.startOverBtnText}>{gt('TRY AGAIN')}</Text>
-            </Pressable>
+              label={gt('TRY AGAIN')}
+              accessibilityLabel={gt('TRY AGAIN')}
+            />
           </View>
         ) : (
           <LiveBoard
@@ -321,22 +409,52 @@ function LiveBoard({
 
   return (
     <>
-      {kind === 'daily' ? <Podium entries={top} /> : null}
-      {top.length > 0 || youBelow ? (
-        <View style={styles.card}>
-          {top.map((entry, i) => (
-            <RankRow
-              key={entry.rank}
-              entry={entry}
-              last={!youBelow && i === top.length - 1}
-            />
-          ))}
-          {youBelow ? (
-            <>
-              <Text style={styles.rankEllipsis}>⋯</Text>
-              <RankRow entry={youBelow} last />
-            </>
-          ) : null}
+      {/* The podium blocks stand on the list card's top edge. */}
+      <View>
+        {kind === 'daily' ? <Podium entries={top} /> : null}
+        {top.length > 0 || youBelow ? (
+          <View style={styles.card}>
+            <View style={styles.rankHeadRow}>
+              <Text style={[styles.rankHead, styles.rankHeadPos]}>#</Text>
+              <Text style={[styles.rankHead, styles.rankHeadPlayer]}>
+                {gt('PLAYER')}
+              </Text>
+              <Text style={styles.rankHead}>{gt('SCORE')}</Text>
+            </View>
+            {top.map((entry, i) => (
+              <RankRow
+                key={entry.rank}
+                entry={entry}
+                last={!youBelow && i === top.length - 1}
+              />
+            ))}
+            {youBelow ? (
+              <>
+                <Text style={styles.rankEllipsis}>⋯</Text>
+                <RankRow entry={youBelow} last />
+              </>
+            ) : null}
+          </View>
+        ) : null}
+      </View>
+
+      {kind === 'daily' ? (
+        <View style={[styles.card, styles.rankPrize]}>
+          <View style={styles.rankPrizeCoin}>
+            {PRIZE_RAYS.map((rotate) => (
+              <View
+                key={rotate}
+                style={[styles.rankPrizeRay, { transform: [{ rotate }] }]}
+              />
+            ))}
+            <Image source={COIN} style={styles.rankPrizeCoinImage} />
+          </View>
+          <View style={styles.rankGapText}>
+            <Text style={styles.rankGapTitle}>{gt('TOP 10 GET COINS')}</Text>
+            <Text style={styles.rankGapSub}>
+              {gt('Keep your spot until the timer ends.')}
+            </Text>
+          </View>
         </View>
       ) : null}
 
@@ -368,14 +486,7 @@ function LiveBoard({
       </View>
 
       {kind === 'daily' ? (
-        <GameCta
-          fullWidth
-          compact
-          label={gt('PLAY DAILY')}
-          face="#FFC800"
-          depth="#D97706"
-          onPress={onPlay}
-        />
+        <MainButton tone="gold" label={gt('PLAY DAILY')} onPress={onPlay} />
       ) : null}
 
       <Pressable
@@ -391,10 +502,77 @@ function LiveBoard({
   );
 }
 
-/** Compact top three — #2, #1 (crowned, tallest), #3. Daily board only. */
+/** Rays around the prize coin, as rotations of one bar through its centre. */
+const PRIZE_RAYS = ['0deg', '45deg', '90deg', '135deg'] as const;
+
+/**
+ * One confetti fleck, drifting a few points and tilting on its own slow
+ * loop — gentle, just enough to feel alive. Each one's
+ * timing comes from its index so they never move together. Still under
+ * Reduce Motion.
+ */
+function ConfettiFleck({
+  fleck,
+  index,
+}: {
+  fleck: (typeof CONFETTI)[number];
+  index: number;
+}) {
+  const reduceMotion = useReducedMotion();
+  const t = useSharedValue(0);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    t.set(
+      withDelay(
+        index * 230,
+        withRepeat(
+          withTiming(1, {
+            duration: 2200 + (index % 3) * 450,
+            easing: Easing.inOut(Easing.sin),
+          }),
+          -1,
+          true,
+        ),
+      ),
+    );
+  }, [index, reduceMotion, t]);
+
+  // Alternate directions so neighbours drift apart and back.
+  const dir = index % 2 === 0 ? 1 : -1;
+  const baseAngle = parseFloat(fleck.rotate);
+  const style = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: -5 * t.value },
+      { translateX: dir * 3 * t.value },
+      { rotate: `${baseAngle + dir * 14 * t.value}deg` },
+    ],
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        styles.rankConfetti,
+        { left: fleck.left, top: fleck.top, backgroundColor: fleck.color },
+        style,
+      ]}
+    />
+  );
+}
+
+/** Top three — #2, #1 (crowned, tallest), #3. Daily board only. */
 function Podium({ entries }: { entries: RankEntry[] }) {
   return (
-    <View>
+    <View style={styles.rankPodiumWrap}>
+      <View
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+        accessibilityElementsHidden
+      >
+        {CONFETTI.map((fleck, i) => (
+          <ConfettiFleck key={i} fleck={fleck} index={i} />
+        ))}
+      </View>
       <View style={styles.rankPodium}>
         {([2, 1, 3] as const).map((place) => (
           <PodiumSpot
@@ -404,7 +582,6 @@ function Podium({ entries }: { entries: RankEntry[] }) {
           />
         ))}
       </View>
-      <View style={styles.rankPodiumBase} />
     </View>
   );
 }
@@ -417,29 +594,39 @@ function PodiumSpot({
   entry: RankEntry | undefined;
 }) {
   const gt = useGT();
-  const { color, lift } = PODIUM[place];
+  const { color, ring, lift, avatar } = PODIUM[place];
+  const badgeH = PODIUM_BADGE * (120 / 102);
 
   return (
     <View style={styles.rankSpot}>
       {place === 1 ? (
-        <Text style={styles.rankCrown}>
-          <Text style={styles.rankStar}>★ </Text>👑
-          <Text style={styles.rankStar}> ★</Text>
-        </Text>
+        <View style={styles.rankCrownRow} accessibilityElementsHidden>
+          <Image source={STAR} style={styles.rankStarSmall} />
+          <Image source={CROWN} style={styles.rankCrown} />
+          <Image source={STAR} style={styles.rankStarSmall} />
+        </View>
       ) : null}
       <Avatar
         name={entry?.name}
         isYou={entry?.isYou}
-        size={place === 1 ? 48 : 42}
-        overlap
+        size={avatar}
+        ring={ring}
+      />
+      {/* Straddles the avatar's bottom edge and the block's top. */}
+      <RankBadge
+        rank={place}
+        size={PODIUM_BADGE}
+        style={[
+          styles.rankSpotBadge,
+          { marginTop: -badgeH * 0.45, marginBottom: -badgeH * 0.5 },
+        ]}
       />
       <View
         style={[
           styles.rankBlock,
-          { backgroundColor: color, paddingTop: 24 + lift },
+          { backgroundColor: color, paddingTop: badgeH * 0.5 + 4 + lift },
         ]}
       >
-        <Text style={styles.rankBlockNumber}>{place}</Text>
         {entry ? (
           <PlayerName entry={entry} style={styles.rankBlockName} />
         ) : (
@@ -464,13 +651,13 @@ function Avatar({
   name,
   isYou,
   size,
-  overlap,
+  ring,
 }: {
   name: string | undefined;
   isYou?: boolean;
   size: number;
-  /** Sits half over the podium block below it. */
-  overlap?: boolean;
+  /** Colour of the ring around the face; white when unset. */
+  ring?: string;
 }) {
   const mine = use(MyAvatarContext);
   const avatar = isYou && mine ? mine : name != null ? avatarFor(name) : null;
@@ -478,7 +665,7 @@ function Avatar({
     <View
       style={[
         styles.rankAvatarRing,
-        overlap && { marginBottom: -size / 2 },
+        ring != null && { backgroundColor: ring, padding: size * 0.06 },
         { width: size, height: size, borderRadius: size / 2 },
       ]}
     >
@@ -626,9 +813,9 @@ function RankingSkeleton({
       accessibilityRole="progressbar"
       accessibilityLabel={label}
     >
-      {kind === 'daily' ? (
-        <View>
-          <View style={styles.rankPodium}>
+      <View>
+        {kind === 'daily' ? (
+          <View style={[styles.rankPodium, styles.rankPodiumWrap]}>
             {([2, 1, 3] as const).map((place) => (
               <View key={place} style={styles.rankSpot}>
                 <View
@@ -640,37 +827,35 @@ function RankingSkeleton({
                 <View
                   style={[
                     styles.skelBlock,
-                    { height: place === 1 ? 104 : place === 2 ? 90 : 78 },
+                    { height: place === 1 ? 96 : place === 2 ? 82 : 74 },
                   ]}
                 >
-                  <View style={[styles.skelBar, styles.skelBarNumber]} />
                   <View style={[styles.skelBar, styles.skelBarName]} />
                   <View style={[styles.skelBar, styles.skelBarPill]} />
                 </View>
               </View>
             ))}
           </View>
-          <View style={styles.skelBase} />
-        </View>
-      ) : null}
+        ) : null}
 
-      <View style={styles.card}>
-        {SKELETON_ROWS.map((width, i) => (
-          <View
-            key={i}
-            style={[
-              styles.rankRow,
-              i === SKELETON_ROWS.length - 1 && styles.rankRowLast,
-            ]}
-          >
-            <View style={[styles.skelBar, styles.skelBarRank]} />
-            <View style={[styles.skelCircle, styles.skelRowAvatar]} />
-            <View style={styles.rankNameCell}>
-              <View style={[styles.skelBar, { width }]} />
+        <View style={styles.card}>
+          {SKELETON_ROWS.map((width, i) => (
+            <View
+              key={i}
+              style={[
+                styles.rankRow,
+                i === SKELETON_ROWS.length - 1 && styles.rankRowLast,
+              ]}
+            >
+              <View style={[styles.skelBar, styles.skelBarRank]} />
+              <View style={[styles.skelCircle, styles.skelRowAvatar]} />
+              <View style={styles.rankNameCell}>
+                <View style={[styles.skelBar, { width }]} />
+              </View>
+              <View style={[styles.skelBar, styles.skelBarScore]} />
             </View>
-            <View style={[styles.skelBar, styles.skelBarScore]} />
-          </View>
-        ))}
+          ))}
+        </View>
       </View>
     </Animated.View>
   );

@@ -4,6 +4,12 @@ import { GameColors, GameFonts, fillParent } from '@/constants/gameTheme';
 
 /** Every style for GameScreen and the small components it composes. */
 export const styles = StyleSheet.create({
+  // Main buttons on the home and game-over screens: full width up to a cap.
+  mainCta: {
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 320,
+  },
   root: { flex: 1, backgroundColor: '#1E8CFF' },
   backdrop: {
     ...fillParent,
@@ -63,30 +69,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  menuBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: GameColors.playBlue,
-    borderWidth: 2.5,
-    borderColor: GameColors.ink,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
   /** Same round chrome as the menu button, so the two read as one set. */
-  langBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: GameColors.white,
-    borderWidth: 2.5,
-    borderColor: GameColors.ink,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    overflow: 'hidden',
-  },
   langBtnFlag: {
     fontSize: 24,
     // Emoji sit on their own baseline; a matched line height centres the glyph.
@@ -501,146 +484,5 @@ export const styles = StyleSheet.create({
     gap: 10,
     zIndex: 40,
     alignItems: 'center',
-  },
-  ctaPressable: {
-    width: '100%',
-    maxWidth: 320,
-  },
-  ctaPressableFull: {
-    maxWidth: '100%',
-    alignSelf: 'stretch',
-  },
-  ctaPressableDown: {
-    transform: [{ scale: 0.97 }],
-  },
-  ctaShell: {
-    borderRadius: 22,
-    borderWidth: 4,
-    borderColor: GameColors.ink,
-    overflow: 'hidden',
-  },
-  ctaFace: {
-    minHeight: 64,
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  ctaFaceCompact: {
-    minHeight: 50,
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 10,
-  },
-  ctaFaceUp: {
-    marginBottom: 5,
-    borderBottomWidth: 0,
-  },
-  ctaFaceDown: {
-    marginBottom: 0,
-    marginTop: 5,
-  },
-  ctaShine: {
-    position: 'absolute',
-    left: 10,
-    right: 10,
-    top: 6,
-    height: 14,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.28)',
-  },
-  ctaText: {
-    fontFamily: GameFonts.display,
-    fontSize: 30,
-    lineHeight: 34,
-    color: GameColors.white,
-    letterSpacing: 1.5,
-    textShadowColor: 'rgba(26,28,44,0.35)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 0,
-  },
-  // Ink on yellow reads far better than white at this size.
-  ctaTextCompact: {
-    fontSize: 19,
-    lineHeight: 24,
-    letterSpacing: 0.3,
-    alignSelf: 'stretch',
-    textAlign: 'center',
-    color: GameColors.ink,
-    textShadowColor: 'transparent',
-  },
-  ctaLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'stretch',
-    gap: 8,
-  },
-  ctaTextLoading: {
-    // Shares the row with the spinner, so it can't claim the full width.
-    alignSelf: 'auto',
-    flexShrink: 1,
-  },
-  ctaSheenTrack: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    overflow: 'hidden',
-  },
-  ctaSheen: {
-    position: 'absolute',
-    top: -10,
-    bottom: -10,
-    left: 0,
-    width: 56,
-    backgroundColor: 'rgba(255,255,255,0.45)',
-  },
-  ctaSub: {
-    marginTop: 1,
-    fontFamily: GameFonts.soft,
-    fontSize: 12,
-    lineHeight: 14,
-    color: 'rgba(255,255,255,0.92)',
-    letterSpacing: 0.8,
-  },
-  // Compact daily CTA — same row as the menu button, smaller than PLAY.
-  secondaryCtaPressable: {
-    flexShrink: 1,
-  },
-  secondaryCtaShell: {
-    borderRadius: 16,
-    borderWidth: 3,
-    borderColor: GameColors.ink,
-    overflow: 'hidden',
-  },
-  secondaryCtaFace: {
-    minHeight: 36,
-    paddingHorizontal: 14,
-    paddingTop: 6,
-    paddingBottom: 7,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: GameColors.bubble,
-  },
-  secondaryCtaFaceUp: {
-    marginBottom: 3,
-  },
-  secondaryCtaFaceDown: {
-    marginBottom: 0,
-    marginTop: 3,
-  },
-  secondaryCtaLabel: {
-    fontFamily: GameFonts.display,
-    fontSize: 15,
-    lineHeight: 18,
-    color: GameColors.white,
-    letterSpacing: 0.2,
-    textShadowColor: 'rgba(26,28,44,0.35)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 0,
   },
 });

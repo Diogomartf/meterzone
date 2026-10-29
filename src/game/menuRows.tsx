@@ -1,5 +1,4 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { SymbolView } from 'expo-symbols';
 import {
   Alert,
   Pressable,
@@ -10,7 +9,7 @@ import {
 } from 'react-native';
 import { useGT, useMessages } from 'gt-react-native';
 
-import { GameColors } from '@/constants/gameTheme';
+import { FlatButton } from '@/game/FlatButton';
 import { formatScore } from '@/game/format';
 import {
   requestNativeReview,
@@ -19,6 +18,13 @@ import {
 } from '@/game/review';
 import { markReviewAccepted } from '@/game/storage';
 import { styles } from '@/game/menuSheetStyles';
+
+const STAR_ICON = { ios: 'star.fill', android: 'star', web: 'star' } as const;
+const SHARE_ICON = {
+  ios: 'square.and.arrow.up',
+  android: 'share',
+  web: 'share',
+} as const;
 
 /** Shared presentational rows and cards used across the menu's views. */
 export type HighscoreKind = 'normal' | 'today' | 'record';
@@ -100,32 +106,24 @@ export function SupportCard() {
         )}
       </Text>
       <View style={styles.supportActions}>
-        <Pressable
+        <FlatButton
+          tone="glass"
+          style={styles.supportBtn}
+          icon={STAR_ICON}
+          label={gt('Review')}
+          accessibilityLabel={gt('Leave a 5-star review')}
           onPress={() => {
             // Stop future soft prompts once they choose to review.
             void markReviewAccepted();
             void requestNativeReview();
           }}
-          style={({ pressed }) => [
-            styles.supportBtn,
-            pressed && styles.supportBtnPressed,
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel={gt('Leave a 5-star review')}
-        >
-          <SymbolView
-            name={{
-              ios: 'star.fill',
-              android: 'star',
-              web: 'star',
-            }}
-            size={16}
-            tintColor={GameColors.white}
-            weight="bold"
-          />
-          <Text style={styles.supportBtnText}>{gt('Review')}</Text>
-        </Pressable>
-        <Pressable
+        />
+        <FlatButton
+          tone="glass"
+          style={styles.supportBtn}
+          icon={SHARE_ICON}
+          label={gt('Share')}
+          accessibilityLabel={gt('Share MeterZone with friends')}
           onPress={() => {
             void shareApp(m(SHARE_APP_TAGLINE)).catch(() => {
               Alert.alert(
@@ -134,25 +132,7 @@ export function SupportCard() {
               );
             });
           }}
-          style={({ pressed }) => [
-            styles.supportBtn,
-            pressed && styles.supportBtnPressed,
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel={gt('Share MeterZone with friends')}
-        >
-          <SymbolView
-            name={{
-              ios: 'square.and.arrow.up',
-              android: 'share',
-              web: 'share',
-            }}
-            size={16}
-            tintColor={GameColors.white}
-            weight="bold"
-          />
-          <Text style={styles.supportBtnText}>{gt('Share')}</Text>
-        </Pressable>
+        />
       </View>
     </LinearGradient>
   );
@@ -197,27 +177,13 @@ export function HighscoreCard({
         <View style={styles.hsTopRow}>
           <Text style={styles.hsCaption}>{caption}</Text>
           {!empty && onShare && !hideShare ? (
-            <Pressable
+            <FlatButton
               onPress={onShare}
-              style={({ pressed }) => [
-                styles.hsShareBtn,
-                pressed && styles.closeBtnPressed,
-              ]}
+              icon={SHARE_ICON}
+              size={36}
               hitSlop={8}
-              accessibilityRole="button"
               accessibilityLabel={gt('Share {badge} highscore', { badge })}
-            >
-              <SymbolView
-                name={{
-                  ios: 'square.and.arrow.up',
-                  android: 'share',
-                  web: 'share',
-                }}
-                size={18}
-                tintColor={GameColors.ink}
-                weight="bold"
-              />
-            </Pressable>
+            />
           ) : null}
         </View>
         {empty ? (

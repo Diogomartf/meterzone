@@ -4,6 +4,8 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useGT } from 'gt-react-native';
 
 import { GameColors, GameFonts } from '@/constants/gameTheme';
+import { FlatButton } from '@/game/FlatButton';
+import { MainButton } from '@/game/MainButton';
 import { requestNativeReview } from '@/game/review';
 
 type ReviewPromptModalProps = {
@@ -72,39 +74,20 @@ export function ReviewPromptModal({
               )}
             </Text>
 
-            <Pressable
-              onPress={accept}
-              style={({ pressed }) => [
-                styles.primaryBtn,
-                pressed && styles.btnPressed,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel={gt('Rate 5 stars')}
-            >
-              <SymbolView
-                name={{
-                  ios: 'star.fill',
-                  android: 'star',
-                  web: 'star',
-                }}
-                size={18}
-                tintColor={GameColors.ink}
-                weight="bold"
+            <View style={styles.actions}>
+              <MainButton
+                tone="gold"
+                icon={{ ios: 'star.fill', android: 'star', web: 'star' }}
+                label={gt('Rate 5 stars')}
+                onPress={accept}
               />
-              <Text style={styles.primaryBtnText}>{gt('Rate 5 stars')}</Text>
-            </Pressable>
-
-            <Pressable
-              onPress={onDecline}
-              style={({ pressed }) => [
-                styles.secondaryBtn,
-                pressed && styles.btnPressed,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel={gt('Not now')}
-            >
-              <Text style={styles.secondaryBtnText}>{gt('Not now')}</Text>
-            </Pressable>
+              <FlatButton
+                tone="glass"
+                label={gt('Not now')}
+                accessibilityLabel={gt('Not now')}
+                onPress={onDecline}
+              />
+            </View>
           </LinearGradient>
         </View>
       </View>
@@ -113,6 +96,11 @@ export function ReviewPromptModal({
 }
 
 const styles = StyleSheet.create({
+  actions: {
+    alignSelf: 'stretch',
+    gap: 10,
+    marginTop: 6,
+  },
   overlay: {
     flex: 1,
     justifyContent: 'center',
@@ -154,43 +142,5 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.92)',
     textAlign: 'center',
     marginBottom: 6,
-  },
-  primaryBtn: {
-    alignSelf: 'stretch',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 999,
-    backgroundColor: GameColors.lemon,
-    borderWidth: 2.5,
-    borderColor: GameColors.ink,
-  },
-  primaryBtnText: {
-    fontFamily: GameFonts.body,
-    fontSize: 18,
-    lineHeight: 22,
-    color: GameColors.ink,
-  },
-  secondaryBtn: {
-    alignSelf: 'stretch',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  secondaryBtnText: {
-    fontFamily: GameFonts.body,
-    fontSize: 16,
-    lineHeight: 20,
-    color: GameColors.white,
-  },
-  btnPressed: {
-    transform: [{ translateY: 1 }],
-    opacity: 0.92,
   },
 });

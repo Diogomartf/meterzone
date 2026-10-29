@@ -66,47 +66,36 @@ export const styles = StyleSheet.create({
     fontSize: 34,
     lineHeight: 38,
   },
-  backBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: GameColors.white,
-    borderWidth: 2.5,
-    borderColor: GameColors.ink,
+  // Centred over the whole header, independent of the title's width.
+  coinPillSlot: {
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backBtnText: {
+  coinPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: 40,
+    paddingLeft: 10,
+    paddingRight: 14,
+    borderRadius: 14,
+    borderWidth: 1.25,
+    borderColor: GameColors.ink,
+    backgroundColor: GameColors.xpGold,
+  },
+  coinPillIcon: {
+    width: 22,
+    height: 22,
+  },
+  coinPillText: {
     fontFamily: GameFonts.display,
-    fontSize: 32,
-    lineHeight: 34,
+    fontSize: 20,
+    lineHeight: 24,
     color: GameColors.ink,
-    marginTop: -2,
   },
   closeBtnPressed: {
     transform: [{ translateY: 2 }],
-  },
-  closeBtnText: {
-    fontFamily: GameFonts.display,
-    fontSize: 30,
-    lineHeight: 32,
-    color: GameColors.ink,
-    marginTop: -2,
-  },
-  startOverBtn: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 14,
-    backgroundColor: GameColors.playBlue,
-    borderWidth: 2.5,
-    borderColor: GameColors.ink,
-  },
-  startOverBtnText: {
-    fontFamily: GameFonts.body,
-    fontSize: 18,
-    color: GameColors.white,
   },
   body: {
     flex: 1,
@@ -145,27 +134,9 @@ export const styles = StyleSheet.create({
     gap: 10,
     marginTop: 4,
   },
+  // Review and Share split the row evenly.
   supportBtn: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.35)',
-  },
-  supportBtnPressed: {
-    transform: [{ translateY: 1 }],
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
-  supportBtnText: {
-    fontFamily: GameFonts.body,
-    fontSize: 16,
-    lineHeight: 20,
-    color: GameColors.white,
   },
   card: {
     backgroundColor: GameColors.white,
@@ -263,16 +234,6 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 10,
-  },
-  hsShareBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: GameColors.white,
-    borderWidth: 2.5,
-    borderColor: GameColors.ink,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   hsCaption: {
     flex: 1,
@@ -412,32 +373,42 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
   },
   rankPodium: {
-    marginTop: 2,
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 4,
+    paddingHorizontal: 6,
   },
-  rankPodiumBase: {
-    height: 4,
-    marginHorizontal: -6,
-    borderRadius: 2,
-    backgroundColor: GameColors.ink,
+  // Room above the crown for the confetti.
+  rankPodiumWrap: {
+    paddingTop: 10,
+  },
+  rankConfetti: {
+    position: 'absolute',
+    width: 12,
+    height: 5,
+    borderRadius: 3,
   },
   rankSpot: {
     flex: 1,
     alignItems: 'center',
   },
-  rankCrown: {
-    marginBottom: 2,
-    fontSize: 24,
-    lineHeight: 28,
+  rankCrownRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 4,
+    marginBottom: -4,
+    zIndex: 2,
   },
-  rankStar: {
-    fontSize: 14,
-    color: GameColors.xpGold,
-    textShadowColor: GameColors.ink,
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 0,
+  // 181×120 source.
+  rankCrown: {
+    width: 42,
+    height: 28,
+  },
+  // 102×96 source.
+  rankStarSmall: {
+    width: 17,
+    height: 16,
+    marginBottom: 8,
   },
   rankAvatarRing: {
     zIndex: 1,
@@ -445,6 +416,9 @@ export const styles = StyleSheet.create({
     borderWidth: 2.5,
     borderColor: GameColors.ink,
     backgroundColor: GameColors.white,
+  },
+  rankSpotBadge: {
+    zIndex: 2,
   },
   rankAvatarFace: {
     flex: 1,
@@ -455,41 +429,35 @@ export const styles = StyleSheet.create({
   rankBlock: {
     alignSelf: 'stretch',
     alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 6,
-    paddingBottom: 8,
-    borderTopLeftRadius: 14,
-    borderTopRightRadius: 14,
-    borderWidth: 3,
+    paddingBottom: 10,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderWidth: 2.5,
     borderBottomWidth: 0,
     borderColor: GameColors.ink,
-  },
-  rankBlockNumber: {
-    fontFamily: GameFonts.display,
-    fontSize: 24,
-    lineHeight: 26,
-    color: GameColors.ink,
   },
   rankBlockName: {
     maxWidth: '100%',
     fontFamily: GameFonts.display,
-    fontSize: 13,
-    lineHeight: 16,
+    fontSize: 16,
+    lineHeight: 20,
     color: GameColors.ink,
   },
   rankScorePill: {
-    marginTop: 3,
-    minWidth: 56,
+    alignSelf: 'stretch',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 1,
-    borderRadius: 12,
+    paddingVertical: 2,
+    borderRadius: 14,
     borderWidth: 2,
     borderColor: GameColors.ink,
     backgroundColor: GameColors.white,
   },
   rankScorePillText: {
     fontFamily: GameFonts.display,
-    fontSize: 14,
+    fontSize: 16,
+    lineHeight: 20,
     color: GameColors.ink,
     fontVariant: ['tabular-nums'],
   },
@@ -588,12 +556,34 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: 'rgba(26,28,44,0.08)',
   },
+  rankHeadRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 6,
+    borderBottomWidth: 2,
+    borderBottomColor: 'rgba(26,28,44,0.08)',
+  },
+  rankHead: {
+    fontFamily: GameFonts.display,
+    fontSize: 12,
+    lineHeight: 15,
+    letterSpacing: 1,
+    color: GameColors.panelInk,
+  },
+  // Lines up with the rank numbers below.
+  rankHeadPos: {
+    width: 24,
+    textAlign: 'center',
+  },
+  // Starts where the avatars do.
+  rankHeadPlayer: {
+    flex: 1,
+  },
   rankRowYou: {
-    backgroundColor: GameColors.lemon,
-    borderTopWidth: 2.5,
-    borderBottomWidth: 2.5,
-    borderColor: GameColors.ink,
-    borderBottomColor: GameColors.ink,
+    backgroundColor: '#FFF6C7',
   },
   rankRowLast: {
     borderBottomWidth: 0,
@@ -630,12 +620,12 @@ export const styles = StyleSheet.create({
     color: GameColors.ink,
   },
   rankYouTag: {
-    paddingHorizontal: 6,
+    paddingHorizontal: 7,
     paddingVertical: 1,
-    borderRadius: 8,
-    borderWidth: 2,
+    borderRadius: 999,
+    borderWidth: 1.5,
     borderColor: GameColors.ink,
-    backgroundColor: GameColors.perfect,
+    backgroundColor: '#0A6CF5',
   },
   rankYouTagText: {
     fontFamily: GameFonts.display,
@@ -677,6 +667,31 @@ export const styles = StyleSheet.create({
   rankGapCoinImage: {
     width: 36,
     height: 36,
+  },
+  rankPrize: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  rankPrizeCoin: {
+    width: 56,
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // One bar through the coin's centre, rotated per ray; the coin covers the middle.
+  rankPrizeRay: {
+    position: 'absolute',
+    width: 56,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: GameColors.xpGold,
+  },
+  rankPrizeCoinImage: {
+    width: 40,
+    height: 40,
   },
   rankGapText: {
     flex: 1,
@@ -831,11 +846,6 @@ export const styles = StyleSheet.create({
     letterSpacing: 1,
     color: GameColors.scoreGood,
   },
-  avatarPackNeed: {
-    fontFamily: GameFonts.soft,
-    fontSize: 13,
-    color: GameColors.panelInk,
-  },
   avatarUnlock: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -880,6 +890,28 @@ export const styles = StyleSheet.create({
     borderColor: GameColors.ink,
     backgroundColor: GameColors.lemon,
   },
+  avatarLockOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarNeed: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: GameColors.ink,
+    backgroundColor: GameColors.white,
+  },
+  avatarNeedText: {
+    fontFamily: GameFonts.display,
+    fontSize: 14,
+    color: GameColors.ink,
+  },
   avatarCellLocked: {
     opacity: 0.35,
   },
@@ -898,14 +930,14 @@ export const styles = StyleSheet.create({
     backgroundColor: '#DCE6F0',
   },
   skelAvatar: {
-    width: 42,
-    height: 42,
-    marginBottom: -21,
+    width: 62,
+    height: 62,
+    marginBottom: -8,
   },
   skelAvatarFirst: {
-    width: 48,
-    height: 48,
-    marginBottom: -24,
+    width: 72,
+    height: 72,
+    marginBottom: -8,
   },
   skelRowAvatar: {
     width: 34,
@@ -924,20 +956,10 @@ export const styles = StyleSheet.create({
     borderColor: 'rgba(26,28,44,0.12)',
     backgroundColor: '#E8EFF6',
   },
-  skelBase: {
-    height: 4,
-    marginHorizontal: -6,
-    borderRadius: 2,
-    backgroundColor: 'rgba(26,28,44,0.12)',
-  },
   skelBar: {
     height: 12,
     borderRadius: 6,
     backgroundColor: '#DCE6F0',
-  },
-  skelBarNumber: {
-    width: 18,
-    height: 20,
   },
   skelBarName: {
     width: '60%',
