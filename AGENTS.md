@@ -9,7 +9,7 @@ Use only the two button components, never a one-off `Pressable` styled as a butt
 - `MainButton` (`src/game/MainButton.tsx`): the 3D pill that drops onto its lip when pressed, for the main action of a screen or card (PLAY, RETRY, Collect, PLAY DAILY). Tones `blue` / `green` / `gold`, sizes `small` / `regular` / `large`. Add a tone to `TONES` rather than overriding colours.
 - `FlatButton` (`src/game/FlatButton.tsx`): flat and outlined, for everything else. With `label` it's a text button (GO HOME, Not now); without, a square icon button (back, close, share). Tones `white` / `blue` / `glass` (on coloured cards).
 
-Rows, tabs, cards and swatches that happen to be tappable aren't buttons and keep their own styles.
+Rows, tabs, cards and swatches that happen to be tappable aren't buttons and keep their own styles. Neither are value badges, like the coin balance in the menu header: they show a number first and only open something second.
 
 # Dev menu previews
 

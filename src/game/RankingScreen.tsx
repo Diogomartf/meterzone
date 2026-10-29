@@ -714,8 +714,24 @@ function PodiumSpot({
   const { color, ring, lift, avatar } = PODIUM[place];
   const badgeH = PODIUM_BADGE * (120 / 102);
 
+  // The place number lives in the badge art, which screen readers skip, and
+  // the podium reads #2, #1, #3 — so each spot says its own place.
+  const label = !entry
+    ? gt('Place {place}: open spot', { place })
+    : entry.isYou
+      ? gt('Place {place}: {name} (you), {score} points', {
+          place,
+          name: entry.name,
+          score: formatScore(entry.score),
+        })
+      : gt('Place {place}: {name}, {score} points', {
+          place,
+          name: entry.name,
+          score: formatScore(entry.score),
+        });
+
   return (
-    <View style={styles.rankSpot}>
+    <View style={styles.rankSpot} accessible accessibilityLabel={label}>
       {place === 1 ? (
         <View style={styles.rankCrownRow} accessibilityElementsHidden>
           <Image source={STAR} style={styles.rankStarSmall} />
