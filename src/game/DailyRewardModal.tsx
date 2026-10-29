@@ -127,7 +127,8 @@ function CountUp({ value }: { value: number }) {
     let start: number | null = null;
     let last = 1;
     const tick = (now: number) => {
-      start ??= now + COUNT_DELAY;
+      // Plain `if`: React Compiler can't lower `??=` and would skip this file.
+      if (start === null) start = now + COUNT_DELAY;
       const p = Math.min(1, Math.max(0, (now - start) / COUNT_DURATION));
       const next = Math.max(1, Math.round(1 + (value - 1) * easeInOut(p)));
       // Only re-render when the digits actually change.
