@@ -91,7 +91,7 @@ import { useDailyReward } from '@/game/useDailyReward';
 import { usePersistState } from '@/game/usePersistState';
 import { useSounds } from '@/game/useSounds';
 import { useTapCoach } from '@/game/useTapCoach';
-import { useMeterTap } from '@/game/useMeterTap';
+import { resetScreenshotAutoplay, useMeterTap } from '@/game/useMeterTap';
 
 const LOGO = require('../../assets/images/zone-meter-logo.webp');
 const GAME_BG = require('../../assets/images/game-bg.webp');
@@ -804,6 +804,7 @@ export function GameScreen() {
     haltRun();
     resetRunVisuals();
     beginCoachRun(persistRef.current?.totalRuns ?? persist?.totalRuns ?? 0);
+    resetScreenshotAutoplay();
     runDayRef.current = todayKey();
     dispatch({ type: 'startRun', daily });
     rngRef.current = daily

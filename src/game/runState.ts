@@ -68,6 +68,23 @@ export type RunState = {
   pendingTimer: PendingTimer;
 };
 
+/**
+ * Bookkeeping for timers and the paused menu. Only callbacks read these, never
+ * render, so a change to them alone does not need GameScreen to re-render.
+ */
+const UNRENDERED_KEYS: ReadonlySet<keyof RunState> = new Set([
+  'pauseResume',
+  'pendingTimer',
+]);
+
+/** Whether going from `prev` to `next` changes anything the screen draws. */
+export function changesRender(prev: RunState, next: RunState): boolean {
+  if (prev === next) return false;
+  return (Object.keys(next) as (keyof RunState)[]).some(
+    (key) => !UNRENDERED_KEYS.has(key) && prev[key] !== next[key],
+  );
+}
+
 export function emptyStats(): SessionStats {
   return {
     attempts: 0,

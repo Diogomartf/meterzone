@@ -127,6 +127,11 @@ export function TapHint({
     transform: [{ scale: 1 - press.value * 0.1 }],
   }));
 
+  // Hiding snaps the hand out with no fade, so unmounting loses nothing. Kept
+  // mounted, its image and nine stacked labels sat over every run of every
+  // player who finished the coach long ago.
+  if (!visible) return null;
+
   return (
     <Animated.View
       style={[styles.wrap, { left, bottom }, iconStyle]}

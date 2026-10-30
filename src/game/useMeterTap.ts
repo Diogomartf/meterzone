@@ -3,9 +3,33 @@ import { Gesture } from 'react-native-gesture-handler';
 import {
   cancelAnimation,
   runOnJS,
+  makeMutable,
   runOnUI,
+  useAnimatedReaction,
   type SharedValue,
 } from 'react-native-reanimated';
+
+/**
+ * Store screenshots only: with EXPO_PUBLIC_SCREENSHOT_AUTOPLAY=<hits> in a dev
+ * build, the meter stops itself on the zone for that many rounds, then lets
+ * the run miss out so it ends. Simulator taps land far too late to play by hand.
+ */
+const AUTOPLAY_HITS = __DEV__
+  ? Number(process.env.EXPO_PUBLIC_SCREENSHOT_AUTOPLAY) || 0
+  : 0;
+
+/** Autoplay's progress through the current run. Module-level so a new run can reset it. */
+const autoplayHits = makeMutable(0);
+const autoplayMisses = makeMutable(0);
+/** Aim off-center on about half the rounds so the run mixes Perfect, Great and Nice. */
+const autoplayAim = makeMutable(0);
+
+/** Start the autoplay over, so every run plays its full set of hits. No-op when it's off. */
+export function resetScreenshotAutoplay() {
+  if (!AUTOPLAY_HITS) return;
+  autoplayHits.set(0);
+  autoplayMisses.set(0);
+}
 
 type Params = {
   fill: SharedValue<number>;
@@ -113,6 +137,11 @@ export function useMeterTap({
     runOnUI(freezeMeter)();
   }, [freezeMeter]);
 
+  useAutoplay(
+    { fill, isFilling, zoneTarget, zoneHalf, zoneFrom, zoneTo, zoneMoves },
+    freezeMeter,
+  );
+
   const gesture = useMemo(
     () =>
       Gesture.Tap()
@@ -126,3 +155,70 @@ export function useMeterTap({
 
   return { gesture, activate };
 }
+
+type AutoplayParams = Pick<
+  Params,
+  | 'fill'
+  | 'isFilling'
+  | 'zoneTarget'
+  | 'zoneHalf'
+  | 'zoneFrom'
+  | 'zoneTo'
+  | 'zoneMoves'
+>;
+
+function useScreenshotAutoplay(
+  {
+    fill,
+    isFilling,
+    zoneTarget,
+    zoneHalf,
+    zoneFrom,
+    zoneTo,
+    zoneMoves,
+  }: AutoplayParams,
+  freezeMeter: () => void,
+) {
+  'use no memo';
+
+  useAnimatedReaction(
+    () => fill.value,
+    (now, before) => {
+      if (autoplayHits.value >= AUTOPLAY_HITS) {
+        // Each full fill is a miss; three of them end the run, so start over.
+        if (now >= 1 && (before ?? 0) < 1) {
+          autoplayMisses.set(autoplayMisses.value + 1);
+          if (autoplayMisses.value >= 3) {
+            autoplayHits.set(0);
+            autoplayMisses.set(0);
+          }
+        }
+        return;
+      }
+      // The fill drops back between rounds, while isFilling is still off.
+      if (now < (before ?? 0)) {
+        autoplayAim.set(
+          Math.random() < 0.5
+            ? 0
+            : (Math.random() - 0.6) * zoneHalf.value * 1.4,
+        );
+      }
+      if (isFilling.value !== 1) return;
+      const zone = zoneMoves.value
+        ? zoneFrom.value + (zoneTo.value - zoneFrom.value) * now
+        : zoneTarget.value;
+      if (now < zone + autoplayAim.value) return;
+      autoplayHits.set(autoplayHits.value + 1);
+      freezeMeter();
+    },
+  );
+}
+
+/**
+ * Picked once at load, so every render calls the same hook. Release builds and
+ * dev builds without the env var get a no-op, not a reaction that runs on every
+ * frame of every fill only to return early.
+ */
+const useAutoplay: typeof useScreenshotAutoplay = AUTOPLAY_HITS
+  ? useScreenshotAutoplay
+  : () => {};

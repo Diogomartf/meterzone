@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { makeRound } from '@/game/levels';
 import { STARTING_LIVES, scoreFill } from '@/game/scoring';
 import {
+  changesRender,
   feedbackSlotFor,
   INITIAL_COUNTDOWN,
   initialRunState,
@@ -361,5 +362,40 @@ describe('a whole run', () => {
     expect(s.stats.attempts).toBe(1 + STARTING_LIVES);
     expect(s.stats.hits).toBe(1);
     expect(s.stats.misses).toBe(STARTING_LIVES);
+  });
+});
+
+describe('changesRender', () => {
+  const start = initialRunState(round());
+
+  test('timer bookkeeping alone does not re-render', () => {
+    const armed = runReducer(start, {
+      type: 'pendingTimer',
+      pending: 'startFill',
+    });
+    expect(changesRender(start, armed)).toBe(false);
+    const parked = runReducer(armed, {
+      type: 'park',
+      resume: { kind: 'advance' },
+    });
+    expect(changesRender(armed, parked)).toBe(false);
+  });
+
+  test('anything drawn re-renders', () => {
+    expect(
+      changesRender(
+        start,
+        runReducer(start, { type: 'phase', phase: 'filling' }),
+      ),
+    ).toBe(true);
+    expect(
+      changesRender(start, runReducer(start, { type: 'pause', fillAt: 0 })),
+    ).toBe(true);
+  });
+
+  test('an unchanged state does not re-render', () => {
+    expect(
+      changesRender(start, runReducer(start, { type: 'clearFeedback' })),
+    ).toBe(false);
   });
 });
