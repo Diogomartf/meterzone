@@ -37,6 +37,7 @@ import {
 } from '@/game/menuRows';
 import { AvatarPicker } from '@/game/AvatarPicker';
 import { FlatButton } from '@/game/FlatButton';
+import { HowToPlay } from '@/game/HowToPlay';
 import { styles } from '@/game/menuSheetStyles';
 import { rankingAvailable } from '@/game/ranking';
 import { RankingScreen } from '@/game/RankingScreen';
@@ -650,55 +651,10 @@ export function MenuSheet({
                 ) : null}
 
                 {view === 'howto' ? (
-                  <ScrollView
-                    style={styles.menuScroll}
-                    contentContainerStyle={[
-                      styles.menuScrollContent,
-                      bottomPad,
-                    ]}
-                    showsVerticalScrollIndicator={false}
-                    bounces={false}
-                    nestedScrollEnabled
-                    keyboardShouldPersistTaps="handled"
-                  >
-                    <View style={styles.card}>
-                      <View style={styles.infoBlock}>
-                        <Text style={styles.rowLabel}>{gt('The goal')}</Text>
-                        <Text style={styles.rowSub}>
-                          {gt(
-                            'Watch the meter rise, then tap once to stop it inside the zone. Perfect, Great, and Nice keep you going and stack combos. Miss and you lose a heart.',
-                          )}
-                        </Text>
-                      </View>
-                      <View style={styles.divider} />
-                      <View style={styles.infoBlock}>
-                        <Text style={styles.rowLabel}>{gt('Normal')}</Text>
-                        <Text style={styles.rowSub}>
-                          {gt(
-                            'A classic endless run. Levels get tougher as you climb — chase your all-time high score.',
-                          )}
-                        </Text>
-                      </View>
-                      <View style={styles.divider} />
-                      <View style={styles.infoBlock}>
-                        <Text style={styles.rowLabel}>{gt('Daily')}</Text>
-                        <Text style={styles.rowSub}>
-                          {gt(
-                            'The same sequence for everyone that day, so scores are fair to compare. A fresh challenge every day.',
-                          )}
-                        </Text>
-                      </View>
-                      <View style={styles.divider} />
-                      <View style={styles.infoBlock}>
-                        <Text style={styles.rowLabel}>{gt('Skins')}</Text>
-                        <Text style={styles.rowSub}>
-                          {gt(
-                            'Perfect, Great, and Nice hits pay coins. Spend them in Skins to unlock Lava, Ice, and Gold, then equip the look you want on the meter.',
-                          )}
-                        </Text>
-                      </View>
-                    </View>
-                  </ScrollView>
+                  <HowToPlay
+                    contentStyle={bottomPad}
+                    onPlay={() => onStartMode(dailyMode)}
+                  />
                 ) : null}
 
                 {view === 'language' ? (

@@ -66,6 +66,8 @@ export const GameFonts = {
   display: 'Fredoka_700Bold',
   body: 'Fredoka_600SemiBold',
   soft: 'Fredoka_500Medium',
+  /** Condensed and heavy, for short punchy lines like the how-to steps. */
+  punch: 'LilitaOne_400Regular',
 } as const;
 
 /**
