@@ -119,43 +119,68 @@ curl -s localhost:$METRO_PORT/status | grep -q running || { echo "Metro not runn
 sim_prepare
 
 # One daily run first, so the Daily card and Hall of fame show a score instead of a dash.
-open_app; wait_home
-daily_button
+{ open_app && wait_home && daily_button; } || { echo "Couldn't start the warm-up daily run" >&2; exit 1; }
 sleep 50  # 14 autoplay hits, then three misses end the run
+
+# Every file a finished locale must have. _burst/ is checked separately.
+EXPECTED=(00-splash 01-home 02-hall-of-fame 03-menu 04-play-mode 05-ranking 06-skins
+  07-avatar 08-settings 09-how-to-play 11-game-over)
+
+# Capture one locale into $OUT. Any failed step stops it, so a broken set is never saved.
+capture_locale() {
+  local loc=$1
+
+  # Switch language first, from whatever language the app is in.
+  open_app && wait_home || return 1
+  language_button || return 1
+  sim_tap "${FLAG[$loc]}" 2 || return 1
+  sheet_back && tap_at 391 133 || return 1  # Back to menu, then Close
+
+  # Splash: relaunch and catch it while the bundle loads.
+  shoot_splash && wait_home || return 1
+  assert_no_fab
+  sim_shot 01-home || return 1
+
+  # Hall of fame opens inside the menu sheet, so Back lands on the menu.
+  scores_card && sim_shot 02-hall-of-fame || return 1
+  sheet_back && sim_shot 03-menu || return 1
+  menu_row 1 && sim_shot 04-play-mode && sheet_back || return 1
+  menu_row 3 2.5 && sim_shot 05-ranking && sheet_back || return 1
+  menu_row 4 && sim_shot 06-skins || return 1
+  avatar_tab && sim_shot 07-avatar && sheet_back || return 1
+  menu_row 5 && sim_shot 08-settings && sheet_back || return 1
+  menu_row 6 && sim_shot 09-how-to-play && sheet_back || return 1
+  tap_at 391 133 || return 1  # Close menu
+
+  # Gameplay: the countdown frame comes from the burst (first frames), the rest from autoplay.
+  record_run || return 1
+  sleep 14  # autoplay stops after 14 hits; three misses end the run
+  sim_shot 11-game-over || return 1
+}
+
+# The whole set is there and nothing in it shows the reload banner.
+check_locale() {
+  local name f ok=0
+  for name in $EXPECTED; do
+    [[ -s $OUT/$name.png ]] || { echo "missing $name.png" >&2; ok=1; }
+  done
+  [[ -s $OUT/gameplay.mp4 ]] || { echo "missing gameplay.mp4" >&2; ok=1; }
+  [[ -n $(print -l $OUT/_burst/*.png(N)) ]] || { echo "missing _burst/ frames" >&2; ok=1; }
+  for f in $OUT/*.png(N); do
+    sim_has_banner $f && { echo "reload banner in ${f:t}" >&2; ok=1; }
+  done
+  return $ok
+}
 
 for loc in $LOCALES; do
   OUT=$STAGE/$loc
   mkdir -p $OUT
   echo "== $loc"
-
-  # Switch language first, from whatever language the app is in.
-  open_app; wait_home
-  language_button
-  sim_tap "${FLAG[$loc]}" 2
-  sheet_back; tap_at 391 133  # Back to menu, then Close
-
-  # Splash: relaunch and catch it while the bundle loads.
-  shoot_splash
-  wait_home
-  assert_no_fab
-  sim_shot 01-home
-
-  # Hall of fame opens inside the menu sheet, so Back lands on the menu.
-  scores_card; sim_shot 02-hall-of-fame
-  sheet_back; sim_shot 03-menu
-  menu_row 1; sim_shot 04-play-mode; sheet_back
-  menu_row 3 2.5; sim_shot 05-ranking; sheet_back
-  menu_row 4; sim_shot 06-skins
-  avatar_tab; sim_shot 07-avatar; sheet_back
-  menu_row 5; sim_shot 08-settings; sheet_back
-  menu_row 6; sim_shot 09-how-to-play; sheet_back
-  tap_at 391 133  # Close menu
-
-  # Gameplay: the countdown frame comes from the burst (first frames), the rest from autoplay.
-  record_run
-  sleep 14  # autoplay stops after 14 hits; three misses end the run
-  sim_shot 11-game-over
-
+  if ! capture_locale $loc || ! check_locale; then
+    echo "$loc failed; kept the previous $ROOT/$loc. Partial capture: $OUT" >&2
+    exit 1
+  fi
+  # Only a complete, checked set replaces the saved one.
   rm -rf $ROOT/$loc; mkdir -p $ROOT; mv $OUT $ROOT/$loc
 done
 rm -rf $STAGE

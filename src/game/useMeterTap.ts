@@ -3,9 +3,9 @@ import { Gesture } from 'react-native-gesture-handler';
 import {
   cancelAnimation,
   runOnJS,
+  makeMutable,
   runOnUI,
   useAnimatedReaction,
-  useSharedValue,
   type SharedValue,
 } from 'react-native-reanimated';
 
@@ -17,6 +17,19 @@ import {
 const AUTOPLAY_HITS = __DEV__
   ? Number(process.env.EXPO_PUBLIC_SCREENSHOT_AUTOPLAY) || 0
   : 0;
+
+/** Autoplay's progress through the current run. Module-level so a new run can reset it. */
+const autoplayHits = makeMutable(0);
+const autoplayMisses = makeMutable(0);
+/** Aim off-center on about half the rounds so the run mixes Perfect, Great and Nice. */
+const autoplayAim = makeMutable(0);
+
+/** Start the autoplay over, so every run plays its full set of hits. No-op when it's off. */
+export function resetScreenshotAutoplay() {
+  if (!AUTOPLAY_HITS) return;
+  autoplayHits.set(0);
+  autoplayMisses.set(0);
+}
 
 type Params = {
   fill: SharedValue<number>;
@@ -168,10 +181,6 @@ function useScreenshotAutoplay(
 ) {
   'use no memo';
 
-  const autoplayHits = useSharedValue(0);
-  const autoplayMisses = useSharedValue(0);
-  // Aim off-center on about half the rounds so the run mixes Perfect, Great and Nice.
-  const autoplayAim = useSharedValue(0);
   useAnimatedReaction(
     () => fill.value,
     (now, before) => {
