@@ -4,6 +4,7 @@ import {
   Fredoka_700Bold,
   useFonts,
 } from '@expo-google-fonts/fredoka';
+import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
 import { Image, type ImageRef } from 'expo-image';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -124,6 +125,7 @@ function RootLayout() {
     Fredoka_500Medium,
     Fredoka_600SemiBold,
     Fredoka_700Bold,
+    LilitaOne_400Regular,
   });
   const splashArt = useDecodedImage(NATIVE_SPLASH.source);
   const firstScreenWarmed = useWarmedImages(FIRST_SCREEN_IMAGES);

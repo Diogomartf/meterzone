@@ -1628,6 +1628,7 @@ export function GameScreen() {
         initialView={menuInitialView}
         highScore={persist?.highScore ?? 0}
         bestLevel={persist?.bestLevel ?? 0}
+        dailyPlayedToday={Boolean(dailyPlayedToday)}
         dailyTodayScore={
           persist?.dailyBest.date === todayKey() ? persist.dailyBest.score : 0
         }

@@ -27,7 +27,8 @@ import { useGT, useLocaleSelector, useMessages } from 'gt-react-native';
 import { GameColors } from '@/constants/gameTheme';
 import {
   ActionRow,
-  HighscoreCard,
+  RecordCard,
+  TodayStrip,
   ModeRow,
   SupportCard,
   TabSwitch,
@@ -36,6 +37,7 @@ import {
 } from '@/game/menuRows';
 import { AvatarPicker } from '@/game/AvatarPicker';
 import { FlatButton } from '@/game/FlatButton';
+import { HowToPlay } from '@/game/HowToPlay';
 import { styles } from '@/game/menuSheetStyles';
 import { rankingAvailable } from '@/game/ranking';
 import { RankingScreen } from '@/game/RankingScreen';
@@ -43,11 +45,14 @@ import { CoinBank, SkinShop } from '@/game/SkinShop';
 import { captureAndShare, shareScoreCaption } from '@/game/share';
 import { formatScore } from '@/game/format';
 import type { AvatarPackId, PlayerAvatar, SkinId } from '@/game/types';
+import { todayKey } from '@/game/storage';
 import { useSheetBottomPad } from '@/game/useSheetBottomPad';
 import gtConfig from '../../gt.config.json';
 
 const LOGO = require('../../assets/images/zone-meter-logo.webp');
 const COIN = require('../../assets/images/coin.webp');
+const CROWN = require('../../assets/images/hof-crown.webp');
+const MEDAL = require('../../assets/images/hof-medal.webp');
 
 const BACK_ICON = {
   ios: 'chevron.left',
@@ -85,6 +90,8 @@ type MenuSheetProps = {
   initialView?: MenuView;
   highScore: number;
   bestLevel: number;
+  /** A daily run finished today, even one that scored zero. */
+  dailyPlayedToday: boolean;
   dailyTodayScore: number;
   dailyTodayLevel: number;
   dailyRecordScore: number;
@@ -119,6 +126,7 @@ export function MenuSheet({
   initialView = 'menu',
   highScore,
   bestLevel,
+  dailyPlayedToday,
   dailyTodayScore,
   dailyTodayLevel,
   dailyRecordScore,
@@ -161,8 +169,8 @@ export function MenuSheet({
 
   const [sharingKind, setSharingKind] = useState<HighscoreKind | null>(null);
   const normalShareRef = useRef<View>(null);
-  const todayShareRef = useRef<View>(null);
-  const recordShareRef = useRef<View>(null);
+  const dailyShareRef = useRef<View>(null);
+  const sharingDaily = sharingKind === 'today' || sharingKind === 'record';
   const version =
     Constants.expoConfig?.version ?? Constants.nativeAppVersion ?? '1.0.0';
 
@@ -293,14 +301,11 @@ export function MenuSheet({
   const shareHighscore = async (kind: HighscoreKind) => {
     if (sharingKind) return;
     const target =
-      kind === 'normal'
-        ? normalShareRef.current
-        : kind === 'today'
-          ? todayShareRef.current
-          : recordShareRef.current;
+      kind === 'normal' ? normalShareRef.current : dailyShareRef.current;
 
-    // Re-renders the card with its logo and without the share button, so the
-    // capture below picks up the shareable framing.
+    // Re-renders the card with its logo and without the share button (and,
+    // for today, with today's score in the record's place), so the capture
+    // below picks up the shareable framing.
     setSharingKind(kind);
     // `finally` would read better, but React Compiler cannot lower a try block
     // with a finalizer and would skip optimizing this whole file.
@@ -579,13 +584,12 @@ export function MenuSheet({
                           contentFit="contain"
                         />
                       ) : null}
-                      <HighscoreCard
-                        badge={gt('NORMAL')}
-                        mode={gt('NORMAL')}
-                        modeColor="#D97706"
-                        caption={gt('All-time best')}
+                      <RecordCard
+                        title={gt('Normal')}
+                        art={CROWN}
+                        sunburst
                         accent={GameColors.xpGold}
-                        accentDeep="#D97706"
+                        accentDeep="#E07B00"
                         score={highScore}
                         level={bestLevel}
                         emptyHint={gt('Beat the meter. Own the board.')}
@@ -594,117 +598,67 @@ export function MenuSheet({
                       />
                     </View>
                     <View
-                      ref={todayShareRef}
+                      ref={dailyShareRef}
                       collapsable={false}
                       style={[
                         styles.hsCapture,
-                        sharingKind === 'today' && styles.hsCaptureShot,
+                        sharingDaily && styles.hsCaptureShot,
                       ]}
                     >
+                      {sharingDaily ? (
+                        <Image
+                          source={LOGO}
+                          style={styles.hsLogo}
+                          contentFit="contain"
+                        />
+                      ) : null}
                       {sharingKind === 'today' ? (
-                        <Image
-                          source={LOGO}
-                          style={styles.hsLogo}
-                          contentFit="contain"
+                        // The shared image is today's score alone, laid out
+                        // like the record so it reads as the same card.
+                        <RecordCard
+                          title={gt('Daily challenge')}
+                          art={MEDAL}
+                          accent={GameColors.playBlue}
+                          accentDeep={GameColors.playBlueDark}
+                          score={dailyTodayScore}
+                          level={dailyTodayLevel}
+                          meta={formatDay(todayKey())}
+                          emptyHint=""
+                          hideShare
                         />
-                      ) : null}
-                      <HighscoreCard
-                        badge={gt('TODAY')}
-                        mode={gt('DAILY')}
-                        modeColor={GameColors.bubbleDark}
-                        caption={gt("Today's best")}
-                        accent={GameColors.playBlue}
-                        accentDeep={GameColors.playBlueDark}
-                        score={dailyTodayScore}
-                        level={dailyTodayLevel}
-                        emptyHint={gt('Same challenge for everyone. Go!')}
-                        hideShare={sharingKind === 'today'}
-                        onShare={() => void shareHighscore('today')}
-                      />
-                    </View>
-                    <View
-                      ref={recordShareRef}
-                      collapsable={false}
-                      style={[
-                        styles.hsCapture,
-                        sharingKind === 'record' && styles.hsCaptureShot,
-                      ]}
-                    >
-                      {sharingKind === 'record' ? (
-                        <Image
-                          source={LOGO}
-                          style={styles.hsLogo}
-                          contentFit="contain"
-                        />
-                      ) : null}
-                      <HighscoreCard
-                        badge={gt('BEST DAILY')}
-                        mode={gt('DAILY')}
-                        modeColor={GameColors.bubbleDark}
-                        caption={gt('Best ever')}
-                        accent={GameColors.bubble}
-                        accentDeep={GameColors.bubbleDark}
-                        score={dailyRecordScore}
-                        level={dailyRecordLevel}
-                        meta={recordMeta}
-                        emptyHint={gt('Your greatest daily still awaits.')}
-                        hideShare={sharingKind === 'record'}
-                        onShare={() => void shareHighscore('record')}
-                      />
+                      ) : (
+                        <RecordCard
+                          title={gt('Daily challenge')}
+                          art={MEDAL}
+                          accent={GameColors.playBlue}
+                          accentDeep={GameColors.playBlueDark}
+                          score={dailyRecordScore}
+                          level={dailyRecordLevel}
+                          meta={recordMeta}
+                          emptyHint={gt('Same challenge for everyone. Go!')}
+                          hideShare={sharingKind === 'record'}
+                          onShare={() => void shareHighscore('record')}
+                        >
+                          {dailyRecordScore > 0 && sharingKind !== 'record' ? (
+                            <TodayStrip
+                              played={dailyPlayedToday}
+                              score={dailyTodayScore}
+                              level={dailyTodayLevel}
+                              emptyHint={gt('Not played yet')}
+                              onShare={() => void shareHighscore('today')}
+                            />
+                          ) : null}
+                        </RecordCard>
+                      )}
                     </View>
                   </ScrollView>
                 ) : null}
 
                 {view === 'howto' ? (
-                  <ScrollView
-                    style={styles.menuScroll}
-                    contentContainerStyle={[
-                      styles.menuScrollContent,
-                      bottomPad,
-                    ]}
-                    showsVerticalScrollIndicator={false}
-                    bounces={false}
-                    nestedScrollEnabled
-                    keyboardShouldPersistTaps="handled"
-                  >
-                    <View style={styles.card}>
-                      <View style={styles.infoBlock}>
-                        <Text style={styles.rowLabel}>{gt('The goal')}</Text>
-                        <Text style={styles.rowSub}>
-                          {gt(
-                            'Watch the meter rise, then tap once to stop it inside the zone. Perfect, Great, and Nice keep you going and stack combos. Miss and you lose a heart.',
-                          )}
-                        </Text>
-                      </View>
-                      <View style={styles.divider} />
-                      <View style={styles.infoBlock}>
-                        <Text style={styles.rowLabel}>{gt('Normal')}</Text>
-                        <Text style={styles.rowSub}>
-                          {gt(
-                            'A classic endless run. Levels get tougher as you climb — chase your all-time high score.',
-                          )}
-                        </Text>
-                      </View>
-                      <View style={styles.divider} />
-                      <View style={styles.infoBlock}>
-                        <Text style={styles.rowLabel}>{gt('Daily')}</Text>
-                        <Text style={styles.rowSub}>
-                          {gt(
-                            'The same sequence for everyone that day, so scores are fair to compare. A fresh challenge every day.',
-                          )}
-                        </Text>
-                      </View>
-                      <View style={styles.divider} />
-                      <View style={styles.infoBlock}>
-                        <Text style={styles.rowLabel}>{gt('Skins')}</Text>
-                        <Text style={styles.rowSub}>
-                          {gt(
-                            'Perfect, Great, and Nice hits pay coins. Spend them in Skins to unlock Lava, Ice, and Gold, then equip the look you want on the meter.',
-                          )}
-                        </Text>
-                      </View>
-                    </View>
-                  </ScrollView>
+                  <HowToPlay
+                    contentStyle={bottomPad}
+                    onPlay={() => onStartMode(dailyMode)}
+                  />
                 ) : null}
 
                 {view === 'language' ? (
