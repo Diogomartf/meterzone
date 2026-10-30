@@ -19,6 +19,36 @@ Any card, modal or sheet that only appears behind a hard-to-reach condition (a r
 - `registerDevMenuItems` replaces the whole list, so keep every item in that one call.
 - Keep `expo-dev-menu` on the same version `expo-dev-client` bundles (check `node_modules/expo-dev-client/package.json`); `expo install` may pick a newer SDK's release.
 
+# Performance
+
+Measure before and after any change made for speed, on the same runs, and put both numbers in the PR. Guessing has been wrong here before.
+
+- **Keep React Compiler on every file.** Run `bun run check:compiler`; a skipped file re-renders all its children (see the script header for what triggers a skip).
+- **Keep per-frame work on the UI thread.** Taps, the fill and zone motion are worklets reading shared values. Don't move them to JS state, and animate transforms, not layout.
+- **Don't re-render GameScreen for state nothing draws.** Run-state fields read only by callbacks go in `UNRENDERED_KEYS` (`src/game/runState.ts`).
+- **Unmount hidden overlays** (`if (!visible) return null`) unless they fade out.
+
+## Measuring renders (simulator)
+
+1. Wrap `<GameScreen />` in `src/app/index.tsx` with `<Profiler id="game" onRender={(_, phase, ms) => console.log(`[perf] ${phase} ${ms.toFixed(2)}`)}>`. Temporary: never commit it.
+2. Start Metro with autoplay so every run plays the same 17 rounds (14 hits, then three misses), writing the log to a file outside the repo:
+   `EXPO_PUBLIC_SCREENSHOT_AUTOPLAY=14 CI=1 bunx expo start --dev-client --port 8082 --clear > <scratch>/metro.log`.
+   `CI=1` turns off file watching, so restart Metro after switching code.
+3. On the booted `iPhone 18 Pro Max`, open the dev client at `meterzone://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8082`, wait for the home screen, tap PLAY (`sim_tap PLAY` from `.claude/skills/app-screenshots/sim.sh`) and wait about 60 s for GAME OVER.
+4. Count the `[perf] update` lines logged during the run and sum their times. Do two runs per side; for the "before" side, `git show master:<file> > <file>` for the changed files, then restore them.
+5. Remove the Profiler wrapper and the log files afterwards.
+
+Dev-build times are inflated: compare runs with each other, never against a frame budget. Dropped frames and UI-thread time can only be judged in a release build on a real iPhone with Instruments (Animation Hitches, Time Profiler).
+
+## Baseline
+
+GameScreen during one autoplay run, measured as above (two runs each). Add a row when a change moves these.
+
+| Date | Commit | React commits per run | Render time per run |
+|------|--------|-----------------------|---------------------|
+| 2026-10-30 | `8cecf79` (before #20) | 146, 153 | 853 ms, 958 ms |
+| 2026-10-30 | `f8bb4a3` (#20) | 118, 123 | 675 ms, 667 ms |
+
 # App Store Connect (`asc` CLI)
 
 ## App
