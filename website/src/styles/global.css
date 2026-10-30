@@ -172,13 +172,15 @@ button {
   transform: translateY(var(--lip-depth));
 }
 
+/* Ink text: white on this green is under 3:1, ink is over 6:1. */
 .main-btn--green {
   --face-0: #5be35b;
   --face-1: #14d414;
   --face-2: #00ca00;
   --face-3: #00bc00;
   --lip: #009c00;
-  --text-shadow: rgba(0, 70, 0, 0.45);
+  --text-shadow: rgba(255, 255, 255, 0.4);
+  color: var(--ink);
   --surface-shadow: rgba(26, 28, 44, 0.25);
 }
 
