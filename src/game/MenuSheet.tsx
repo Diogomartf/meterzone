@@ -90,6 +90,8 @@ type MenuSheetProps = {
   initialView?: MenuView;
   highScore: number;
   bestLevel: number;
+  /** A daily run finished today, even one that scored zero. */
+  dailyPlayedToday: boolean;
   dailyTodayScore: number;
   dailyTodayLevel: number;
   dailyRecordScore: number;
@@ -124,6 +126,7 @@ export function MenuSheet({
   initialView = 'menu',
   highScore,
   bestLevel,
+  dailyPlayedToday,
   dailyTodayScore,
   dailyTodayLevel,
   dailyRecordScore,
@@ -638,6 +641,7 @@ export function MenuSheet({
                         >
                           {dailyRecordScore > 0 && sharingKind !== 'record' ? (
                             <TodayStrip
+                              played={dailyPlayedToday}
                               score={dailyTodayScore}
                               level={dailyTodayLevel}
                               emptyHint={gt('Not played yet')}

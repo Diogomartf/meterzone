@@ -244,27 +244,37 @@ export function RecordCard({
   );
 }
 
-/** "Level 17 · Oct 28, 2026" in a white pill, the level number set bold. */
+/**
+ * "Level 17 · Oct 28, 2026" in a white pill, the level number set bold. The
+ * date drops to its own line when the pill runs out of room, and never splits.
+ */
 function LevelPill({ level, meta }: { level: number; meta?: string }) {
   const gt = useGT();
   return (
     <View style={styles.hsLevelPill}>
-      <Text style={styles.hsLevelLabel} numberOfLines={1}>
+      <Text style={styles.hsLevelLabel}>
         {gt('Level')} <Text style={styles.hsLevelValue}>{level}</Text>
-        {meta ? ` · ${meta}` : null}
       </Text>
+      {meta ? (
+        <Text style={styles.hsLevelLabel}>
+          {`· ${meta}`.replace(/ /g, '\u00A0')}
+        </Text>
+      ) : null}
     </View>
   );
 }
 
 /** Today's daily score, tucked into the bottom of the daily record card. */
 export function TodayStrip({
+  played,
   score,
   level,
   emptyHint,
   hideShare,
   onShare,
 }: {
+  /** Whether a daily run finished today; a run can end on zero points. */
+  played: boolean;
   score: number;
   level: number;
   emptyHint: string;
@@ -272,7 +282,7 @@ export function TodayStrip({
   onShare?: () => void;
 }) {
   const gt = useGT();
-  const empty = score <= 0;
+  const empty = !played;
   return (
     <View style={styles.hsToday}>
       <Text style={styles.hsTodayLabel}>{gt('TODAY')}</Text>
@@ -290,7 +300,7 @@ export function TodayStrip({
             {formatScore(score)}
           </Text>
           <LevelPill level={level} />
-          {onShare && !hideShare ? (
+          {score > 0 && onShare && !hideShare ? (
             <FlatButton
               onPress={onShare}
               icon={SHARE_ICON}

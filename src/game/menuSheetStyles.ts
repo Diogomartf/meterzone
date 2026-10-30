@@ -308,6 +308,10 @@ export const styles = StyleSheet.create({
   // Tinted by the card underneath: light blue on blue, light yellow on gold.
   hsLevelPill: {
     flexShrink: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'baseline',
+    columnGap: 6,
     backgroundColor: 'rgba(255,255,255,0.4)',
     borderRadius: 14,
     paddingHorizontal: 14,
