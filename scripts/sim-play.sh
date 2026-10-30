@@ -57,7 +57,10 @@ cleanup() {
   xcrun simctl status_bar $UDID clear 2>/dev/null
   rm -f $STAGE/raw.mp4 $STAGE/raw.wav
 }
-trap cleanup EXIT INT TERM
+# zsh carries on after an INT or TERM handler returns, so those exit explicitly.
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 for i in {1..60}; do
   curl -s localhost:$METRO_PORT/status | grep -q running && break
   sleep 1

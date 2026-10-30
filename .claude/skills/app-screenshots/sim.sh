@@ -100,19 +100,24 @@ sim_shot() {
 # can line them up. Start it after the app has launched: the tap follows that one process.
 SIM_AUDIO_SRC=${0:A:h}/sim-audio.swift
 [[ -f $SIM_AUDIO_SRC ]] || SIM_AUDIO_SRC=$(git rev-parse --show-toplevel)/.claude/skills/app-screenshots/sim-audio.swift
-SIM_AUDIO_BIN=${TMPDIR:-/tmp}/meterzone-sim-audio
+# Built into your own cache folder, never a shared one like /tmp, where another user could
+# plant a binary for this script to run.
+SIM_AUDIO_BIN=$HOME/Library/Caches/meterzone/sim-audio
 sim_rec_pids=()
 sim_record_start() {
   local dir=$1
-  zmodload zsh/datetime
-  if [[ ! -x $SIM_AUDIO_BIN || $SIM_AUDIO_SRC -nt $SIM_AUDIO_BIN ]]; then
+  mkdir -p -m 700 ${SIM_AUDIO_BIN:h}
+  [[ -O ${SIM_AUDIO_BIN:h} ]] || { echo "sim_record_start: ${SIM_AUDIO_BIN:h} isn't yours" >&2; return 1; }
+  if [[ ! -x $SIM_AUDIO_BIN || ! -O $SIM_AUDIO_BIN || $SIM_AUDIO_SRC -nt $SIM_AUDIO_BIN ]]; then
     swiftc -O $SIM_AUDIO_SRC -o $SIM_AUDIO_BIN || { echo "sim_record_start: couldn't build sim-audio" >&2; return 1; }
   fi
   rm -f $dir/raw.mp4 $dir/raw.wav $dir/audio.log $dir/video.log
   # Simulator apps run as Mac processes from the device's data folder.
   local pid=$(pgrep -n -f "Devices/$UDID/.*/MeterZone\.app/MeterZone")
   [[ -n $pid ]] || { echo "sim_record_start: MeterZone isn't running" >&2; return 1; }
-  $SIM_AUDIO_BIN $pid $dir/raw.wav >$dir/audio.log 2>&1 &
+  # Disowned (&!): zsh 5.9 can crash freeing a finished job inside an EXIT trap, and
+  # sim_record_stop tracks these by PID anyway.
+  $SIM_AUDIO_BIN $pid $dir/raw.wav >$dir/audio.log 2>&1 &!
   sim_rec_pids=($!)
   for i in {1..50}; do grep -q '^started' $dir/audio.log && break; sleep 0.1; done
   if ! grep -q '^started' $dir/audio.log; then
@@ -122,7 +127,7 @@ sim_record_start() {
   fi
   # simctl prints "Recording started" once it writes frames; stamp that line.
   xcrun simctl io $UDID recordVideo --codec=h264 --mask=ignored --force $dir/raw.mp4 2>&1 >/dev/null |
-    while read -r line; do print -r -- "$EPOCHREALTIME $line"; done >$dir/video.log &
+    perl -MTime::HiRes=time -ne '$| = 1; printf "%.4f %s", time, $_' >$dir/video.log &!
   for i in {1..50}; do grep -q 'Recording started' $dir/video.log && break; sleep 0.1; done
   sim_rec_pids+=($(pgrep -n -f "recordVideo.*$dir/raw.mp4"))
   grep -q 'Recording started' $dir/video.log && return 0

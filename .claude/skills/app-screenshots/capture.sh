@@ -16,6 +16,11 @@ source "$(dirname "$0")/sim.sh"
 : ${METRO_PORT:=8082}
 ROOT=./screenshots/raw
 STAGE=$(mktemp -d -t meterzone-shots)
+# Never leave the recorders running, however the script ends. zsh carries on after an INT
+# or TERM handler returns, so those exit explicitly (EXIT then stops the recorders).
+trap sim_record_stop EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 # Language picker rows start with the flag, so they match in any UI language.
 typeset -A FLAG=( en-US 🇺🇸 pt-PT 🇵🇹 pt-BR 🇧🇷 es-ES 🇪🇸 )
