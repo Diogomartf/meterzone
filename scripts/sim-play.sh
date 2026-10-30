@@ -73,6 +73,8 @@ element_at() {
 }
 
 sim_prepare
+# Launch from the home screen, or iOS puts a "◀ <app>" back link in the status bar.
+axe button home --udid $UDID >/dev/null 2>&1; sleep 1
 xcrun simctl openurl $UDID \
   "meterzone://expo-development-client/?url=http%3A%2F%2Flocalhost%3A$METRO_PORT"
 echo "Waiting for the home screen (the first bundle takes up to a minute)…"
@@ -88,10 +90,10 @@ sleep 2
 
 if [[ -n $SHOTS ]]; then
   mkdir -p $SHOTS
-  xcrun simctl io $UDID screenshot $SHOTS/home.png >/dev/null 2>&1
+  xcrun simctl io $UDID screenshot --mask=ignored $SHOTS/home.png >/dev/null 2>&1
 fi
 if [[ -n $VIDEO ]]; then
-  xcrun simctl io $UDID recordVideo --codec=h264 --force $STAGE/raw.mp4 >/dev/null 2>&1 &
+  xcrun simctl io $UDID recordVideo --codec=h264 --mask=ignored --force $STAGE/raw.mp4 >/dev/null 2>&1 &
   rec=$!
   sleep 1.5
 fi
@@ -122,12 +124,12 @@ done
 if [[ -n $VIDEO ]]; then
   kill -INT $rec; wait $rec; rec=""
   mkdir -p "$(dirname $VIDEO)"
-  # Drop the second of home screen before the tap.
-  ffmpeg -v error -y -ss 1.4 -i $STAGE/raw.mp4 -c:v libx264 -crf 18 -pix_fmt yuv420p -an $VIDEO
+  # Drop the second of home screen before the tap, and paint out the Dynamic Island.
+  ffmpeg -v error -y -ss 1.4 -i $STAGE/raw.mp4 -vf "$SIM_ISLAND_FILTER" -c:v libx264 -crf 18 -pix_fmt yuv420p -an $VIDEO
   echo "Video: $VIDEO"
 fi
 if [[ -n $SHOTS ]]; then
-  xcrun simctl io $UDID screenshot $SHOTS/game-over.png >/dev/null 2>&1
+  xcrun simctl io $UDID screenshot --mask=ignored $SHOTS/game-over.png >/dev/null 2>&1
   echo "Screenshots: $SHOTS/home.png, $SHOTS/game-over.png"
 fi
 

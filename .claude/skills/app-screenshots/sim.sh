@@ -71,15 +71,27 @@ sim_has_banner() {
   (( rgb[1] > 20 && rgb[1] < 50 && rgb[2] > 115 && rgb[2] < 145 && rgb[3] > 215 ))
 }
 
-# Screenshot to $OUT/$1.png, retrying while the app is reloading (banner on screen).
+# Recordings always draw the Dynamic Island as a black pill: simctl and axe both do, whatever
+# --mask says. Screenshots don't. So videos paint it out with this ffmpeg filter, which blends
+# in the background around it. Pixels for the 1320x2868 iPhone 18 Pro Max.
+SIM_ISLAND_FILTER="delogo=x=500:y=30:w=320:h=136"
+
+# True if an image shows the Dynamic Island, a pure black pill at the top center. It flashes
+# in for a moment after a simulated shake (the dev menu) and never belongs in a shot.
+sim_has_island() {
+  local min=$(magick "$1" -crop 360x110+480+20 -colorspace gray -format '%[fx:minima]' info:)
+  (( min < 0.02 ))
+}
+
+# Screenshot to $OUT/$1.png, retrying while the reload banner or the Dynamic Island shows.
 sim_shot() {
   local f="$OUT/$1.png"
   for i in {1..10}; do
-    xcrun simctl io $UDID screenshot "$f" >/dev/null 2>&1
-    sim_has_banner "$f" || { echo "$f"; return 0; }
+    xcrun simctl io $UDID screenshot --mask=ignored "$f" >/dev/null 2>&1
+    sim_has_banner "$f" || sim_has_island "$f" || { echo "$f"; return 0; }
     sleep 1
   done
-  echo "sim_shot: $1 still shows the reload banner" >&2; return 1
+  echo "sim_shot: $1 still shows the reload banner or the Dynamic Island" >&2; return 1
 }
 
 # Swipe a sheet down to dismiss it.

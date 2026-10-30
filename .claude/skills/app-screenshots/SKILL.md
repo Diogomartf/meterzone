@@ -50,6 +50,8 @@ It runs in the background for about 3 minutes per locale. `sim_prepare` hides th
 | `09-how-to-play.png` | How to play |
 | `gameplay.mp4` | Countdown through ~12 levels with Perfect/Great/Nice hits |
 | `11-game-over.png` | Game over |
+| `14-reward-card.png` | Daily reward card for 2nd place, a dev-menu preview |
+| `15-ranking-you-5th.png` | Ranking with 8 players and you 5th, a dev-menu preview |
 | `_burst/NNN.png` | Full-resolution frames from `gameplay.mp4`, 3 per second (simctl can't screenshot while recording) |
 
 ## After the run: pick gameplay stills
@@ -77,5 +79,8 @@ Then delete `_burst/`. Review every final image and re-shoot anything with the g
 - Hall of fame, ranking and the rest open inside the menu sheet: Back returns to the menu, and Close is the X at (391,133). The home Menu button doesn't respond to simulated taps, so reach the menu through the scores card, then Back.
 - If `axe` starts timing out ("Timed out creating the simulator remote automation session") or taps stop registering, reboot the simulator (`xcrun simctl shutdown/boot $UDID`) and rerun the affected locale.
 - `simctl launch` can fail with `FBSOpenApplicationServiceErrorDomain code=4` after a reboot. `open_app` instead opens the dev client deep link to Metro.
+- Dev-menu previews (the reward card and the sample ranking) open through `dev_menu`, which shakes the simulator (`xcrun simctl notify_post $UDID com.apple.UIKit.SimulatorShake`). Cmd+D sent through `axe key-combo` doesn't open the menu. Item names are English in every language, so they're tapped by label. The shake can flash the Dynamic Island in for a moment; `sim_shot` retakes the shot until it's gone (`sim_has_island`).
+- Recordings draw the Dynamic Island as a black pill in every frame, whatever `--mask` says (simctl and `axe record-video` both). Screenshots don't. The encode paints it out with `SIM_ISLAND_FILTER` (an ffmpeg `delogo` over the pill, in `sim.sh`), and `record_run` retakes a video whose frames still show it.
+- `open_app` presses Home before launching. Launched from inside another app, iOS adds a "◀ <app>" back link to the status bar.
 - A bare `xcrun simctl ... booted` picks any booted simulator. Always pass the resolved `$UDID`.
 - Playing runs changes the simulator's saved bests and coins. That's fine for screenshots and stays on the simulator.

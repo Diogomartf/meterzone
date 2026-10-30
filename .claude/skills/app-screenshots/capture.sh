@@ -51,17 +51,21 @@ assert_no_fab() {
 }
 
 BUNDLE_SCHEME=meterzone
+# Launch from the home screen: opened from inside another app, iOS adds a "◀ <app>" back
+# link to the status bar, which spoils every shot.
 open_app() {
-  xcrun simctl terminate $UDID $BUNDLE 2>/dev/null; sleep 1
+  xcrun simctl terminate $UDID $BUNDLE 2>/dev/null
+  axe button home --udid $UDID >/dev/null 2>&1; sleep 1
   xcrun simctl openurl $UDID "$BUNDLE_SCHEME://expo-development-client/?url=http%3A%2F%2Flocalhost%3A$METRO_PORT"
 }
 
 # Wait for the home screen (Play button on screen) with no reload banner, then let it settle.
+# Matched within 15pt: the button sits at y 653 or 655 depending on the status bar.
 wait_home() {
   local probe=$STAGE/probe.png
   for i in {1..40}; do
-    xcrun simctl io $UDID screenshot $probe >/dev/null 2>&1
-    if ! sim_has_banner $probe && sim_ui | awk -F'\t' '$2 == 220 && $3 == 653 { ok = 1 } END { exit !ok }'; then
+    xcrun simctl io $UDID screenshot --mask=ignored $probe >/dev/null 2>&1
+    if ! sim_has_banner $probe && sim_ui | awk -F'\t' '($2 - 220) ^ 2 + ($3 - 653) ^ 2 < 225 { ok = 1 } END { exit !ok }'; then
       sleep 2; return 0
     fi
     sleep 1
@@ -75,7 +79,7 @@ shoot_splash() {
   open_app
   local f=$OUT/00-splash.png
   for i in {1..40}; do
-    xcrun simctl io $UDID screenshot $f >/dev/null 2>&1
+    xcrun simctl io $UDID screenshot --mask=ignored $f >/dev/null 2>&1
     if ! sim_has_banner $f; then
       local b=$(magick $f -format '%[fx:int(255*p{40,240}.b)]' info:)
       (( b > 235 )) && { echo $f; return 0; }
@@ -85,31 +89,47 @@ shoot_splash() {
   echo "shoot_splash: never caught a clean splash" >&2; return 1
 }
 
+# Open a dev-menu preview (AGENTS.md "Dev menu previews"). A simulated shake opens the menu;
+# Cmd+D through axe doesn't. Item names are English in every language.
+# The menu slides up, so wait for it to settle (a tap mid-slide lands on another row), then
+# tap until it closes: picking an item closes the menu.
+dev_menu() {
+  xcrun simctl notify_post $UDID com.apple.UIKit.SimulatorShake
+  sim_wait "$1" || return 1
+  sleep 1.5
+  for i in 1 2 3; do
+    sim_tap "$1" ${2:-3} || return 1
+    sim_ui | grep -qF "$1" || return 0
+  done
+  echo "dev_menu: '$1' didn't open" >&2; return 1
+}
+
 play_button() { tap_at 220 653 0.3; }
 daily_button() { tap_at 354 884 0.3; }
 
 # Records a normal autoplay run from the countdown through ~12 levels to $OUT/gameplay.mp4,
 # then pulls full-resolution frames from it into $OUT/_burst to pick the stills from.
-# (simctl can't take screenshots while it records.) Re-records if any frame shows the banner.
+# (simctl can't take screenshots while it records.) Re-records if any frame shows the banner or
+# the Dynamic Island, which the encode paints out ($SIM_ISLAND_FILTER in sim.sh).
 record_run() {
   local raw=$STAGE/raw.mp4
   for attempt in 1 2 3; do
     open_app; wait_home
-    xcrun simctl io $UDID recordVideo --codec=h264 --force $raw >/dev/null 2>&1 &
+    xcrun simctl io $UDID recordVideo --codec=h264 --mask=ignored --force $raw >/dev/null 2>&1 &
     local rec=$!
     sleep 1.5
     play_button
     sleep 33
     kill -INT $rec; wait $rec
-    # Drop the second of home screen before the tap.
-    ffmpeg -v error -y -ss 1.4 -i $raw -c:v libx264 -crf 18 -pix_fmt yuv420p -an $OUT/gameplay.mp4
+    # Drop the second of home screen before the tap, and paint out the Dynamic Island.
+    ffmpeg -v error -y -ss 1.4 -i $raw -vf "$SIM_ISLAND_FILTER" -c:v libx264 -crf 18 -pix_fmt yuv420p -an $OUT/gameplay.mp4
     rm -f $raw
     rm -rf $OUT/_burst; mkdir -p $OUT/_burst
     ffmpeg -v error -i $OUT/gameplay.mp4 -vf fps=3 $OUT/_burst/%03d.png
     local dirty=0
-    for f in $OUT/_burst/*.png; do sim_has_banner $f && { dirty=1; break; }; done
+    for f in $OUT/_burst/*.png; do sim_has_banner $f || sim_has_island $f && { dirty=1; break; }; done
     (( dirty )) || return 0
-    echo "record_run: reload banner in the video, recording again" >&2
+    echo "record_run: reload banner or Dynamic Island in the video, recording again" >&2
     sleep 14  # let this run end first
   done
   echo "record_run: every take had the reload banner" >&2; return 1
@@ -124,7 +144,7 @@ sleep 50  # 14 autoplay hits, then three misses end the run
 
 # Every file a finished locale must have. _burst/ is checked separately.
 EXPECTED=(00-splash 01-home 02-hall-of-fame 03-menu 04-play-mode 05-ranking 06-skins
-  07-avatar 08-settings 09-how-to-play 11-game-over)
+  07-avatar 08-settings 09-how-to-play 11-game-over 14-reward-card 15-ranking-you-5th)
 
 # Capture one locale into $OUT. Any failed step stops it, so a broken set is never saved.
 capture_locale() {
@@ -152,13 +172,19 @@ capture_locale() {
   menu_row 6 && sim_shot 09-how-to-play && sheet_back || return 1
   tap_at 391 133 || return 1  # Close menu
 
+  # Cards that need a real podium finish, opened from the dev menu with sample data.
+  dev_menu "Reward card · #2" && sim_shot 14-reward-card || return 1
+  tap_at 220 638 || return 1  # Collect: a preview pays nothing
+  dev_menu "Ranking · 8 players, you #5" && sim_shot 15-ranking-you-5th || return 1
+  sheet_back && tap_at 391 133 || return 1  # Back to menu, then Close
+
   # Gameplay: the countdown frame comes from the burst (first frames), the rest from autoplay.
   record_run || return 1
   sleep 14  # autoplay stops after 14 hits; three misses end the run
   sim_shot 11-game-over || return 1
 }
 
-# The whole set is there and nothing in it shows the reload banner.
+# The whole set is there and nothing in it shows the reload banner or the Dynamic Island.
 check_locale() {
   local name f ok=0
   for name in $EXPECTED; do
@@ -168,6 +194,7 @@ check_locale() {
   [[ -n $(print -l $OUT/_burst/*.png(N)) ]] || { echo "missing _burst/ frames" >&2; ok=1; }
   for f in $OUT/*.png(N); do
     sim_has_banner $f && { echo "reload banner in ${f:t}" >&2; ok=1; }
+    sim_has_island $f && { echo "Dynamic Island in ${f:t}" >&2; ok=1; }
   done
   return $ok
 }
