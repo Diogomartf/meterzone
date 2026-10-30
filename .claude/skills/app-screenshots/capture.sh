@@ -1,6 +1,7 @@
 #!/bin/zsh
 # Capture the MeterZone screenshot set for one or more locales.
-#   capture.sh [locale...]   locales: en-US pt-PT pt-BR es-ES (default: all)
+#   capture.sh [--video-only] [locale...]   locales: en-US pt-PT pt-BR es-ES (default: all)
+#   --video-only re-records just gameplay.mp4 and keeps the saved screenshots and stills.
 # Output per locale in screenshots/raw/<locale>/: NN-name.png, gameplay.mp4, and _burst/ frames
 # from the gameplay run to pick the best hits from.
 # Everything is captured into a temp dir and moved into the repo at the end of each locale:
@@ -18,6 +19,8 @@ STAGE=$(mktemp -d -t meterzone-shots)
 
 # Language picker rows start with the flag, so they match in any UI language.
 typeset -A FLAG=( en-US 🇺🇸 pt-PT 🇵🇹 pt-BR 🇧🇷 es-ES 🇪🇸 )
+VIDEO_ONLY=0
+[[ ${1:-} == --video-only ]] && { VIDEO_ONLY=1; shift; }
 LOCALES=($@)
 (( $# )) || LOCALES=(en-US pt-PT pt-BR es-ES)
 
@@ -112,25 +115,22 @@ daily_button() { tap_at 354 884 0.3; }
 # (simctl can't take screenshots while it records.) Re-records if any frame shows the banner or
 # the Dynamic Island, which the encode paints out ($SIM_ISLAND_FILTER in sim.sh).
 record_run() {
-  local raw=$STAGE/raw.mp4
   for attempt in 1 2 3; do
     open_app; wait_home
-    xcrun simctl io $UDID recordVideo --codec=h264 --mask=ignored --force $raw >/dev/null 2>&1 &
-    local rec=$!
+    sim_record_start $STAGE || return 1
     sleep 1.5
     play_button
-    sleep 33
-    kill -INT $rec; wait $rec
-    # Drop the second of home screen before the tap, and paint out the Dynamic Island.
-    ffmpeg -v error -y -ss 1.4 -i $raw -vf "$SIM_ISLAND_FILTER" -c:v libx264 -crf 18 -pix_fmt yuv420p -an $OUT/gameplay.mp4
-    rm -f $raw
+    sleep 31
+    sim_record_stop
+    sim_record_encode $STAGE $OUT/gameplay.mp4 30 || return 1
+    rm -f $STAGE/raw.mp4 $STAGE/raw.wav
     rm -rf $OUT/_burst; mkdir -p $OUT/_burst
     ffmpeg -v error -i $OUT/gameplay.mp4 -vf fps=3 $OUT/_burst/%03d.png
     local dirty=0
     for f in $OUT/_burst/*.png; do sim_has_banner $f || sim_has_island $f && { dirty=1; break; }; done
     (( dirty )) || return 0
     echo "record_run: reload banner or Dynamic Island in the video, recording again" >&2
-    sleep 14  # let this run end first
+    sleep 16  # let this run end first
   done
   echo "record_run: every take had the reload banner" >&2; return 1
 }
@@ -146,15 +146,18 @@ sleep 50  # 14 autoplay hits, then three misses end the run
 EXPECTED=(00-splash 01-home 02-hall-of-fame 03-menu 04-play-mode 05-ranking 06-skins
   07-avatar 08-settings 09-how-to-play 11-game-over 14-reward-card 15-ranking-you-5th)
 
+# Switch the app's language, from whatever language it is in.
+set_language() {
+  open_app && wait_home || return 1
+  language_button || return 1
+  sim_tap "${FLAG[$1]}" 2 || return 1
+  sheet_back && tap_at 391 133  # Back to menu, then Close
+}
+
 # Capture one locale into $OUT. Any failed step stops it, so a broken set is never saved.
 capture_locale() {
   local loc=$1
-
-  # Switch language first, from whatever language the app is in.
-  open_app && wait_home || return 1
-  language_button || return 1
-  sim_tap "${FLAG[$loc]}" 2 || return 1
-  sheet_back && tap_at 391 133 || return 1  # Back to menu, then Close
+  set_language $loc || return 1
 
   # Splash: relaunch and catch it while the bundle loads.
   shoot_splash && wait_home || return 1
@@ -180,7 +183,7 @@ capture_locale() {
 
   # Gameplay: the countdown frame comes from the burst (first frames), the rest from autoplay.
   record_run || return 1
-  sleep 14  # autoplay stops after 14 hits; three misses end the run
+  sleep 16  # autoplay stops after 14 hits; three misses end the run
   sim_shot 11-game-over || return 1
 }
 
@@ -203,6 +206,15 @@ for loc in $LOCALES; do
   OUT=$STAGE/$loc
   mkdir -p $OUT
   echo "== $loc"
+  if (( VIDEO_ONLY )); then
+    if ! set_language $loc || ! record_run; then
+      echo "$loc failed; kept the previous $ROOT/$loc/gameplay.mp4" >&2
+      exit 1
+    fi
+    sleep 14  # let the run end before the next locale
+    mkdir -p $ROOT/$loc; mv $OUT/gameplay.mp4 $ROOT/$loc/gameplay.mp4
+    continue
+  fi
   if ! capture_locale $loc || ! check_locale; then
     echo "$loc failed; kept the previous $ROOT/$loc. Partial capture: $OUT" >&2
     exit 1
@@ -213,4 +225,5 @@ done
 rm -rf $STAGE
 
 xcrun simctl status_bar $UDID clear
-echo "Done. Pick gameplay stills from $ROOT/<locale>/_burst/ (see SKILL.md), then delete _burst/."
+if (( VIDEO_ONLY )); then echo "Done. New gameplay.mp4 in $ROOT/<locale>/."
+else echo "Done. Pick gameplay stills from $ROOT/<locale>/_burst/ (see SKILL.md), then delete _burst/."; fi

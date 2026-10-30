@@ -52,14 +52,14 @@ GameScreen during one autoplay run, measured as above (two runs each). Add a row
 
 ```bash
 scripts/sim-play.sh                                  # play one run: does it still work?
-scripts/sim-play.sh --video <dir>/gameplay.mp4       # record it, PLAY tap to game over
+scripts/sim-play.sh --video <dir>/gameplay.mp4       # record it with sound, PLAY tap to game over
 scripts/sim-play.sh --shots <dir>                    # home.png before, game-over.png after
 scripts/sim-play.sh --daily --hits 20 --log <dir>/metro.log
 ```
 
 **Setup, once per machine:**
 
-1. Tools: `brew install cameroncooke/axe/axe ffmpeg imagemagick`.
+1. Tools: `brew install cameroncooke/axe/axe ffmpeg imagemagick`. For `--video`, the terminal app also needs "Screen & System Audio Recording" permission (System Settings > Privacy & Security): the sound is taken from the app's process.
 2. The dev build on an `iPhone 18 Pro Max` simulator (the 6.9" App Store size): `bun run build:ios:simulator:local`, then `tar -xzf build/meterzone-simulator.tar.gz -C build` and `xcrun simctl install <udid> build/*.app`. The script boots the simulator if it isn't running.
 
 **Gotchas:**

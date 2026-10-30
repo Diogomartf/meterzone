@@ -94,6 +94,71 @@ sim_shot() {
   echo "sim_shot: $1 still shows the reload banner or the Dynamic Island" >&2; return 1
 }
 
+# Record video and sound into dir $1 until sim_record_stop. simctl records no sound, so
+# sim-audio.swift taps the running app's own audio next to it (the terminal needs "Screen &
+# System Audio Recording" permission). Both log their wall-clock start so sim_record_encode
+# can line them up. Start it after the app has launched: the tap follows that one process.
+SIM_AUDIO_SRC=${0:A:h}/sim-audio.swift
+[[ -f $SIM_AUDIO_SRC ]] || SIM_AUDIO_SRC=$(git rev-parse --show-toplevel)/.claude/skills/app-screenshots/sim-audio.swift
+SIM_AUDIO_BIN=${TMPDIR:-/tmp}/meterzone-sim-audio
+sim_rec_pids=()
+sim_record_start() {
+  local dir=$1
+  zmodload zsh/datetime
+  if [[ ! -x $SIM_AUDIO_BIN || $SIM_AUDIO_SRC -nt $SIM_AUDIO_BIN ]]; then
+    swiftc -O $SIM_AUDIO_SRC -o $SIM_AUDIO_BIN || { echo "sim_record_start: couldn't build sim-audio" >&2; return 1; }
+  fi
+  rm -f $dir/raw.mp4 $dir/raw.wav $dir/audio.log $dir/video.log
+  # Simulator apps run as Mac processes from the device's data folder.
+  local pid=$(pgrep -n -f "Devices/$UDID/.*/MeterZone\.app/MeterZone")
+  [[ -n $pid ]] || { echo "sim_record_start: MeterZone isn't running" >&2; return 1; }
+  $SIM_AUDIO_BIN $pid $dir/raw.wav >$dir/audio.log 2>&1 &
+  sim_rec_pids=($!)
+  for i in {1..50}; do grep -q '^started' $dir/audio.log && break; sleep 0.1; done
+  if ! grep -q '^started' $dir/audio.log; then
+    echo "sim_record_start: no audio. $(<$dir/audio.log)" >&2
+    grep -q permission $dir/audio.log && echo "Give your terminal app Screen & System Audio Recording permission in System Settings > Privacy & Security." >&2
+    kill -INT $sim_rec_pids 2>/dev/null; sim_rec_pids=(); return 1
+  fi
+  # simctl prints "Recording started" once it writes frames; stamp that line.
+  xcrun simctl io $UDID recordVideo --codec=h264 --mask=ignored --force $dir/raw.mp4 2>&1 >/dev/null |
+    while read -r line; do print -r -- "$EPOCHREALTIME $line"; done >$dir/video.log &
+  for i in {1..50}; do grep -q 'Recording started' $dir/video.log && break; sleep 0.1; done
+  sim_rec_pids+=($(pgrep -n -f "recordVideo.*$dir/raw.mp4"))
+  grep -q 'Recording started' $dir/video.log && return 0
+  echo "sim_record_start: simctl never started recording" >&2; sim_record_stop; return 1
+}
+
+sim_record_stop() {
+  local pid
+  for pid in $sim_rec_pids; do kill -INT $pid 2>/dev/null; done
+  for pid in $sim_rec_pids; do while kill -0 $pid 2>/dev/null; do sleep 0.2; done; done
+  sim_rec_pids=()
+}
+
+# Encode dir $1's recording to $2 as an App Store preview: H.264 at a constant 30 fps (simctl
+# writes frames only when the screen changes, so its timestamps start late and have gaps),
+# AAC sound, Dynamic Island painted out. It starts 0.3s before the first change on screen
+# (the PLAY press), however long the tap took to land, so it never opens on a still screen.
+# An optional $3 caps the length in seconds (App Store previews run 15 to 30s).
+sim_record_encode() {
+  local dir=$1 out=$2 length=()
+  [[ -n ${3:-} ]] && length=(-t $3)
+  local change=$(ffmpeg -i $dir/raw.mp4 -vf "fps=30:start_time=0,select='gt(scene,0.01)',showinfo" \
+    -an -f null - 2>&1 | grep -om1 'pts_time:[0-9.]*')
+  [[ -n $change ]] || { echo "sim_record_encode: nothing moves in the recording" >&2; return 1; }
+  local from=$(( ${change#pts_time:} > 0.3 ? ${change#pts_time:} - 0.3 : 0 ))
+  local v0=$(awk '/Recording started/ { print $1; exit }' $dir/video.log)
+  local a0=$(awk '/^started/ { print $2; exit }' $dir/audio.log)
+  # Where the video's first second sits in the audio file. The audio starts first.
+  local afrom=$(( from + v0 - a0 ))
+  ffmpeg -v error -y -i $dir/raw.mp4 -i $dir/raw.wav -filter_complex "
+    [0:v]fps=30:start_time=0,trim=start=$from,setpts=PTS-STARTPTS,${SIM_ISLAND_FILTER}[v];
+    [1:a]atrim=start=$afrom,asetpts=PTS-STARTPTS[a]" \
+    -map '[v]' -map '[a]' -c:v libx264 -crf 18 -pix_fmt yuv420p -c:a aac -b:a 256k -ar 48000 \
+    -shortest $length -movflags +faststart $out
+}
+
 # Swipe a sheet down to dismiss it.
 sim_dismiss() {
   axe swipe --start-x 220 --start-y 200 --end-x 220 --end-y 900 --udid $UDID >/dev/null

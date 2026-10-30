@@ -6,7 +6,7 @@
 #
 #   --daily        play the daily challenge instead of a normal run
 #   --hits N       autoplay hits before it misses out (default 14, so 17 rounds)
-#   --video FILE   record the run, from the tap on PLAY to game over, as H.264 MP4
+#   --video FILE   record the run with sound, from the tap on PLAY to game over, as MP4
 #   --shots DIR    save home.png before the run and game-over.png after it
 #   --log FILE     keep Metro's output, including the app's console.log lines
 #
@@ -51,12 +51,11 @@ mkdir -p "$(dirname $LOG)"
 echo "Starting Metro on :$METRO_PORT with autoplay ($HITS hits)…"
 EXPO_PUBLIC_SCREENSHOT_AUTOPLAY=$HITS CI=1 bunx expo start --dev-client \
   --port $METRO_PORT --clear >$LOG 2>&1 &
-rec=""
 cleanup() {
-  [[ -n $rec ]] && kill -INT $rec 2>/dev/null
+  sim_record_stop
   pkill -f "expo start --dev-client --port $METRO_PORT" 2>/dev/null
   xcrun simctl status_bar $UDID clear 2>/dev/null
-  rm -rf $STAGE/raw.mp4
+  rm -f $STAGE/raw.mp4 $STAGE/raw.wav
 }
 trap cleanup EXIT INT TERM
 for i in {1..60}; do
@@ -93,8 +92,7 @@ if [[ -n $SHOTS ]]; then
   xcrun simctl io $UDID screenshot --mask=ignored $SHOTS/home.png >/dev/null 2>&1
 fi
 if [[ -n $VIDEO ]]; then
-  xcrun simctl io $UDID recordVideo --codec=h264 --mask=ignored --force $STAGE/raw.mp4 >/dev/null 2>&1 &
-  rec=$!
+  sim_record_start $STAGE || exit 1
   sleep 1.5
 fi
 
@@ -122,10 +120,9 @@ done
 (( still >= 4 )) || echo "sim-play: the run never seemed to end; stopping anyway" >&2
 
 if [[ -n $VIDEO ]]; then
-  kill -INT $rec; wait $rec; rec=""
+  sim_record_stop
   mkdir -p "$(dirname $VIDEO)"
-  # Drop the second of home screen before the tap, and paint out the Dynamic Island.
-  ffmpeg -v error -y -ss 1.4 -i $STAGE/raw.mp4 -vf "$SIM_ISLAND_FILTER" -c:v libx264 -crf 18 -pix_fmt yuv420p -an $VIDEO
+  sim_record_encode $STAGE $VIDEO || die "encoding the video failed"
   echo "Video: $VIDEO"
 fi
 if [[ -n $SHOTS ]]; then
