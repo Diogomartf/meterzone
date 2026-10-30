@@ -31,12 +31,9 @@ Measure before and after any change made for speed, on the same runs, and put bo
 ## Measuring renders (simulator)
 
 1. Wrap `<GameScreen />` in `src/app/index.tsx` with `<Profiler id="game" onRender={(_, phase, ms) => console.log(`[perf] ${phase} ${ms.toFixed(2)}`)}>`. Temporary: never commit it.
-2. Start Metro with autoplay so every run plays the same 17 rounds (14 hits, then three misses), writing the log to a file outside the repo:
-   `EXPO_PUBLIC_SCREENSHOT_AUTOPLAY=14 CI=1 bunx expo start --dev-client --port 8082 --clear > <scratch>/metro.log`.
-   `CI=1` turns off file watching, so restart Metro after switching code.
-3. On the booted `iPhone 18 Pro Max`, open the dev client at `meterzone://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8082`, wait for the home screen, tap PLAY (`sim_tap PLAY` from `.claude/skills/app-screenshots/sim.sh`) and wait about 60 s for GAME OVER.
-4. Count the `[perf] update` lines logged during the run and sum their times. Do two runs per side; for the "before" side, `git show master:<file> > <file>` for the changed files, then restore them.
-5. Remove the Profiler wrapper and the log files afterwards.
+2. Run `scripts/sim-play.sh` (see "Simulator gameplay") twice. Each run is the same 17 rounds, and the script prints the run's GameScreen commits and total render time.
+3. For the "before" side, `git show master:<file> > <file>` for the changed files, run it twice more, then restore them. The script bundles fresh each time, so there's nothing to restart.
+4. Remove the Profiler wrapper afterwards.
 
 Dev-build times are inflated: compare runs with each other, never against a frame budget. Dropped frames and UI-thread time can only be judged in a release build on a real iPhone with Instruments (Animation Hitches, Time Profiler).
 
@@ -48,6 +45,30 @@ GameScreen during one autoplay run, measured as above (two runs each). Add a row
 |------|--------|-----------------------|---------------------|
 | 2026-10-30 | `8cecf79` (before #20) | 146, 153 | 853 ms, 958 ms |
 | 2026-10-30 | `f8bb4a3` (#20) | 118, 123 | 675 ms, 667 ms |
+
+# Simulator gameplay
+
+`scripts/sim-play.sh` plays one run on the iOS simulator by itself. Use it for gameplay videos and quick screenshots, to check that a change still plays through, and for render profiling. Simulator taps land about 1.3 s late, so nobody can play by hand there. The script starts its own Metro with `EXPO_PUBLIC_SCREENSHOT_AUTOPLAY` (dev builds only, in `src/game/useMeterTap.ts`): the meter stops itself on the zone for 14 rounds, about half of them Perfect, then misses three times so the run ends. When the run ends, the script stops Metro. A run takes about 3 minutes, most of it bundling from a clean cache. `bun run sim:play -- <flags>` runs the same script.
+
+```bash
+scripts/sim-play.sh                                  # play one run: does it still work?
+scripts/sim-play.sh --video <dir>/gameplay.mp4       # record it, PLAY tap to game over
+scripts/sim-play.sh --shots <dir>                    # home.png before, game-over.png after
+scripts/sim-play.sh --daily --hits 20 --log <dir>/metro.log
+```
+
+**Setup, once per machine:**
+
+1. Tools: `brew install cameroncooke/axe/axe ffmpeg imagemagick`.
+2. The dev build on an `iPhone 18 Pro Max` simulator (the 6.9" App Store size): `bun run build:ios:simulator:local`, then `tar -xzf build/meterzone-simulator.tar.gz -C build` and `xcrun simctl install <udid> build/*.app`. The script boots the simulator if it isn't running.
+
+**Gotchas:**
+
+- The simulator must be free. Another app or agent driving the same simulator swallows the taps. Set `DEVICE=` or `UDID=` to use a different simulator, and `METRO_PORT=` if 8082 is taken.
+- If `axe` taps stop registering, reboot the simulator (`xcrun simctl shutdown <udid> && xcrun simctl boot <udid>`).
+- Runs change the simulator's saved bests and coins. That's fine; it stays on the simulator.
+
+For the full App Store set (every screen, every language, video and stills), use the `app-screenshots` skill in `.claude/skills/app-screenshots/`.
 
 # App Store Connect (`asc` CLI)
 
