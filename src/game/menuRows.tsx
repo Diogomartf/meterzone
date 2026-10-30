@@ -1,4 +1,6 @@
+import { Image, type ImageSource } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import type { ReactNode } from 'react';
 import {
   Alert,
   Pressable,
@@ -18,6 +20,8 @@ import {
 } from '@/game/review';
 import { markReviewAccepted } from '@/game/storage';
 import { styles } from '@/game/menuSheetStyles';
+
+const SUNBURST = require('../../assets/images/reward-sunburst.webp');
 
 const STAR_ICON = { ios: 'star.fill', android: 'star', web: 'star' } as const;
 const SHARE_ICON = {
@@ -138,11 +142,10 @@ export function SupportCard() {
   );
 }
 
-export function HighscoreCard({
-  badge,
-  caption,
-  mode,
-  modeColor,
+export function RecordCard({
+  title,
+  art,
+  sunburst,
   accent,
   accentDeep,
   score,
@@ -151,19 +154,119 @@ export function HighscoreCard({
   emptyHint,
   hideShare,
   onShare,
+  children,
 }: {
-  badge: string;
-  /** Spells out what the number is, e.g. "All-time best". */
-  caption: string;
-  /** Which run this record came from, shown opposite the level pill. */
-  mode: string;
-  /** Ink for the mode pill — one hue per mode, so it reads at a glance. */
-  modeColor: string;
+  /** The mode, set big: "NORMAL", "DAILY CHALLENGE". */
+  title: string;
+  /** Mode emblem on the right: crown for Normal, medal for Daily. */
+  art: ImageSource;
+  /** Rays behind the emblem, for the gold card. */
+  sunburst?: boolean;
   accent: string;
   accentDeep: string;
   score: number;
   level: number;
+  /** Shown after the level inside its pill, e.g. the record's date. */
   meta?: string;
+  emptyHint: string;
+  hideShare?: boolean;
+  onShare?: () => void;
+  /** Extra rows under the record, like the daily card's "Today" strip. */
+  children?: ReactNode;
+}) {
+  const gt = useGT();
+  const empty = score <= 0;
+  return (
+    <View style={[styles.hsShell, { backgroundColor: accentDeep }]}>
+      <View style={[styles.hsFace, { backgroundColor: accent }]}>
+        {sunburst ? (
+          <Image
+            source={SUNBURST}
+            style={styles.hsSunburst}
+            contentFit="cover"
+          />
+        ) : null}
+        <View style={styles.hsShine} />
+        <View style={styles.hsMain}>
+          <View style={styles.hsBody}>
+            <Text
+              style={styles.hsTitle}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}
+            >
+              {title}
+            </Text>
+            <Text style={styles.hsTagText}>{gt('PERSONAL BEST')}</Text>
+            {empty ? (
+              <View style={styles.hsEmptyBlock}>
+                <Text style={styles.hsEmptyScore}>—</Text>
+                <Text style={styles.hsEmptyHint}>{emptyHint}</Text>
+              </View>
+            ) : (
+              <>
+                <Text
+                  style={styles.hsScore}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.5}
+                >
+                  {formatScore(score)}
+                </Text>
+                <LevelPill level={level} meta={meta} />
+              </>
+            )}
+          </View>
+          <View style={styles.hsSide}>
+            {!empty && onShare && !hideShare ? (
+              <FlatButton
+                onPress={onShare}
+                icon={SHARE_ICON}
+                size={36}
+                hitSlop={8}
+                accessibilityLabel={gt('Share {title} record', { title })}
+              />
+            ) : (
+              <View style={styles.hsSharePlaceholder} />
+            )}
+            <Image
+              source={art}
+              style={styles.hsArt}
+              contentFit="contain"
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+            />
+          </View>
+        </View>
+        {children}
+      </View>
+    </View>
+  );
+}
+
+/** "Level 17 · Oct 28, 2026" in a white pill, the level number set bold. */
+function LevelPill({ level, meta }: { level: number; meta?: string }) {
+  const gt = useGT();
+  return (
+    <View style={styles.hsLevelPill}>
+      <Text style={styles.hsLevelLabel} numberOfLines={1}>
+        {gt('Level')} <Text style={styles.hsLevelValue}>{level}</Text>
+        {meta ? ` · ${meta}` : null}
+      </Text>
+    </View>
+  );
+}
+
+/** Today's daily score, tucked into the bottom of the daily record card. */
+export function TodayStrip({
+  score,
+  level,
+  emptyHint,
+  hideShare,
+  onShare,
+}: {
+  score: number;
+  level: number;
   emptyHint: string;
   hideShare?: boolean;
   onShare?: () => void;
@@ -171,46 +274,34 @@ export function HighscoreCard({
   const gt = useGT();
   const empty = score <= 0;
   return (
-    <View style={[styles.hsShell, { backgroundColor: accentDeep }]}>
-      <View style={[styles.hsFace, { backgroundColor: accent }]}>
-        <View style={styles.hsShine} />
-        <View style={styles.hsTopRow}>
-          <Text style={styles.hsCaption}>{caption}</Text>
-          {!empty && onShare && !hideShare ? (
+    <View style={styles.hsToday}>
+      <Text style={styles.hsTodayLabel}>{gt('TODAY')}</Text>
+      <View style={styles.hsTodayRule} />
+      {empty ? (
+        <Text style={styles.hsTodayHint}>{emptyHint}</Text>
+      ) : (
+        <>
+          <Text
+            style={styles.hsTodayScore}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.6}
+          >
+            {formatScore(score)}
+          </Text>
+          <LevelPill level={level} />
+          {onShare && !hideShare ? (
             <FlatButton
               onPress={onShare}
               icon={SHARE_ICON}
               size={36}
               hitSlop={8}
-              accessibilityLabel={gt('Share {badge} highscore', { badge })}
+              style={styles.hsTodayShare}
+              accessibilityLabel={gt("Share today's daily score")}
             />
           ) : null}
-        </View>
-        {empty ? (
-          <View style={styles.hsEmptyBlock}>
-            <Text style={styles.hsEmptyScore}>—</Text>
-            <Text style={styles.hsEmptyHint}>{emptyHint}</Text>
-          </View>
-        ) : (
-          <>
-            <Text style={styles.hsScore}>{formatScore(score)}</Text>
-            <View style={styles.hsFooter}>
-              <View style={styles.hsFooterLeft}>
-                <View style={styles.hsLevelPill}>
-                  <Text style={styles.hsLevelLabel}>{gt('LVL')}</Text>
-                  <Text style={styles.hsLevelValue}>{level}</Text>
-                </View>
-                {meta ? <Text style={styles.hsMeta}>{meta}</Text> : null}
-              </View>
-              <View style={[styles.hsModePill, { borderColor: modeColor }]}>
-                <Text style={[styles.hsModeText, { color: modeColor }]}>
-                  {mode}
-                </Text>
-              </View>
-            </View>
-          </>
-        )}
-      </View>
+        </>
+      )}
     </View>
   );
 }
