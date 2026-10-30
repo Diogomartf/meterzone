@@ -31,28 +31,47 @@ const steps = [
   },
 ];
 
+/** "One tap. Right in the zone." bowed into a gentle arc, word by word. */
+const ARC_LINE = 'One tap. Right in the zone.';
+const arcWords = ARC_LINE.split(' ').map((word, i, all) => {
+  const t = (i - (all.length - 1) / 2) / ((all.length - 1) / 2);
+  return { word, style: `--tilt: ${(t * 5).toFixed(2)}deg; --drop: ${(t * t * 0.35).toFixed(3)}em` };
+});
+
+const skins = [
+  { name: 'Lava', src: '/images/play/skin-lava.webp', spark: '#ff8a1f' },
+  { name: 'Ice', src: '/images/play/skin-ice.webp', spark: '#1cb0f6' },
+  { name: 'Gold', src: '/images/play/skin-gold.webp', spark: '#ffc800' },
+];
+
 const features = [
   {
+    icon: '/images/play/howto-meter.webp',
     title: 'One-tap gameplay',
     body: 'No complex controls. Tap once to stop the meter — pick up and play in seconds.',
   },
   {
+    icon: '/images/play/hof-crown.webp',
     title: 'Combos & high scores',
     body: 'Hit Perfect and Great stops to stack multipliers and push your best score.',
   },
   {
+    icon: '/images/play/hof-medal.webp',
     title: 'Daily challenge',
     body: 'The same sequence for everyone each day. Finish in the top 10 and win up to 500 coins.',
   },
   {
+    icon: '/images/play/star.webp',
     title: 'Worldwide leaderboards',
     body: 'Daily and Endless rankings with Game Center — your nickname, a podium, and the points you need to pass the next player.',
   },
   {
+    icon: '/images/play/howto-coins.webp',
     title: 'Skins & avatars',
     body: 'Spend coins on new meter skins, and pick an emoji avatar for the leaderboard from five packs.',
   },
   {
+    icon: '/images/play/howto-infinity.webp',
     title: 'Play offline',
     body: 'No account required. Progress stays on your device; leaderboards are optional and need a connection.',
   },
@@ -135,18 +154,18 @@ const jsonLd = [
             />
             <div class="cta-group">
               {APP_STORE_URL ? (
-                <a class="store-btn store-btn--ios" href={APP_STORE_URL} data-download-location="hero" rel="noopener">
-                  Download on the App Store
+                <a class="main-btn main-btn--green" href={APP_STORE_URL} data-download-location="hero" rel="noopener">
+                  <span class="main-btn-face">Download on the App Store</span>
                 </a>
               ) : (
-                <span class="store-btn store-btn--ios store-btn--soon" aria-disabled="true">
-                  App Store — Coming soon
+                <span class="main-btn main-btn--green" aria-disabled="true">
+                  <span class="main-btn-face">App Store — Coming soon</span>
                 </span>
               )}
 
               {PLAY_STORE_URL && (
-                <a class="store-btn store-btn--android" href={PLAY_STORE_URL} rel="noopener">
-                  Get it on Google Play
+                <a class="main-btn main-btn--blue" href={PLAY_STORE_URL} rel="noopener">
+                  <span class="main-btn-face">Get it on Google Play</span>
                 </a>
               )}
             </div>
@@ -160,20 +179,78 @@ const jsonLd = [
     </section>
 
     <section class="how" aria-labelledby="how-title">
-      <h2 id="how-title">How {APP_NAME} works</h2>
+      <h2 id="how-title" class="how-eyebrow">How {APP_NAME} works</h2>
+      <p class="arc-line" aria-label={ARC_LINE}>
+        {arcWords.map(({ word, style }) => (
+          <span aria-hidden="true" style={style}>{word}</span>
+        ))}
+      </p>
       <p class="how-intro">
         {APP_NAME} is a free casual one-tap timing game: read the rising meter,
         tap in the sweet spot, stack combos, and see how long you can stay in the
         zone.
       </p>
-      <ol class="steps">
-        {steps.map((step) => (
-          <li>
-            <h3>{step.title}</h3>
-            <p>{step.body}</p>
-          </li>
-        ))}
-      </ol>
+
+      <div class="panel tap-panel">
+        <img
+          class="tap-meter"
+          src="/images/play/howto-meter.webp"
+          alt="The MeterZone meter rising toward the zone, with a finger about to tap"
+          width="419"
+          height="600"
+          loading="lazy"
+          decoding="async"
+        />
+        <div class="tap-side">
+          <ol class="steps">
+            {steps.map((step) => (
+              <li>
+                <h3>{step.title}</h3>
+                <p>{step.body}</p>
+              </li>
+            ))}
+          </ol>
+          <p class="miss-note">
+            <img src="/images/play/howto-heart.webp" alt="" width="120" height="111" loading="lazy" decoding="async" />
+            Miss? You lose a heart. Lose all three and the run ends.
+          </p>
+        </div>
+      </div>
+
+      <div class="modes">
+        <article class="mode-card mode-card--normal">
+          <span class="climb" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+          <img class="mode-icon" src="/images/play/howto-infinity.webp" alt="" width="240" height="123" loading="lazy" decoding="async" />
+          <h3>Normal</h3>
+          <p>An endless run that gets tougher every level. Chase your all-time high score.</p>
+        </article>
+        <article class="mode-card mode-card--daily">
+          <img class="mode-ghost" src="/images/play/howto-calendar-ghost.webp" alt="" width="238" height="240" loading="lazy" decoding="async" />
+          <img class="mode-icon" src="/images/play/howto-calendar.webp" alt="" width="238" height="240" loading="lazy" decoding="async" />
+          <h3>Daily</h3>
+          <p>The same sequence for everyone, and a new challenge every day. Finish top 10 for up to 500 coins.</p>
+        </article>
+      </div>
+
+      <article class="skins-card">
+        <div class="skins-copy">
+          <h3>Style your meter</h3>
+          <p>Every Perfect, Great, and Nice hit pays coins. Spend them to unlock Lava, Ice, and Gold.</p>
+        </div>
+        <span class="floor floor--coins">
+          <img class="coins" src="/images/play/howto-coins.webp" alt="" width="300" height="195" loading="lazy" decoding="async" />
+        </span>
+        <ul class="skins" aria-label="Meter skins">
+          {skins.map((skin) => (
+            <li class="floor" style={`--spark: ${skin.spark}`}>
+              <span class="sparks sparks--left" aria-hidden="true"><i></i><i></i><i></i></span>
+              <img src={skin.src} alt={`${skin.name} meter skin`} width="144" height="360" loading="lazy" decoding="async" />
+              <span class="sparks sparks--right" aria-hidden="true"><i></i><i></i><i></i></span>
+            </li>
+          ))}
+        </ul>
+      </article>
+
       <p class="guide-link"><a href="/how-to-play/">Read the gameplay and scoring guide →</a></p>
     </section>
 
@@ -186,8 +263,11 @@ const jsonLd = [
       <ul class="feature-grid">
         {features.map((feature) => (
           <li>
-            <h3>{feature.title}</h3>
-            <p>{feature.body}</p>
+            <img class="feature-icon" src={feature.icon} alt="" width="64" height="64" loading="lazy" decoding="async" />
+            <div>
+              <h3>{feature.title}</h3>
+              <p>{feature.body}</p>
+            </div>
           </li>
         ))}
       </ul>
@@ -212,7 +292,7 @@ const jsonLd = [
         <section class="download-section" aria-labelledby="download-title">
           <h2 id="download-title">Your next high score starts with one tap.</h2>
           <p>Free on iPhone. Play offline. Come back for a fresh daily challenge.</p>
-          <a class="download-link" href={APP_STORE_URL} data-download-location="after-faq">Download on the App Store</a>
+          <a class="main-btn main-btn--green" href={APP_STORE_URL} data-download-location="after-faq"><span class="main-btn-face">Download on the App Store</span></a>
         </section>
       )}
 
@@ -267,6 +347,21 @@ const jsonLd = [
     position: absolute;
     inset: 0;
     z-index: 0;
+  }
+
+  /* Fades the golden floor into the page colour instead of a hard cut. */
+  .hero-bg::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0;
+    height: clamp(4rem, 14vh, 9rem);
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--sky-top) 0%, transparent) 0%,
+      color-mix(in srgb, var(--sky-top) 55%, transparent) 55%,
+      var(--sky-top) 100%
+    );
+    pointer-events: none;
   }
 
   .hero-bg img {
@@ -536,48 +631,8 @@ const jsonLd = [
     margin-top: 0.75rem;
   }
 
-  .store-btn {
+  .cta-group .main-btn {
     display: block;
-    width: 100%;
-    box-sizing: border-box;
-    padding: 0.95rem 1.25rem;
-    border-radius: 1rem;
-    font-weight: 600;
-    font-size: 0.95rem;
-    text-decoration: none;
-    text-align: center;
-    border: 3px solid var(--ink);
-    box-shadow: 0 4px 0 var(--ink);
-    transition:
-      transform 0.15s ease,
-      box-shadow 0.15s ease;
-  }
-
-  .store-btn--ios {
-    background: var(--bubble);
-    color: var(--ink);
-  }
-
-  .store-btn--android {
-    background: var(--play-blue);
-    color: var(--ink);
-  }
-
-  @media (hover: hover) and (pointer: fine) {
-  a.store-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 0 var(--ink);
-  }
-
-  }
-
-  a.store-btn:active {
-    transform: translateY(2px);
-    box-shadow: 0 2px 0 var(--ink);
-  }
-
-  .store-btn--soon {
-    cursor: default;
   }
 
   .cta-note {
@@ -587,26 +642,76 @@ const jsonLd = [
   }
 
   .how {
-    padding: 4rem 1.5rem 3rem;
-    max-width: 40rem;
+    padding: 4rem 1rem 3rem;
+    max-width: 46rem;
+    width: 100%;
     margin: 0 auto;
     animation: rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.55s both;
   }
 
-  .how h2 {
-    margin: 0 0 0.75rem;
-    font-size: clamp(1.5rem, 4vw, 2rem);
-    font-weight: 700;
+  .how-eyebrow {
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
     text-align: center;
     color: var(--ink);
   }
 
+  /* Each word tilts and drops a little more the further it sits from the middle. */
+  .arc-line {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    column-gap: 0.28em;
+    margin: 0.5rem 0 0;
+    font-family: var(--font-punch);
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    font-size: clamp(1.4rem, 6.6vw, 3.4rem);
+    line-height: 1.15;
+    color: var(--ink);
+  }
+
+  .arc-line span {
+    display: inline-block;
+    transform: translateY(var(--drop)) rotate(var(--tilt));
+  }
+
   .how-intro {
-    margin: 0 auto 2.25rem;
+    margin: 1rem auto 1.75rem;
     max-width: 32rem;
     text-align: center;
     line-height: 1.55;
-    color: var(--panel-ink);
+    color: var(--ink);
+  }
+
+  .panel,
+  .mode-card,
+  .skins-card {
+    border: 3px solid var(--ink);
+    border-radius: 1.5rem;
+    box-shadow: 0 5px 0 var(--ink);
+  }
+
+  .tap-panel {
+    display: grid;
+    gap: 1.25rem;
+    padding: 1.5rem 1.25rem;
+    background: #e8f7ff;
+  }
+
+  .tap-meter {
+    width: auto;
+    height: 15rem;
+    justify-self: center;
+  }
+
+  .tap-side {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
   }
 
   .steps {
@@ -615,13 +720,14 @@ const jsonLd = [
     list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 2.5rem;
+    gap: 1.25rem;
     counter-reset: step;
   }
 
   .steps li {
     position: relative;
-    padding-left: 2.75rem;
+    padding-left: 3.6rem;
+    min-height: 2.9rem;
   }
 
   .steps li::before {
@@ -629,29 +735,244 @@ const jsonLd = [
     counter-increment: step;
     position: absolute;
     left: 0;
-    top: 0.1rem;
-    width: 2rem;
-    height: 2rem;
+    top: 0;
+    width: 2.9rem;
+    height: 2.9rem;
     display: grid;
     place-items: center;
     border-radius: 50%;
-    background: var(--lemon);
-    border: 2px solid var(--ink);
+    background: rgba(28, 176, 246, 0.18);
+    color: #1565d8;
     font-weight: 700;
-    font-size: 0.95rem;
+    font-size: 1.5rem;
   }
 
   .steps h3 {
-    margin: 0 0 0.5rem;
+    margin: 0.1rem 0 0.3rem;
     font-size: 1.15rem;
-    font-weight: 600;
+    font-weight: 700;
   }
 
   .steps p {
     margin: 0;
-    line-height: 1.55;
+    line-height: 1.5;
     color: var(--panel-ink);
   }
+
+  .miss-note {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin: 0;
+    padding: 0.7rem 0.9rem;
+    border-radius: 1rem;
+    background: rgba(255, 75, 75, 0.12);
+    font-weight: 600;
+    line-height: 1.35;
+  }
+
+  .miss-note img {
+    flex-shrink: 0;
+    width: 1.9rem;
+  }
+
+  .modes {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1.25rem;
+  }
+
+  .mode-card {
+    position: relative;
+    overflow: hidden;
+    padding: 1.25rem 1.25rem 1.4rem;
+  }
+
+  .mode-card--normal {
+    background: #fff3c4;
+  }
+
+  .mode-card--daily {
+    background: #dff1fe;
+  }
+
+  .mode-card h3 {
+    position: relative;
+    margin: 0.35rem 0 0.35rem;
+    font-size: 1.9rem;
+    font-weight: 700;
+    line-height: 1.1;
+    text-transform: uppercase;
+  }
+
+  .mode-card p {
+    position: relative;
+    margin: 0;
+    max-width: 22rem;
+    line-height: 1.5;
+    color: var(--panel-ink);
+  }
+
+  .mode-icon {
+    position: relative;
+    width: 4.25rem;
+    height: 3rem;
+    object-fit: contain;
+    object-position: left center;
+  }
+
+  /* Faint bars climbing behind the Normal card's text. */
+  .climb {
+    position: absolute;
+    right: 1rem;
+    bottom: 1rem;
+    display: flex;
+    align-items: flex-end;
+    gap: 0.35rem;
+  }
+
+  .climb i {
+    width: 0.85rem;
+    border-radius: 0.25rem;
+    background: rgba(255, 200, 0, 0.3);
+  }
+
+  .climb i:nth-child(1) { height: 1rem; }
+  .climb i:nth-child(2) { height: 1.75rem; }
+  .climb i:nth-child(3) { height: 2.6rem; }
+  .climb i:nth-child(4) { height: 3.6rem; }
+  .climb i:nth-child(5) { height: 4.75rem; }
+
+  .mode-ghost {
+    position: absolute;
+    top: 1.5rem;
+    right: -1.75rem;
+    width: 8rem;
+    opacity: 0.18;
+    transform: rotate(-12deg);
+  }
+
+  .skins-card {
+    display: grid;
+    grid-template-areas:
+      'copy copy'
+      'coins skins';
+    grid-template-columns: auto 1fr;
+    align-items: end;
+    gap: 1.25rem 0.75rem;
+    margin-top: 1.25rem;
+    padding: 1.4rem 1.25rem;
+    background: #dff1fe;
+  }
+
+  .skins-copy h3 {
+    margin: 0 0 0.35rem;
+    font-family: var(--font-punch);
+    font-size: 1.85rem;
+    font-weight: 400;
+    line-height: 1.1;
+    text-transform: uppercase;
+  }
+
+  .skins-copy p {
+    margin: 0;
+    max-width: 22rem;
+    line-height: 1.5;
+    color: var(--panel-ink);
+  }
+
+  /*
+   * Soft contact shadow under whatever stands in it: a tight dark oval where
+   * it touches the floor, inside a wider, fainter one.
+   */
+  .floor {
+    position: relative;
+    display: inline-block;
+  }
+
+  .floor::before,
+  .floor::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    border-radius: 50%;
+    transform: translateX(-50%);
+    z-index: -1;
+  }
+
+  .floor::before {
+    bottom: -0.35rem;
+    width: 100%;
+    height: 0.7rem;
+    background: rgba(21, 101, 216, 0.16);
+    filter: blur(5px);
+  }
+
+  .floor::after {
+    bottom: -0.1rem;
+    width: 62%;
+    height: 0.35rem;
+    background: rgba(16, 60, 140, 0.3);
+    filter: blur(2px);
+  }
+
+  .skins-copy {
+    grid-area: copy;
+  }
+
+  .floor--coins {
+    grid-area: coins;
+    justify-self: start;
+    margin-bottom: 0.2rem;
+    isolation: isolate;
+  }
+
+  .coins {
+    width: clamp(5rem, 24vw, 7.5rem);
+  }
+
+  .skins {
+    grid-area: skins;
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-end;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    isolation: isolate;
+  }
+
+  .skins li {
+    display: flex;
+    align-items: center;
+  }
+
+  .skins img {
+    width: clamp(2.4rem, 11vw, 3.4rem);
+  }
+
+  /* Three sparks fanning out from each side of a skin's ring. */
+  .sparks {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .sparks i {
+    width: 0.5rem;
+    height: 0.2rem;
+    border-radius: 0.1rem;
+    background: var(--spark);
+  }
+
+  .sparks--left i:nth-child(1),
+  .sparks--right i:nth-child(3) { transform: rotate(35deg); }
+  .sparks--left i:nth-child(3),
+  .sparks--right i:nth-child(1) { transform: rotate(-35deg); }
+
+  .sparks--left { margin-right: -0.15rem; }
+  .sparks--right { margin-left: -0.15rem; }
 
   .features {
     padding: 1rem 1.5rem 3.5rem;
@@ -686,10 +1007,20 @@ const jsonLd = [
   }
 
   .feature-grid li {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
     padding: 1.15rem 1.25rem;
     border-radius: 1rem;
     border: 2px solid rgba(26, 28, 44, 0.1);
     background: rgba(255, 255, 255, 0.45);
+  }
+
+  .feature-icon {
+    flex-shrink: 0;
+    width: 3rem;
+    height: 3rem;
+    object-fit: contain;
   }
 
   .feature-grid h3 {
@@ -877,6 +1208,35 @@ const jsonLd = [
     margin: 0;
     font-size: 0.875rem;
     color: var(--panel-ink);
+  }
+
+  @media (min-width: 560px) {
+    .tap-panel {
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      gap: 1.75rem;
+      padding: 1.75rem;
+    }
+
+    .tap-meter {
+      height: 19rem;
+    }
+
+    .modes {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .skins-card {
+      grid-template-areas:
+        'copy skins'
+        'coins skins';
+      grid-template-columns: 1fr auto;
+      padding: 1.5rem 1.75rem;
+    }
+
+    .skins img {
+      width: 3.9rem;
+    }
   }
 
   @media (min-width: 640px) {

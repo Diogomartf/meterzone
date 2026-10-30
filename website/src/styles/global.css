@@ -25,7 +25,17 @@
     U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
+/* Condensed and heavy, for short punchy lines. Only below the fold, so no preload. */
+@font-face {
+  font-family: 'Lilita One';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/lilita-one-latin.woff2') format('woff2');
+}
+
 :root {
+  --font-punch: 'Lilita One', 'Fredoka', system-ui, sans-serif;
   --sky-top: #4ec0ca;
   --sky-mid: #70d5de;
   --sky-bottom: #8fe8f0;
@@ -105,22 +115,91 @@ button {
   transform: none;
 }
 
-.download-link {
+/*
+ * The app's MainButton: a chunky pill with a light bevel along the top of its
+ * face, sitting on a darker lip. Pressing drops the face onto the lip.
+ * Markup: <a class="main-btn main-btn--green"><span class="main-btn-face">…</span></a>
+ */
+.main-btn {
+  --lip-depth: 6px;
+  --outline: var(--ink);
+  position: relative;
   display: inline-block;
-  padding: 1rem 1.25rem;
-  border: 3px solid var(--ink);
-  border-radius: 1rem;
-  background: var(--bubble);
-  color: var(--ink);
-  box-shadow: 0 4px 0 var(--ink);
-  font-weight: 600;
+  padding-bottom: var(--lip-depth);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.2rem;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
   text-align: center;
   text-decoration: none;
-  transition: transform 160ms ease-out;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.download-link:active {
-  transform: scale(0.97);
+.main-btn::before {
+  content: '';
+  position: absolute;
+  inset: var(--lip-depth) 0 0;
+  border: 3px solid var(--outline);
+  border-radius: 999px;
+  background: var(--lip);
+  box-shadow: 0 3px 3px var(--surface-shadow);
+}
+
+.main-btn-face {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3.5rem;
+  padding: 0.6rem 1.5rem;
+  border: 3px solid var(--outline);
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    var(--face-0) 0%,
+    var(--face-0) 12%,
+    var(--face-1) 20%,
+    var(--face-2) 60%,
+    var(--face-3) 100%
+  );
+  text-shadow: 0 2px 0 var(--text-shadow);
+  transition: transform 90ms ease-out;
+}
+
+.main-btn:active .main-btn-face {
+  transform: translateY(var(--lip-depth));
+}
+
+.main-btn--green {
+  --face-0: #5be35b;
+  --face-1: #14d414;
+  --face-2: #00ca00;
+  --face-3: #00bc00;
+  --lip: #009c00;
+  --text-shadow: rgba(0, 70, 0, 0.45);
+  --surface-shadow: rgba(26, 28, 44, 0.25);
+}
+
+.main-btn--blue {
+  --outline: #030a6e;
+  --face-0: #3faafd;
+  --face-1: #0a7bfd;
+  --face-2: #0052f4;
+  --face-3: #0040ec;
+  --lip: #0027cf;
+  --text-shadow: rgba(0, 18, 120, 0.55);
+  --surface-shadow: rgba(122, 74, 0, 0.45);
+}
+
+.main-btn[aria-disabled='true'] {
+  cursor: default;
+  filter: saturate(0.4);
+}
+
+.main-btn[aria-disabled='true'] .main-btn-face {
+  transform: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
