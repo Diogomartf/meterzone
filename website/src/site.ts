@@ -4,7 +4,6 @@ export const CONTACT_EMAIL = 'hello@meterzone.net';
 export const APP_NAME = 'MeterZone';
 
 /** Default SEO copy — keep under ~155 chars for meta descriptions. */
-export const SITE_TAGLINE = 'A free one-tap timing game for iPhone';
 export const SITE_DESCRIPTION =
   'Play MeterZone, a free timing game for iPhone. Tap to stop the meter, stack combos, beat the daily challenge, and climb the Game Center leaderboards.';
 export const SITE_TITLE = `${APP_NAME} — Free Offline Timing Game for iPhone`;
@@ -25,13 +24,6 @@ export const THEME_COLOR = '#0009C1';
 export const APP_STORE_URL: string | null =
   'https://apps.apple.com/pt/app/meterzone/id6794744179';
 export const PLAY_STORE_URL: string | null = null;
-
-export const HERO_HEADLINE = {
-  lead: 'Can you tap',
-  zone: 'THE ZONE',
-} as const;
-
-export const HERO_KICKER = SITE_TAGLINE;
 
 /** Hero phone preview — optimized from App Store preview for landing. */
 export const HERO_MEDIA = {

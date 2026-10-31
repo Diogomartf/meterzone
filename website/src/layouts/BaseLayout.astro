@@ -12,6 +12,7 @@ import {
 } from '../site';
 import '../styles/global.css';
 import Analytics from '../components/Analytics.astro';
+import Header from '../components/Header.astro';
 
 interface Props {
   title?: string;
@@ -26,6 +27,8 @@ interface Props {
   ogType?: 'website' | 'article';
   /** Extra schema.org nodes merged into @graph (FAQPage, VideoObject, etc.). */
   jsonLd?: Record<string, unknown>[];
+  /** Float the header over the page's first section instead of above it. */
+  headerOverlay?: boolean;
 }
 
 const {
@@ -36,6 +39,7 @@ const {
   index = true,
   ogType = 'website',
   jsonLd = [],
+  headerOverlay = false,
 } = Astro.props;
 
 const pageTitle = title
@@ -197,6 +201,7 @@ const structuredData = {
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
+    <Header overlay={headerOverlay} />
     <slot />
     <Analytics />
   </body>

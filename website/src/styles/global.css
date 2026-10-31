@@ -195,6 +195,29 @@ button {
   --surface-shadow: rgba(122, 74, 0, 0.45);
 }
 
+/* The lime of the app's PLAY button. Ink text, like green. */
+.main-btn--lime {
+  --face-0: #d2ff9a;
+  --face-1: #b2ff5c;
+  --face-2: #9cff3a;
+  --face-3: #8cff2a;
+  --lip: #4c9e0a;
+  --text-shadow: rgba(255, 255, 255, 0.45);
+  --surface-shadow: rgba(0, 9, 80, 0.35);
+  color: var(--ink);
+}
+
+.main-btn--small {
+  --lip-depth: 4px;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+}
+
+.main-btn--small .main-btn-face {
+  min-height: 2.75rem;
+  padding: 0.4rem 1.1rem;
+}
+
 .main-btn[aria-disabled='true'] {
   cursor: default;
   filter: saturate(0.4);
@@ -202,6 +225,66 @@ button {
 
 .main-btn[aria-disabled='true'] .main-btn-face {
   transform: none;
+}
+
+/*
+ * Chunky toy lettering, like the app's logo: a dark outline, a coloured edge
+ * underneath, and a glossy gradient face. One line per element, since the
+ * face is a copy of the text (data-text) laid over the outlined original.
+ * Markup: <span class="toy-text toy-text--gold" data-text="Right in">Right in</span>
+ */
+.toy-text {
+  position: relative;
+  display: block;
+  font-family: 'Fredoka', system-ui, sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  color: var(--edge);
+  -webkit-text-stroke: 0.16em var(--outline);
+  paint-order: stroke fill;
+  text-shadow:
+    0 0.05em 0 var(--outline),
+    0 0.09em 0 var(--outline),
+    0 0.16em 0.12em rgba(0, 9, 80, 0.45);
+}
+
+.toy-text::after {
+  content: attr(data-text);
+  content: attr(data-text) / '';
+  position: absolute;
+  inset: 0;
+  /* Lifted, so the edge colour of the outlined copy shows along the bottom. */
+  transform: translateY(-0.06em);
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+  color: transparent;
+  background: linear-gradient(
+    180deg,
+    var(--face-0) 18%,
+    var(--face-1) 48%,
+    var(--face-2) 82%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  pointer-events: none;
+}
+
+.toy-text--white {
+  --face-0: #ffffff;
+  --face-1: #f2f8ff;
+  --face-2: #bcd9ff;
+  --edge: #7fa8e8;
+  --outline: #0b1d86;
+}
+
+.toy-text--gold {
+  --face-0: #fff9b8;
+  --face-1: #ffe04a;
+  --face-2: #ffb81c;
+  --edge: #e08a00;
+  --outline: #5a2a00;
 }
 
 @media (prefers-reduced-motion: reduce) {
