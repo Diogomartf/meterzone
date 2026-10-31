@@ -245,9 +245,9 @@ button {
   -webkit-text-stroke: 0.16em var(--outline);
   paint-order: stroke fill;
   text-shadow:
-    0 0.05em 0 var(--outline),
-    0 0.09em 0 var(--outline),
-    0 0.16em 0.12em rgba(0, 9, 80, 0.45);
+    0 0.035em 0 var(--outline),
+    0 0.06em 0 var(--outline),
+    0 0.1em 0.1em rgba(0, 9, 80, 0.3);
 }
 
 .toy-text::after {
@@ -256,7 +256,7 @@ button {
   position: absolute;
   inset: 0;
   /* Lifted, so the edge colour of the outlined copy shows along the bottom. */
-  transform: translateY(-0.06em);
+  transform: translateY(-0.04em);
   -webkit-text-stroke: 0;
   text-shadow: none;
   color: transparent;
@@ -269,6 +269,12 @@ button {
   -webkit-background-clip: text;
   background-clip: text;
   pointer-events: none;
+}
+
+/* A slight upward tilt for a toy-text headline, padded so the low end clears the text below. */
+.toy-tilt {
+  rotate: -4deg;
+  padding-block: 0.15em;
 }
 
 .toy-text--white {
