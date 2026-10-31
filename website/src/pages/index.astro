@@ -724,7 +724,8 @@ const jsonLd = [
     gap: 2rem;
     width: min(100%, 60rem);
     margin: 0 auto;
-    padding: 2rem 1.25rem 0;
+    /* Room under the podium for the cloud banks to show. */
+    padding: 2rem 1.25rem 2.5rem;
   }
 
   .top-spot-copy h3 {
@@ -757,7 +758,6 @@ const jsonLd = [
   .podium {
     justify-self: center;
     width: min(100%, 34rem);
-    margin-bottom: -0.25rem;
   }
 
   .skins-card {
@@ -1284,11 +1284,12 @@ const jsonLd = [
       align-items: center;
       column-gap: 3rem;
       padding-top: 3rem;
+      padding-bottom: 4.5rem;
     }
 
     /* Centred on the podium's blocks rather than its crown. */
     .top-spot-copy {
-      padding: 3rem 0 2.5rem;
+      padding-top: 3rem;
     }
 
     .top-spot-copy h3 {
