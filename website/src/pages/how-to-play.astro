@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { APP_STORE_URL, SITE_URL } from '../site';
+import Closing from '../components/Closing.astro';
+import { SITE_URL } from '../site';
 
 const description = 'Learn how to play MeterZone on iPhone: aim for Perfect stops, build combos up to 5×, protect your three hearts, unlock skins and avatars with coins, take on the daily challenge, and climb the Game Center leaderboards.';
 const jsonLd = [{
@@ -10,30 +11,68 @@ const jsonLd = [{
     { '@type': 'ListItem', position: 2, name: 'How to play', item: `${SITE_URL}/how-to-play/` },
   ],
 }];
+
+const topics = [
+  { id: 'timing', label: 'Timing your tap', icon: '/images/play/howto-meter.webp' },
+  { id: 'scoring', label: 'Scores and combos', icon: '/images/play/star.webp' },
+  { id: 'skins', label: 'Coins, skins and avatars', icon: '/images/play/howto-coins.webp' },
+  { id: 'daily', label: 'Daily challenge', icon: '/images/play/howto-calendar.webp' },
+  { id: 'leaderboards', label: 'Leaderboards', icon: '/images/play/hof-crown.webp' },
+  { id: 'offline', label: 'Playing offline', icon: '/images/play/howto-infinity.webp' },
+];
+const icon = (id: string) => topics.find((topic) => topic.id === id)!.icon;
+
+const rewards = [
+  { place: '1st', coins: 500 },
+  { place: '2nd', coins: 300 },
+  { place: '3rd', coins: 200 },
+  { place: '4th–10th', coins: 100 },
+];
 ---
 
-<BaseLayout title="How to Play MeterZone: Timing, Combos & Daily Challenges" description={description} jsonLd={jsonLd}>
+<BaseLayout title="How to Play MeterZone: Timing, Combos & Daily Challenges" description={description} jsonLd={jsonLd} headerOverlay>
   <main id="main" class="guide">
-    <nav aria-label="Breadcrumb"><a href="/">MeterZone</a> / How to play</nav>
-    <header>
-      <p class="eyebrow">THE GAMEPLAY GUIDE</p>
-      <h1>One tap. Better timing. Bigger scores.</h1>
-      <p class="intro">MeterZone is a free offline timing game for iPhone. Watch the meter rise and tap to stop it inside the target zone. Here’s how to turn your first hit into a longer run.</p>
-    </header>
+    <section class="guide-hero" aria-labelledby="guide-title">
+      <img
+        class="guide-hero-bg"
+        src="/images/hero-bg.webp"
+        srcset="/images/hero-bg-800.webp 800w, /images/hero-bg.webp 1600w"
+        sizes="100vw"
+        alt=""
+        width="1600"
+        height="900"
+        decoding="async"
+        fetchpriority="high"
+      />
+      <div class="guide-hero-inner">
+        <nav class="breadcrumb" aria-label="Breadcrumb"><a href="/">MeterZone</a> / How to play</nav>
+        <p class="eyebrow">THE GAMEPLAY GUIDE</p>
+        <h1 id="guide-title">
+          <span class="toy-text toy-text--white" data-text="One tap.">One tap.</span>
+          <span class="toy-text toy-text--gold" data-text="Better timing.">Better timing.</span>
+          <span class="toy-text toy-text--gold" data-text="Bigger scores.">Bigger scores.</span>
+        </h1>
+        <p class="intro">MeterZone is a free offline timing game for iPhone. Watch the meter rise and tap to stop it inside the target zone. Here’s how to turn your first hit into a longer run.</p>
+      </div>
+    </section>
 
-    <nav class="contents" aria-label="On this page">
-      <a href="#timing">Timing your tap</a>
-      <a href="#scoring">Scores and combos</a>
-      <a href="#skins">Coins, skins and avatars</a>
-      <a href="#daily">Daily challenge</a>
-      <a href="#leaderboards">Leaderboards</a>
-      <a href="#offline">Playing offline</a>
-    </nav>
+    <div class="guide-body">
+      <nav class="contents" aria-label="On this page">
+        {topics.map((topic) => (
+          <a href={`#${topic.id}`}>
+            <img src={topic.icon} alt="" width="64" height="64" decoding="async" />
+            {topic.label}
+          </a>
+        ))}
+      </nav>
 
-    <section id="timing">
-      <h2>How to time your tap</h2>
+    <section class="topic" id="timing">
+      <div class="topic-head">
+        <img src={icon('timing')} alt="" width="64" height="64" loading="lazy" decoding="async" />
+        <h2>How to time your tap</h2>
+      </div>
       <p>Each round has a rising meter and a target zone. Tap once when the fill reaches the zone. Aim for the yellow center line for a Perfect stop; landing elsewhere inside the zone still earns points.</p>
-      <ol>
+      <ol class="steps">
         <li><strong>Read the target first.</strong> Find the center and the outer edges before you tap.</li>
         <li><strong>Watch the fill approach.</strong> Follow its movement instead of repeating the timing from your previous round.</li>
         <li><strong>Use your result.</strong> If you stopped below the center, wait a little longer next time. If you stopped above it, try tapping earlier.</li>
@@ -41,17 +80,20 @@ const jsonLd = [{
       <p>You begin a run with three hearts. A stop outside the zone is a Miss and costs one heart. Keeping the meter inside the zone lets you continue without losing a heart.</p>
     </section>
 
-    <section id="scoring">
-      <h2>Perfect, Great, Nice: what each hit means</h2>
+    <section class="topic" id="scoring">
+      <div class="topic-head">
+        <img src={icon('scoring')} alt="" width="64" height="64" loading="lazy" decoding="async" />
+        <h2>Perfect, Great, Nice: what each hit means</h2>
+      </div>
       <div class="table-wrap">
         <table>
           <caption>Hit results, combo effects, and coin rewards</caption>
           <thead><tr><th scope="col">Result</th><th scope="col">Where you stop</th><th scope="col">Combo effect</th><th scope="col">Coins</th></tr></thead>
           <tbody>
-            <tr><th scope="row">Perfect</th><td>At the center strike line</td><td>Adds one to your streak</td><td>5, plus more for a longer streak</td></tr>
-            <tr><th scope="row">Great</th><td>In the inner band around the center</td><td>Adds one to your streak</td><td>3</td></tr>
-            <tr><th scope="row">Nice</th><td>Inside the outer zone</td><td>Reduces your streak by one, to a minimum of zero</td><td>1</td></tr>
-            <tr><th scope="row">Miss</th><td>Outside the zone</td><td>Resets your streak and costs a heart</td><td>None</td></tr>
+            <tr><th scope="row"><span class="result result--perfect">Perfect</span></th><td>At the center strike line</td><td>Adds one to your streak</td><td>5, plus more for a longer streak</td></tr>
+            <tr><th scope="row"><span class="result result--great">Great</span></th><td>In the inner band around the center</td><td>Adds one to your streak</td><td>3</td></tr>
+            <tr><th scope="row"><span class="result result--nice">Nice</span></th><td>Inside the outer zone</td><td>Reduces your streak by one, to a minimum of zero</td><td>1</td></tr>
+            <tr><th scope="row"><span class="result result--miss">Miss</span></th><td>Outside the zone</td><td>Resets your streak and costs a heart</td><td>None</td></tr>
           </tbody>
         </table>
       </div>
@@ -62,66 +104,374 @@ const jsonLd = [{
       <p>A Great hit still grows your combo. A Nice hit protects your hearts even though it reduces the streak. If you are struggling to hit the center, first practice landing anywhere inside the zone, then work toward more accurate stops.</p>
     </section>
 
-    <section id="skins">
-      <h2>Coins, meter skins, and avatars</h2>
+    <section class="topic" id="skins">
+      <div class="topic-head">
+        <img src={icon('skins')} alt="" width="64" height="64" loading="lazy" decoding="async" />
+        <h2>Coins, meter skins, and avatars</h2>
+      </div>
       <p>Every Perfect, Great, and Nice hit pays coins, and a top-10 daily finish pays a bonus. Misses pay nothing. Open Avatar &amp; skins from the menu, or tap the coin counter on the home screen, to spend what you have earned. Your balance sits above both tabs.</p>
       <p><strong>Skins.</strong> Toxic is the default liquid. Lava and Ice unlock after a stretch of play. Gold is the rare look — even a long Perfect run of a hundred levels will not quite pay for it. Equip a look any time.</p>
       <p><strong>Avatars.</strong> Your avatar is an emoji on a coloured disc, shown next to your own entries on the leaderboard. Every background colour and the Animals pack are free. The Food, Space, Sports, and Legends packs unlock with coins, from 1,500 up to 30,000.</p>
       <p>Unlocks stay on your iPhone with your high scores and settings — there is no extra purchase.</p>
     </section>
 
-    <section id="daily">
-      <h2>How the daily challenge works</h2>
+    <section class="topic" id="daily">
+      <div class="topic-head">
+        <img src={icon('daily')} alt="" width="64" height="64" loading="lazy" decoding="async" />
+        <h2>How the daily challenge works</h2>
+      </div>
       <p>The daily challenge uses a sequence based on the current UTC date, so players on the same game version get the same daily sequence. A new challenge begins at midnight UTC, which may differ from midnight where you live.</p>
       <p>Replay the challenge to practice that day’s timing and try to improve your daily best. Your daily result stays on your device. Use the game’s share option to send a score image to friends and compare runs.</p>
       <p>Regular play gives you a new randomized sequence when you start a run. Use it for variety, and return to the daily challenge when you want another attempt at the same sequence.</p>
       <h3>Daily rewards</h3>
       <p>When the daily board closes at midnight UTC, the top 10 earn coins: 500 for first, 300 for second, 200 for third, and 100 for fourth to tenth. To collect them, open the game while signed in to Game Center before the next reset — the following UTC day. Rewards from earlier days can’t be claimed later.</p>
+      <ul class="rewards" aria-label="Daily top-10 coin rewards">
+        {rewards.map((reward) => (
+          <li>
+            <span class="reward-place">{reward.place}</span>
+            <span class="reward-coins"><img src="/images/play/howto-coins.webp" alt="" width="300" height="195" loading="lazy" decoding="async" />{reward.coins}</span>
+          </li>
+        ))}
+      </ul>
     </section>
 
-    <section id="leaderboards">
-      <h2>Climbing the leaderboards</h2>
+    <section class="topic" id="leaderboards">
+      <div class="topic-head">
+        <img src={icon('leaderboards')} alt="" width="64" height="64" loading="lazy" decoding="async" />
+        <h2>Climbing the leaderboards</h2>
+      </div>
       <p>Open Ranking from the menu and choose a board. <strong>Daily</strong> ranks the best score on that day’s challenge, shows a countdown to the reset, and puts the top three on a podium. <strong>Endless</strong> ranks your all-time best in regular play.</p>
       <p>Each board shows the top 10, highlights your row, and tells you how many points you need to pass the player above you. Players appear with their Game Center nickname.</p>
       <p>Leaderboards use Game Center, so there is no email or password — tap <em>Continue with Game Center</em> once. Your saved bests are sent when you sign in, so you do not start from zero.</p>
     </section>
 
-    <section id="offline">
-      <h2>A timing game you can play offline</h2>
+    <section class="topic" id="offline">
+      <div class="topic-head">
+        <img src={icon('offline')} alt="" width="64" height="64" loading="lazy" decoding="async" />
+        <h2>A timing game you can play offline</h2>
+      </div>
       <p>Once you have downloaded MeterZone from the App Store, you can play without an internet connection or an account. High scores, settings, and unlocks are saved on your phone. Leaderboards are optional and need a connection. Sound and haptics can be adjusted in the game’s settings.</p>
       <p>MeterZone is available for iPhone. There is no Android version currently available.</p>
     </section>
 
-    {APP_STORE_URL && (
-      <section class="download" aria-labelledby="guide-download-title">
-        <h2 id="guide-download-title">Try your first run</h2>
-        <p>Find the zone, tap, and see how far you can go.</p>
-        <a class="main-btn main-btn--green" href={APP_STORE_URL} data-download-location="gameplay-guide"><span class="main-btn-face">Download on the App Store</span></a>
-      </section>
-    )}
-    <footer><a href="/">Home</a><a href="/support/">Support</a><a href="/privacy/">Privacy Policy</a></footer>
+    </div>
+
+    <Closing placement="gameplay-guide" />
   </main>
 </BaseLayout>
 
 <style>
-  .guide { max-width: 52rem; margin: auto; padding: 2rem 1.25rem 3rem; }
-  nav, footer { font-size: 0.95rem; }
-  a { text-underline-offset: 0.2em; }
-  header { padding: 2rem 0 1.5rem; }
-  .eyebrow { font-size: 0.8rem; font-weight: 600; letter-spacing: 0.1em; }
-  h1 { font-size: clamp(2.2rem, 6vw, 3.6rem); line-height: 1.1; max-width: 15ch; margin: 0.75rem 0 1.25rem; }
-  .intro { font-size: 1.15rem; }
-  p, li { line-height: 1.7; }
-  li + li { margin-top: 0.75rem; }
-  .contents { display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem; padding: 1.25rem; border: 2px solid var(--ink); border-radius: 1rem; background: var(--lemon); }
-  section { padding-top: 2rem; scroll-margin-top: 1rem; }
-  h2 { font-size: clamp(1.5rem, 4vw, 2rem); line-height: 1.2; }
-  h3 { margin-top: 1.75rem; font-size: 1.25rem; }
-  .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; background: #fff; font-size: 0.95rem; }
-  caption { text-align: left; padding: 0 0 0.75rem; line-height: 1.5; }
-  th, td { text-align: left; border: 1px solid #737781; padding: 0.75rem; line-height: 1.5; }
-  thead { background: var(--lemon); }
-  .download { margin-top: 2rem; padding: 1.5rem; border-radius: 1.25rem; background: #fff; text-align: center; }
-  footer { display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 2.5rem; }
+  .guide {
+    --guide-sky: #e4f5ff;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* The home hero's sky, cropped to its rays and clouds, under the floating header. */
+  .guide-hero {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    padding: 9rem 1.25rem 4.5rem;
+    color: #fff;
+    background: #0a3fe0;
+  }
+
+  .guide-hero-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -1;
+    width: 100%;
+    /* Taller than the hero and pinned to its top, so the floor stays below the cut. */
+    height: 140%;
+    object-fit: cover;
+    object-position: 50% 0;
+  }
+
+  /* Fades the clouds into the page's sky instead of a hard cut. */
+  .guide-hero::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0;
+    z-index: -1;
+    height: 4rem;
+    background: linear-gradient(180deg, transparent, var(--guide-sky));
+  }
+
+  .guide-hero-inner {
+    width: min(100%, 48rem);
+    margin: 0 auto;
+  }
+
+  .breadcrumb {
+    font-size: 0.95rem;
+    font-weight: 500;
+    text-shadow: 0 1px 0 rgba(0, 9, 80, 0.5);
+  }
+
+  .breadcrumb a {
+    color: #fff;
+    text-underline-offset: 0.2em;
+  }
+
+  .eyebrow {
+    margin: 2rem 0 0.75rem;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-shadow: 0 1px 0 rgba(0, 9, 80, 0.5);
+  }
+
+  h1 {
+    margin: 0 0 1.5rem;
+    font-size: clamp(2.4rem, 9vw, 4.75rem);
+    line-height: 1;
+  }
+
+  .intro {
+    max-width: 34rem;
+    margin: 0;
+    font-size: clamp(1.1rem, 3.5vw, 1.3rem);
+    font-weight: 500;
+    line-height: 1.5;
+    color: #fff;
+    text-shadow:
+      0 2px 0 rgba(0, 9, 80, 0.5),
+      0 0 0.75rem rgba(0, 9, 80, 0.45);
+  }
+
+  .guide-body {
+    flex: 1;
+    padding: 0.5rem 1.25rem 4.5rem;
+    background: linear-gradient(180deg, var(--guide-sky) 0%, #d3effd 100%);
+  }
+
+  .guide-body > * {
+    width: min(100%, 48rem);
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .contents {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    gap: 0.6rem;
+  }
+
+  .contents a {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.9rem 0.6rem 0.6rem;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.6);
+    color: var(--ink);
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.15s ease;
+  }
+
+  .contents a:hover {
+    background: #fff;
+  }
+
+  .contents img {
+    flex-shrink: 0;
+    width: 2.25rem;
+    height: 2.25rem;
+    object-fit: contain;
+  }
+
+  .topic {
+    padding-top: 3.5rem;
+    scroll-margin-top: 1rem;
+  }
+
+  .topic-head {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .topic-head img {
+    flex-shrink: 0;
+    width: 3.5rem;
+    height: 3.5rem;
+    object-fit: contain;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: clamp(1.6rem, 4.5vw, 2.3rem);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+  }
+
+  h3 {
+    margin: 2rem 0 0.5rem;
+    font-size: 1.3rem;
+    font-weight: 700;
+  }
+
+  p,
+  li {
+    line-height: 1.7;
+    color: var(--panel-ink);
+  }
+
+  strong {
+    color: var(--ink);
+  }
+
+  /* Numbered like the home page's steps. */
+  .steps {
+    margin: 1.25rem 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+  }
+
+  .steps li {
+    position: relative;
+    min-height: 2.75rem;
+    padding-left: 3.75rem;
+  }
+
+  .steps li + li {
+    margin-top: 1rem;
+  }
+
+  .steps li::before {
+    content: counter(step);
+    counter-increment: step;
+    position: absolute;
+    left: 0;
+    top: -0.1rem;
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 50%;
+    background: rgba(28, 156, 246, 0.16);
+    color: #1565d8;
+    font-size: 1.4rem;
+    font-weight: 700;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+    border-radius: 1.25rem;
+    background: rgba(255, 255, 255, 0.7);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+  }
+
+  caption {
+    padding: 1rem 1.25rem 0.25rem;
+    text-align: left;
+    line-height: 1.5;
+    color: var(--panel-ink);
+  }
+
+  th,
+  td {
+    padding: 0.85rem 1.25rem;
+    text-align: left;
+    line-height: 1.5;
+    vertical-align: top;
+  }
+
+  thead th {
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--panel-ink);
+  }
+
+  tbody tr + tr {
+    border-top: 1px solid rgba(21, 101, 216, 0.12);
+  }
+
+  td {
+    color: var(--panel-ink);
+  }
+
+  .result {
+    display: inline-block;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .result--perfect { background: #ffe14a; color: #5a3b00; }
+  .result--great { background: #b7f27a; color: #1f4d00; }
+  .result--nice { background: #bfe4ff; color: #0b3f86; }
+  .result--miss { background: #ffd0d6; color: #8a1023; }
+
+  .rewards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    gap: 0.6rem;
+    margin: 1.25rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .rewards li {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.9rem 0.5rem;
+    border-radius: 1rem;
+    background: rgba(255, 238, 160, 0.6);
+  }
+
+  .reward-place {
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .reward-coins {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #8a5a00;
+  }
+
+  .reward-coins img {
+    width: 2rem;
+  }
+
+  a {
+    text-underline-offset: 0.2em;
+  }
+
+  .topic a {
+    font-weight: 600;
+    color: #1565d8;
+  }
+
+  @media (min-width: 760px) {
+    .guide-hero {
+      padding: 10rem 2rem 5.5rem;
+    }
+
+    .topic-head img {
+      width: 4.25rem;
+      height: 4.25rem;
+    }
+  }
 </style>
