@@ -19,6 +19,17 @@ Any card, modal or sheet that only appears behind a hard-to-reach condition (a r
 - `registerDevMenuItems` replaces the whole list, so keep every item in that one call.
 - Keep `expo-dev-menu` on the same version `expo-dev-client` bundles (check `node_modules/expo-dev-client/package.json`); `expo install` may pick a newer SDK's release.
 
+# Translations
+
+UI strings go through `gt('…')` or `msg('…')` (gt-react-native) and are translated into `src/_gt/pt.json` (Brazil, "você"), `pt-PT.json` ("tu") and `es.json`. Run `bun run translate` after adding or changing a string.
+
+General Translation's free plan often stops `bun run translate` with "Ratelimited!". Translate those strings by hand instead of leaving them in English:
+
+1. Each file maps a hash of the English string to its translation. Get a string's key with
+   `bun -e "import { hashSource } from 'generaltranslation/id'; console.log(hashSource({ source: process.argv.at(-1), dataFormat: 'ICU' }))" "Watch the meter rise."`
+2. Add the key to all three files, keeping keys sorted, and keep each file's wording: look up how it already translates nearby strings (skin names, "Daily", "meter").
+3. Run `bunx gt save-local` to register the edits with General Translation, so a later `bun run translate` keeps them. It doesn't queue translations, so the rate limit doesn't block it.
+
 # Performance
 
 Measure before and after any change made for speed, on the same runs, and put both numbers in the PR. Guessing has been wrong here before.
