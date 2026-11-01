@@ -25,7 +25,7 @@ test('records coarse click dimensions and discards extra identifying fields', as
 });
 
 test('records header download clicks on every page', async () => {
-  for (const page of ['/', '/how-to-play/', '/support/', '/privacy/']) {
+  for (const page of ['/', '/how-to-play/', '/about/', '/support/', '/privacy/']) {
     const { response } = await send({ ...payload, page, placement: 'header' });
     assert.equal(response.status, 204);
   }
