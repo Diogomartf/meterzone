@@ -2,41 +2,17 @@
 import { GAME_FAQS as faqs } from '../faq';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PhoneMockup from '../components/PhoneMockup.astro';
+import Closing from '../components/Closing.astro';
 import {
   APP_STORE_URL,
   PLAY_STORE_URL,
-  HERO_HEADLINE,
-  HERO_KICKER,
   HERO_MEDIA,
-  CONTACT_EMAIL,
   APP_NAME,
   SITE_DESCRIPTION,
   SITE_URL,
 } from '../site';
 
-const hasStoreLinks = APP_STORE_URL !== null || PLAY_STORE_URL !== null;
-
-const steps = [
-  {
-    title: 'Watch the meter fill',
-    body: 'A vertical meter rises with liquid. Timing beats speed — stay calm and read the zone.',
-  },
-  {
-    title: 'Tap in the zone',
-    body: 'Stop the meter inside the sweet spot for Perfect, Great, or Nice. Miss and you lose a heart.',
-  },
-  {
-    title: 'Climb the leaderboards',
-    body: 'Take on the same daily sequence as everyone else, then see where you rank worldwide with Game Center.',
-  },
-];
-
-/** "One tap. Right in the zone." bowed into a gentle arc, word by word. */
-const ARC_LINE = 'One tap. Right in the zone.';
-const arcWords = ARC_LINE.split(' ').map((word, i, all) => {
-  const t = (i - (all.length - 1) / 2) / ((all.length - 1) / 2);
-  return { word, style: `--tilt: ${(t * 5).toFixed(2)}deg; --drop: ${(t * t * 0.35).toFixed(3)}em` };
-});
+const steps = ['Watch the meter rise.', 'Tap inside the zone.', 'Keep your combo going.'];
 
 const skins = [
   { name: 'Lava', src: '/images/play/skin-lava.webp', spark: '#ff8a1f' },
@@ -106,176 +82,186 @@ const jsonLd = [
 ];
 ---
 
-<BaseLayout title={APP_NAME} description={SITE_DESCRIPTION} jsonLd={jsonLd}>
+<BaseLayout title={APP_NAME} description={SITE_DESCRIPTION} jsonLd={jsonLd} headerOverlay>
   <main id="main" class="page">
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-bg" aria-hidden="true">
         <img
-          src="/images/web-bg.webp"
-          srcset="/images/web-bg-640.webp 640w, /images/web-bg.webp 1024w"
-          sizes="100vw"
+          src="/images/hero-bg.webp"
+          srcset="/images/hero-bg-800.webp 800w, /images/hero-bg.webp 1600w"
+          sizes="(min-width: 900px) 160vw, 100vw"
           alt=""
-          width="1024"
-          height="576"
+          width="1600"
+          height="900"
           decoding="async"
           fetchpriority="high"
         />
       </div>
 
       <div class="hero-layout">
-        <div class="hero-row">
-          <header class="hero-copy">
+        <div class="hero-copy">
+          <div class="hero-words toy-tilt">
             <h1 class="hero-headline" id="hero-title">
-              <span class="hero-lead">{HERO_HEADLINE.lead}</span>
-              <span class="hero-punch">
-                <span class="hero-zone"><span class="hero-zone-text">{HERO_HEADLINE.zone}</span></span>
-                <span class="hero-q">?</span>
-              </span>
+              <span class="toy-text toy-text--white" data-text="One tap.">One tap.</span>
+              <span class="toy-text toy-text--gold" data-text="Right in">Right in</span>
+              <span class="toy-text toy-text--gold" data-text="the zone.">the zone.</span>
             </h1>
-            <p class="hero-kicker">{HERO_KICKER}</p>
-            <p class="hero-description">MeterZone is a free offline timing game for iPhone. Tap to stop the rising meter inside the zone, stack combos, beat the daily challenge, and climb the leaderboards. No account needed.</p>
-          </header>
-
-          <div class="hero-phone" aria-label="Game preview">
-            <PhoneMockup />
+            <p class="hero-sub">Stop the rising meter. Stack combos. <span class="nowrap">Beat your best.</span></p>
           </div>
 
-          <div class="hero-actions">
-            <img
-              class="hero-logo"
-              src="/images/zone-meter-logo.webp"
-              srcset="/images/zone-meter-logo-320.webp 320w, /images/zone-meter-logo.webp 611w"
-              sizes="(min-width: 900px) 13rem, min(12rem, 52vw)"
-              alt={`${APP_NAME} logo`}
-              width="611"
-              height="439"
-              decoding="async"
-              fetchpriority="high"
-            />
-            <div class="cta-group">
-              {APP_STORE_URL ? (
-                <a class="main-btn main-btn--green" href={APP_STORE_URL} data-download-location="hero" rel="noopener">
-                  <span class="main-btn-face">Download on the App Store</span>
-                </a>
-              ) : (
-                <span class="main-btn main-btn--green" aria-disabled="true">
-                  <span class="main-btn-face">App Store — Coming soon</span>
+          <div class="cta-group">
+            {APP_STORE_URL ? (
+              <a class="main-btn main-btn--lime" href={APP_STORE_URL} data-download-location="hero" rel="noopener">
+                <span class="main-btn-face">
+                  <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+                    <path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
+                  </svg>
+                  Download on the App Store
                 </span>
-              )}
+              </a>
+            ) : (
+              <span class="main-btn main-btn--lime" aria-disabled="true">
+                <span class="main-btn-face">App Store — Coming soon</span>
+              </span>
+            )}
 
-              {PLAY_STORE_URL && (
-                <a class="main-btn main-btn--blue" href={PLAY_STORE_URL} rel="noopener">
-                  <span class="main-btn-face">Get it on Google Play</span>
-                </a>
-              )}
-            </div>
-
-            {!hasStoreLinks && (
-              <p class="cta-note">Store links go live when the app ships.</p>
+            {PLAY_STORE_URL && (
+              <a class="main-btn main-btn--blue" href={PLAY_STORE_URL} rel="noopener">
+                <span class="main-btn-face">Get it on Google Play</span>
+              </a>
             )}
           </div>
+
+          <p class="hero-note">Free on iPhone · Play offline · No account needed</p>
+        </div>
+
+        <div class="hero-phone" aria-label="Game preview">
+          <PhoneMockup />
         </div>
       </div>
     </section>
 
     <section class="how" aria-labelledby="how-title">
-      <h2 id="how-title" class="how-eyebrow">How {APP_NAME} works</h2>
-      <p class="arc-line" aria-label={ARC_LINE}>
-        {arcWords.map(({ word, style }) => (
-          <span aria-hidden="true" style={style}>{word}</span>
-        ))}
-      </p>
-      <p class="how-intro">
-        {APP_NAME} is a free casual one-tap timing game: read the rising meter,
-        tap in the sweet spot, stack combos, and see how long you can stay in the
-        zone.
-      </p>
+      <div class="how-inner">
+        <h2 id="how-title" class="how-title">
+          <svg class="burst burst--blue burst--left" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 4v9M6 12l7 5M34 12l-7 5" /></svg>
+          <span>Easy to play.</span>
+          <span>Hard to put down.</span>
+          <svg class="burst burst--blue burst--right" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 4v9M6 12l7 5M34 12l-7 5" /></svg>
+        </h2>
 
-      <div class="panel tap-panel">
-        <img
-          class="tap-meter"
-          src="/images/play/howto-meter.webp"
-          alt="The MeterZone meter rising toward the zone, with a finger about to tap"
-          width="419"
-          height="600"
-          loading="lazy"
-          decoding="async"
-        />
-        <div class="tap-side">
-          <ol class="steps">
-            {steps.map((step) => (
-              <li>
-                <h3>{step.title}</h3>
-                <p>{step.body}</p>
+        <div class="play-row">
+          <figure class="meter-figure">
+            <img class="meter-clouds" src="/images/play/clouds.webp" alt="" width="1000" height="514" loading="lazy" decoding="async" />
+            <svg class="burst burst--gold burst--meter-left" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 4v9M6 12l7 5M34 12l-7 5" /></svg>
+            <img
+              class="meter"
+              src="/images/play/howto-meter.webp"
+              alt="The MeterZone meter rising toward the zone, with a finger about to tap"
+              width="419"
+              height="600"
+              loading="lazy"
+              decoding="async"
+            />
+            <svg class="burst burst--gold burst--meter-right" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 4v9M6 12l7 5M34 12l-7 5" /></svg>
+          </figure>
+
+          <div class="play-side">
+            <ol class="steps">
+              {steps.map((step) => <li>{step}</li>)}
+            </ol>
+            <p class="miss-note">
+              <img src="/images/play/howto-heart.webp" alt="" width="120" height="111" loading="lazy" decoding="async" />
+              Miss the zone? Lose a heart.
+            </p>
+          </div>
+        </div>
+
+        <div class="modes">
+          <article class="mode mode--normal">
+            <span class="climb" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+            <img class="mode-icon" src="/images/play/howto-infinity.webp" alt="" width="240" height="123" loading="lazy" decoding="async" />
+            <h3>Beat your best.</h3>
+            <p>Endless levels. One more try.</p>
+          </article>
+          <article class="mode mode--daily">
+            <img class="mode-ghost" src="/images/play/howto-calendar-ghost.webp" alt="" width="238" height="240" loading="lazy" decoding="async" />
+            <img class="mode-icon" src="/images/play/howto-calendar.webp" alt="" width="238" height="240" loading="lazy" decoding="async" />
+            <h3>A fresh challenge. Every&nbsp;day.</h3>
+            <p>Same sequence. Everyone competing.</p>
+          </article>
+        </div>
+
+        <article class="skins-card">
+          <img class="skins-clouds" src="/images/play/clouds.webp" alt="" width="1000" height="514" loading="lazy" decoding="async" />
+          <div class="skins-copy">
+            <h3>Your meter. Your style.</h3>
+            <p>Earn coins. Unlock Lava, Ice and Gold.</p>
+          </div>
+          <div class="coins-stand">
+            <svg class="burst burst--gold burst--coins" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 4v9M6 12l7 5M34 12l-7 5" /></svg>
+            <span class="floor">
+              <img class="coins" src="/images/play/howto-coins.webp" alt="" width="300" height="195" loading="lazy" decoding="async" />
+            </span>
+          </div>
+          <ul class="skins" aria-label="Meter skins">
+            {skins.map((skin) => (
+              <li style={`--spark: ${skin.spark}`}>
+                <span class="skin floor">
+                  <span class="sparks sparks--left" aria-hidden="true"><i></i><i></i><i></i></span>
+                  <img src={skin.src} alt={`${skin.name} meter skin`} width="144" height="360" loading="lazy" decoding="async" />
+                  <span class="sparks sparks--right" aria-hidden="true"><i></i><i></i><i></i></span>
+                </span>
+                <span class="skin-name" aria-hidden="true">{skin.name}</span>
               </li>
             ))}
-          </ol>
-          <p class="miss-note">
-            <img src="/images/play/howto-heart.webp" alt="" width="120" height="111" loading="lazy" decoding="async" />
-            Miss? You lose a heart. Lose all three and the run ends.
-          </p>
-        </div>
-      </div>
-
-      <div class="modes">
-        <article class="mode-card mode-card--normal">
-          <span class="climb" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
-          <img class="mode-icon" src="/images/play/howto-infinity.webp" alt="" width="240" height="123" loading="lazy" decoding="async" />
-          <h3>Normal</h3>
-          <p>An endless run that gets tougher every level. Chase your all-time high score.</p>
-        </article>
-        <article class="mode-card mode-card--daily">
-          <img class="mode-ghost" src="/images/play/howto-calendar-ghost.webp" alt="" width="238" height="240" loading="lazy" decoding="async" />
-          <img class="mode-icon" src="/images/play/howto-calendar.webp" alt="" width="238" height="240" loading="lazy" decoding="async" />
-          <h3>Daily</h3>
-          <p>The same sequence for everyone, and a new challenge every day. Finish top 10 for up to 500 coins.</p>
+          </ul>
         </article>
       </div>
 
-      <article class="skins-card">
-        <div class="skins-copy">
-          <h3>Style your meter</h3>
-          <p>Every Perfect, Great, and Nice hit pays coins. Spend them to unlock Lava, Ice, and Gold.</p>
+      <div class="top-spot" id="top-spot">
+        <img class="top-spot-sky" src="/images/play/sky-rays.webp" alt="" width="1400" height="467" loading="lazy" decoding="async" />
+        <div class="top-spot-inner">
+          <div class="top-spot-copy">
+            <h3>Chase the top spot.</h3>
+            <p>Climb the daily leaderboard and earn coin rewards.</p>
+            <p class="guide-link"><a href="/how-to-play/">Read the gameplay and scoring guide →</a></p>
+          </div>
+          <img
+            class="podium"
+            src="/images/play/podium.webp"
+            alt="A winners' podium with a crown on first place"
+            width="900"
+            height="474"
+            loading="lazy"
+            decoding="async"
+          />
         </div>
-        <span class="floor floor--coins">
-          <img class="coins" src="/images/play/howto-coins.webp" alt="" width="300" height="195" loading="lazy" decoding="async" />
-        </span>
-        <ul class="skins" aria-label="Meter skins">
-          {skins.map((skin) => (
-            <li class="floor" style={`--spark: ${skin.spark}`}>
-              <span class="sparks sparks--left" aria-hidden="true"><i></i><i></i><i></i></span>
-              <img src={skin.src} alt={`${skin.name} meter skin`} width="144" height="360" loading="lazy" decoding="async" />
-              <span class="sparks sparks--right" aria-hidden="true"><i></i><i></i><i></i></span>
-            </li>
-          ))}
-        </ul>
-      </article>
-
-      <p class="guide-link"><a href="/how-to-play/">Read the gameplay and scoring guide →</a></p>
-    </section>
-
-    <section class="features" aria-labelledby="features-title">
-      <h2 id="features-title">Why players love {APP_NAME}</h2>
-      <p class="features-intro">
-        A simple arcade-style timing challenge with worldwide leaderboards,
-        coins to spend, offline play, and just enough pressure for one more try.
-      </p>
-      <ul class="feature-grid">
-        {features.map((feature) => (
-          <li>
-            <img class="feature-icon" src={feature.icon} alt="" width="64" height="64" loading="lazy" decoding="async" />
-            <div>
-              <h3>{feature.title}</h3>
-              <p>{feature.body}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
+      </div>
     </section>
 
     <div class="bottom-band">
+      <section class="features" aria-labelledby="features-title">
+        <h2 id="features-title">Why players love {APP_NAME}</h2>
+        <p class="features-intro">
+          A simple arcade-style timing challenge with worldwide leaderboards,
+          coins to spend, offline play, and just enough pressure for one more try.
+        </p>
+        <ul class="feature-grid">
+          {features.map((feature) => (
+            <li>
+              <img class="feature-icon" src={feature.icon} alt="" width="64" height="64" loading="lazy" decoding="async" />
+              <div>
+                <h3>{feature.title}</h3>
+                <p>{feature.body}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+
       <section class="faq" aria-labelledby="faq-title">
-        <h2 id="faq-title">Frequently asked questions</h2>
+        <h2 id="faq-title">A few quick answers</h2>
         <div class="faq-list">
           {faqs.map((faq) => (
             <details class="faq-item">
@@ -287,46 +273,16 @@ const jsonLd = [
           ))}
         </div>
       </section>
-
-      {APP_STORE_URL && (
-        <section class="download-section" aria-labelledby="download-title">
-          <h2 id="download-title">Your next high score starts with one tap.</h2>
-          <p>Free on iPhone. Play offline. Come back for a fresh daily challenge.</p>
-          <a class="main-btn main-btn--green" href={APP_STORE_URL} data-download-location="after-faq"><span class="main-btn-face">Download on the App Store</span></a>
-        </section>
-      )}
-
-      <footer class="footer">
-        <p class="footer-brand">{APP_NAME}</p>
-        <nav aria-label="Footer">
-          <a href="/how-to-play/">How to play</a>
-          <a href="/support/">Support</a>
-          <a href="/privacy/">Privacy Policy</a>
-          <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
-        </nav>
-        <p>© {new Date().getFullYear()} {APP_NAME}. All rights reserved.</p>
-      </footer>
     </div>
+
+    <Closing placement="after-faq" />
   </main>
 </BaseLayout>
 
 <style>
-  .hero-description {
-    max-width: 24rem;
-    padding: 0.65rem 0.85rem;
-    border-radius: 0.75rem;
-    background: #fff;
-    color: var(--ink);
-    line-height: 1.5;
-    margin: 0.65rem 0 0;
-  }
-  .guide-link { margin: 2rem 0 0; text-align: center; }
-  .guide-link a { font-weight: 600; text-underline-offset: 0.2em; }
-  .download-section { padding: 1rem 1.5rem 3.5rem; text-align: center; }
-  .download-section h2 { font-size: clamp(1.5rem, 4vw, 2rem); }
-  .download-section p { line-height: 1.6; }
 
   .page {
+    --how-sky: #e4f5ff;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -337,10 +293,13 @@ const jsonLd = [
     position: relative;
     min-height: 100svh;
     display: flex;
-    align-items: center;
+    /* Safe: when the hero is taller than the screen, keep it under the header. */
+    align-items: safe center;
     justify-content: center;
     overflow: hidden;
-    padding: 1.5rem 1rem 2rem;
+    /* Room for the header floating over the top. */
+    padding: 8rem 1rem 2rem;
+    --phone-w: min(20rem, 68vw);
   }
 
   .hero-bg {
@@ -357,9 +316,10 @@ const jsonLd = [
     height: clamp(4rem, 14vh, 9rem);
     background: linear-gradient(
       180deg,
-      color-mix(in srgb, var(--sky-top) 0%, transparent) 0%,
-      color-mix(in srgb, var(--sky-top) 55%, transparent) 55%,
-      var(--sky-top) 100%
+      color-mix(in srgb, var(--how-sky) 0%, transparent) 0%,
+      color-mix(in srgb, var(--how-sky) 25%, transparent) 30%,
+      color-mix(in srgb, var(--how-sky) 70%, transparent) 65%,
+      var(--how-sky) 100%
     );
     pointer-events: none;
   }
@@ -368,7 +328,8 @@ const jsonLd = [
     width: 100%;
     height: 100%;
     object-fit: cover;
-    object-position: center bottom;
+    /* The golden ring is right of centre in the art; keep it under the phone. */
+    object-position: 61.5% bottom;
   }
 
   .hero-layout {
@@ -377,23 +338,8 @@ const jsonLd = [
     display: flex;
     flex-direction: column;
     align-items: center;
+    gap: 2rem;
     width: min(100%, 72rem);
-    gap: 0.75rem;
-  }
-
-  .hero-logo {
-    width: min(12rem, 52vw);
-    margin-bottom: 0.75rem;
-    filter: drop-shadow(0 0.5rem 1.5rem rgba(26, 28, 44, 0.25));
-    animation: logo-pop 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
-  }
-
-  .hero-row {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    gap: 0.75rem;
   }
 
   .hero-copy {
@@ -401,22 +347,76 @@ const jsonLd = [
     flex-direction: column;
     align-items: center;
     text-align: center;
-    animation: rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.25s both;
+    animation: rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
   }
+
+  /* The headline and subline tilt as one block, so their edges stay lined up. */
+  .hero-words {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    align-items: inherit;
+  }
+
+  /* A soft blue pool behind the words, so they stand out from the rays and clouds. */
+  .hero-words::before {
+    content: '';
+    position: absolute;
+    inset: -16% -20%;
+    z-index: -1;
+    /* Lighter on phones, where the words sit on open blue sky. */
+    opacity: 0.4;
+    background: radial-gradient(closest-side, rgba(0, 10, 110, 0.85), rgba(0, 10, 110, 0.6) 50%, transparent);
+    pointer-events: none;
+  }
+
+  .hero-headline {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: clamp(2.6rem, 12.5vw, 5.75rem);
+    line-height: 0.98;
+  }
+
+  /* As wide as the headline: zero width, so it never widens the block, then stretched to fill it. */
+  .hero-sub {
+    position: relative;
+    text-wrap: pretty;
+    isolation: isolate;
+    margin: 1.25rem 0 0;
+    width: 0;
+    min-width: 100%;
+    padding-inline: 0.75rem;
+    font-size: clamp(1.1rem, 4.4vw, 1.45rem);
+    font-weight: 600;
+    line-height: 1.35;
+    color: #fff;
+    /* A soft halo as well, so it stays readable where it crosses the clouds. */
+    text-shadow:
+      0 2px 0 rgba(0, 9, 80, 0.5),
+      0 0 0.75rem rgba(0, 9, 80, 0.45);
+  }
+  /* Its own blue pool, since the subline crosses the brightest clouds. */
+  .hero-sub .nowrap {
+    white-space: nowrap;
+  }
+
+  .hero-sub::before {
+    content: '';
+    position: absolute;
+    inset: -75% -25%;
+    z-index: -1;
+    background: radial-gradient(closest-side, rgba(0, 10, 110, 0.7), rgba(0, 10, 110, 0.45) 55%, transparent);
+    pointer-events: none;
+  }
+
 
   .hero-phone {
     display: flex;
     justify-content: center;
-    margin: 0.15rem 0 0.25rem;
-  }
-
-  .hero-actions {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    align-self: stretch;
-    width: 100%;
-    animation: rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.35s both;
+    animation: rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
   }
 
   @keyframes rise {
@@ -430,288 +430,173 @@ const jsonLd = [
     }
   }
 
-  @keyframes logo-pop {
-    from {
-      opacity: 0;
-      transform: scale(0.88);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
-  .hero-headline {
-    margin: 0.35rem 0 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.35rem;
-    line-height: 1;
-    animation: rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
-  }
-
-  .hero-lead {
-    font-size: clamp(1.25rem, 3.5vw, 1.65rem);
-    font-weight: 500;
-    color: var(--ink);
-    background: var(--lemon);
-    padding: 0.35rem 0.65rem;
-    border-radius: 0.5rem;
-    letter-spacing: 0.02em;
-    animation: lead-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.25s both;
-  }
-
-  @keyframes lead-in {
-    from {
-      opacity: 0;
-      transform: translateX(-0.75rem);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-
-  .hero-punch {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    animation: punch-in 0.85s cubic-bezier(0.34, 1.56, 0.64, 1) 0.35s both;
-  }
-
-  @keyframes punch-in {
-    from {
-      opacity: 0;
-      transform: scale(0.82) rotate(-3deg);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1) rotate(-1.5deg);
-    }
-  }
-
-  .hero-zone {
-    position: relative;
-    display: inline-block;
-    padding: 0.35rem 0.85rem 0.45rem;
-    font-size: clamp(2rem, 7vw, 3.25rem);
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    border: 3px solid var(--ink);
-    border-radius: 0.85rem;
-    overflow: hidden;
-    background: radial-gradient(
-      circle at 50% 50%,
-      #ffe44a 0%,
-      #ffe44a 16%,
-      #f15c2e 16%,
-      #f15c2e 34%,
-      #c44a5a 34%,
-      #6a219b 52%,
-      #6a3a8a 68%,
-      #123a78 68%,
-      #1b4f9c 100%
-    );
-    box-shadow:
-      0 5px 0 var(--ink),
-      0 0 28px rgba(106, 33, 155, 0.45),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.18);
-    transform: rotate(-1.5deg);
-    animation: zone-pulse 2.8s ease-in-out 1.2s infinite;
-  }
-
-  .hero-zone::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(
-      circle at 50% 50%,
-      rgba(255, 228, 74, 0.55) 0%,
-      rgba(255, 228, 74, 0.15) 18%,
-      transparent 36%
-    );
-    pointer-events: none;
-  }
-
-  .hero-zone::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 48%;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.28), transparent);
-    pointer-events: none;
-  }
-
-  .hero-zone-text {
-    position: relative;
-    z-index: 1;
-    color: #7ee8f5;
-    text-shadow:
-      0 1px 0 #ffffff,
-      0 2px 0 #1cb0f6,
-      0 3px 0 #1899d6,
-      0 4px 0 #1478b8,
-      0 5px 0 #123a78,
-      0 6px 0 rgba(26, 28, 44, 0.35);
-  }
-
-  @keyframes zone-pulse {
-    0%,
-    100% {
-      transform: rotate(-1.5deg) scale(1);
-      box-shadow:
-        0 5px 0 var(--ink),
-        0 0 28px rgba(106, 33, 155, 0.45),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.18);
-    }
-    50% {
-      transform: rotate(-1.5deg) scale(1.03);
-      box-shadow:
-        0 6px 0 var(--ink),
-        0 0 38px rgba(241, 92, 46, 0.55),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.28);
-    }
-  }
-
-  .hero-q {
-    font-size: clamp(2.25rem, 7vw, 3.5rem);
-    font-weight: 700;
-    line-height: 1;
-    color: var(--ink);
-    background: #fff;
-    padding: 0.35rem 0.5rem;
-    border-radius: 0.5rem;
-    animation: q-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.65s both;
-  }
-
-  @keyframes q-pop {
-    from {
-      opacity: 0;
-      transform: scale(0.8);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
-  .hero-kicker {
-    margin: 0.65rem 0 0;
-    max-width: 18rem;
-    font-size: clamp(0.95rem, 2.2vw, 1.05rem);
-    font-weight: 500;
-    line-height: 1.45;
-    color: var(--ink);
-    background: #fff;
-    padding: 0.35rem 0.5rem;
-    border-radius: 0.5rem;
-    animation: rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.5s both;
-  }
-
   .cta-group {
+    position: relative;
+    isolation: isolate;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    width: 100%;
-    margin-top: 0.75rem;
+    width: min(100%, 27rem);
+    margin-top: 4.25rem;
+  }
+
+  /* A blue pool under the button, reaching down behind the note. */
+  .cta-group::before {
+    content: '';
+    position: absolute;
+    inset: -2.75rem -25% -5.5rem;
+    z-index: -1;
+    background: radial-gradient(closest-side, rgba(0, 10, 110, 0.65), rgba(0, 10, 110, 0.4) 55%, transparent);
+    pointer-events: none;
   }
 
   .cta-group .main-btn {
     display: block;
+    --lip-depth: 7px;
+    font-size: clamp(1.05rem, 4.2vw, 1.3rem);
   }
 
-  .cta-note {
-    margin: 0.75rem 0 0;
-    font-size: 0.875rem;
-    color: var(--panel-ink);
+  .cta-group .main-btn-face {
+    min-height: 4.25rem;
+    gap: 0.75rem;
   }
 
+  .cta-group svg {
+    flex-shrink: 0;
+    margin-top: -0.2em;
+  }
+
+  /* Positioned, so it paints above the button's blue pool. As wide as the button, so it centres under it. */
+  .hero-note {
+    position: relative;
+    text-wrap: balance;
+    width: min(100%, 27rem);
+    text-align: center;
+    margin: 1rem 0 0;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #fff;
+    text-shadow:
+      0 1px 0 rgba(0, 9, 80, 0.5),
+      0 0 0.6rem rgba(0, 9, 80, 0.5);
+  }
+
+  /*
+   * One pale sky instead of a stack of bordered cards: the hero's floor fades
+   * into it, and soft tinted panels group the modes without outlines.
+   */
   .how {
-    padding: 4rem 1rem 3rem;
-    max-width: 46rem;
-    width: 100%;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg, var(--how-sky) 0%, #d3effd 100%);
+  }
+
+  .how-inner {
+    width: min(100%, 60rem);
     margin: 0 auto;
-    animation: rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.55s both;
+    padding: 3.5rem 1.25rem 0;
   }
 
-  .how-eyebrow {
-    margin: 0;
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    text-align: center;
-    color: var(--ink);
-  }
-
-  /* Each word tilts and drops a little more the further it sits from the middle. */
-  .arc-line {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    column-gap: 0.28em;
-    margin: 0.5rem 0 0;
-    font-family: var(--font-punch);
-    flex-wrap: nowrap;
-    white-space: nowrap;
-    font-size: clamp(1.4rem, 6.6vw, 3.4rem);
-    line-height: 1.15;
-    color: var(--ink);
-  }
-
-  .arc-line span {
-    display: inline-block;
-    transform: translateY(var(--drop)) rotate(var(--tilt));
-  }
-
-  .how-intro {
-    margin: 1rem auto 1.75rem;
-    max-width: 32rem;
-    text-align: center;
-    line-height: 1.55;
-    color: var(--ink);
-  }
-
-  .panel,
-  .mode-card,
-  .skins-card {
-    border: 3px solid var(--ink);
-    border-radius: 1.5rem;
-    box-shadow: 0 5px 0 var(--ink);
-  }
-
-  .tap-panel {
-    display: grid;
-    gap: 1.25rem;
-    padding: 1.5rem 1.25rem;
-    background: #e8f7ff;
-  }
-
-  .tap-meter {
-    width: auto;
-    height: 15rem;
-    justify-self: center;
-  }
-
-  .tap-side {
+  .how-title {
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    align-items: center;
+    width: fit-content;
+    margin: 0 auto;
+    font-size: clamp(2rem, 7.5vw, 3.5rem);
+    font-weight: 700;
+    line-height: 1.02;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    rotate: -3deg;
+  }
+
+  .how-title span + span {
+    margin-left: 1.25em;
+  }
+
+  /* Three short strokes fanning out, like the app's hit sparks. */
+  .burst {
+    position: absolute;
+    width: 2.75rem;
+    fill: none;
+    stroke-width: 4.5;
+    stroke-linecap: round;
+  }
+
+  .burst--blue { stroke: #1c9cf6; }
+  .burst--gold { stroke: #ffc800; }
+
+  .burst--left {
+    left: 0.35em;
+    bottom: 0.05em;
+    width: 0.75em;
+    rotate: -60deg;
+  }
+
+  .burst--right {
+    right: -0.8em;
+    top: 0.1em;
+    width: 0.75em;
+    rotate: 50deg;
+  }
+
+  .play-row {
+    display: grid;
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+
+  .meter-figure {
+    position: relative;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    isolation: isolate;
+  }
+
+  .meter-clouds {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    z-index: -1;
+    width: 34rem;
+    max-width: none;
+    transform: translateX(-50%);
+    opacity: 0.85;
+  }
+
+  .meter {
+    width: auto;
+    height: 17rem;
+    filter: drop-shadow(0 0.6rem 0.8rem rgba(16, 60, 140, 0.25));
+  }
+
+  .burst--meter-left,
+  .burst--meter-right {
+    top: 52%;
+    width: 3.5rem;
+  }
+
+  .burst--meter-left {
+    right: calc(50% + 5.25rem);
+    rotate: -75deg;
+  }
+
+  .burst--meter-right {
+    left: calc(50% + 5.25rem);
+    rotate: 75deg;
+  }
+
+  /* Above the meter's clouds, which reach over the step numbers and the heart card. */
+  .play-side {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-self: center;
   }
 
   .steps {
@@ -720,164 +605,254 @@ const jsonLd = [
     list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 0.9rem;
     counter-reset: step;
   }
 
   .steps li {
-    position: relative;
-    padding-left: 3.6rem;
-    min-height: 2.9rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: clamp(1.15rem, 4.4vw, 1.4rem);
+    font-weight: 700;
+    color: var(--ink);
   }
 
   .steps li::before {
     content: counter(step);
     counter-increment: step;
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 2.9rem;
-    height: 2.9rem;
+    flex-shrink: 0;
     display: grid;
     place-items: center;
+    width: 3.25rem;
+    height: 3.25rem;
     border-radius: 50%;
-    background: rgba(28, 176, 246, 0.18);
+    background: rgba(28, 156, 246, 0.16);
     color: #1565d8;
-    font-weight: 700;
-    font-size: 1.5rem;
-  }
-
-  .steps h3 {
-    margin: 0.1rem 0 0.3rem;
-    font-size: 1.15rem;
-    font-weight: 700;
-  }
-
-  .steps p {
-    margin: 0;
-    line-height: 1.5;
-    color: var(--panel-ink);
+    font-size: 1.75rem;
   }
 
   .miss-note {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
-    margin: 0;
-    padding: 0.7rem 0.9rem;
-    border-radius: 1rem;
-    background: rgba(255, 75, 75, 0.12);
-    font-weight: 600;
-    line-height: 1.35;
+    gap: 0.75rem;
+    margin: 0.25rem 0 0;
+    padding: 0.8rem 1.1rem;
+    border-radius: 1.1rem;
+    background: rgba(255, 90, 110, 0.14);
+    font-weight: 700;
+    line-height: 1.3;
   }
 
   .miss-note img {
     flex-shrink: 0;
-    width: 1.9rem;
+    width: 2rem;
+    animation: heart-float 2.8s ease-in-out infinite;
+  }
+
+  .miss-note:hover img {
+    animation: heart-bounce 0.7s cubic-bezier(0.3, 0, 0.3, 1) infinite;
+  }
+
+  @keyframes heart-float {
+    0%, 100% { translate: 0 0; }
+    50% { translate: 0 -0.2rem; }
+  }
+
+  @keyframes heart-bounce {
+    0%, 100% { translate: 0 0; scale: 1; }
+    30% { translate: 0 -0.45rem; scale: 1.08 0.94; }
+    55% { translate: 0 0; scale: 1.06 0.94; }
+    70% { scale: 0.97 1.03; }
   }
 
   .modes {
     display: grid;
     gap: 1rem;
-    margin-top: 1.25rem;
+    margin-top: 2.5rem;
   }
 
-  .mode-card {
+  .mode {
     position: relative;
     overflow: hidden;
-    padding: 1.25rem 1.25rem 1.4rem;
+    padding: 1.5rem 1.5rem 1.6rem;
+    border-radius: 1.75rem;
   }
 
-  .mode-card--normal {
-    background: #fff3c4;
+  .mode--normal {
+    /* Room under the text for the climbing bars on narrow cards. */
+    padding-bottom: 6rem;
+    background: rgba(255, 238, 160, 0.55);
   }
 
-  .mode-card--daily {
-    background: #dff1fe;
+  .mode--daily {
+    background: rgba(160, 205, 245, 0.35);
   }
 
-  .mode-card h3 {
+  .mode h3 {
     position: relative;
-    margin: 0.35rem 0 0.35rem;
-    font-size: 1.9rem;
+    max-width: 18ch;
+    margin: 0.6rem 0 0.4rem;
+    font-size: clamp(1.7rem, 6vw, 2.25rem);
     font-weight: 700;
-    line-height: 1.1;
-    text-transform: uppercase;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
   }
 
-  .mode-card p {
+  .mode p {
     position: relative;
+    max-width: 17rem;
     margin: 0;
-    max-width: 22rem;
-    line-height: 1.5;
+    font-size: 1.1rem;
+    line-height: 1.4;
     color: var(--panel-ink);
   }
 
   .mode-icon {
     position: relative;
-    width: 4.25rem;
-    height: 3rem;
+    width: 6.5rem;
+    height: 4.5rem;
     object-fit: contain;
     object-position: left center;
   }
 
-  /* Faint bars climbing behind the Normal card's text. */
+  /* Faint bars climbing in the corner of the endless card. */
   .climb {
     position: absolute;
-    right: 1rem;
-    bottom: 1rem;
+    right: 1.5rem;
+    bottom: 1.5rem;
     display: flex;
     align-items: flex-end;
-    gap: 0.35rem;
+    gap: 0.45rem;
   }
 
   .climb i {
-    width: 0.85rem;
-    border-radius: 0.25rem;
-    background: rgba(255, 200, 0, 0.3);
+    width: 1.1rem;
+    border-radius: 0.3rem;
+    background: linear-gradient(180deg, rgba(255, 200, 0, 0.75), rgba(255, 200, 0, 0.35));
   }
 
-  .climb i:nth-child(1) { height: 1rem; }
-  .climb i:nth-child(2) { height: 1.75rem; }
-  .climb i:nth-child(3) { height: 2.6rem; }
-  .climb i:nth-child(4) { height: 3.6rem; }
-  .climb i:nth-child(5) { height: 4.75rem; }
+  .climb i:nth-child(1) { height: 0.6rem; opacity: 0.4; }
+  .climb i:nth-child(2) { height: 1.6rem; opacity: 0.55; }
+  .climb i:nth-child(3) { height: 2.6rem; opacity: 0.7; }
+  .climb i:nth-child(4) { height: 3.6rem; opacity: 0.85; }
+  .climb i:nth-child(5) { height: 5rem; }
 
   .mode-ghost {
     position: absolute;
-    top: 1.5rem;
-    right: -1.75rem;
-    width: 8rem;
-    opacity: 0.18;
+    right: -1.5rem;
+    bottom: -1rem;
+    width: 9rem;
+    opacity: 0.16;
     transform: rotate(-12deg);
   }
 
+  /* The podium stands in the rays and cloud banks at the section's foot. */
+  .top-spot {
+    position: relative;
+    margin-top: 4.5rem;
+    isolation: isolate;
+  }
+
+  .top-spot-sky {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    z-index: -1;
+    width: max(100%, 56rem);
+    max-width: none;
+    transform: translateX(-50%);
+    /* Fade every edge into the section: top, bottom, and the sides. */
+    mask-image:
+      linear-gradient(180deg, transparent 5%, #000 65%, #000 72%, transparent 100%),
+      linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent);
+    mask-composite: intersect;
+    -webkit-mask-image:
+      linear-gradient(180deg, transparent 5%, #000 65%, #000 72%, transparent 100%),
+      linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent);
+    -webkit-mask-composite: source-in;
+  }
+
+  .top-spot-inner {
+    display: grid;
+    gap: 2rem;
+    width: min(100%, 60rem);
+    margin: 0 auto;
+    /* Room under the podium for the cloud banks to show. */
+    padding: 4rem 1.25rem 7rem;
+  }
+
+  .top-spot-copy h3 {
+    margin: 0 0 0.9rem;
+    font-size: clamp(2.1rem, 7.5vw, 3.6rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+  }
+
+  .top-spot-copy p {
+    max-width: 22rem;
+    margin: 0;
+    font-size: clamp(1.15rem, 4vw, 1.45rem);
+    line-height: 1.45;
+    color: var(--panel-ink);
+  }
+
+  .top-spot-copy .guide-link {
+    margin: 1.5rem 0 0;
+    font-size: 1rem;
+  }
+
+  .guide-link a {
+    font-weight: 600;
+    color: #1565d8;
+    text-underline-offset: 0.2em;
+  }
+
+  .podium {
+    justify-self: center;
+    width: min(80%, 37rem);
+  }
+
   .skins-card {
+    position: relative;
+    overflow: hidden;
     display: grid;
     grid-template-areas:
       'copy copy'
       'coins skins';
     grid-template-columns: auto 1fr;
     align-items: end;
-    gap: 1.25rem 0.75rem;
-    margin-top: 1.25rem;
-    padding: 1.4rem 1.25rem;
-    background: #dff1fe;
+    gap: 1.75rem 0.5rem;
+    margin-top: 1rem;
+    padding: 1.75rem 1.25rem 1.5rem;
+    border-radius: 1.75rem;
+    background: rgba(190, 225, 250, 0.4);
+    isolation: isolate;
+  }
+
+  .skins-clouds {
+    position: absolute;
+    right: -6rem;
+    bottom: -2rem;
+    z-index: -1;
+    width: 36rem;
+    max-width: none;
+    opacity: 0.45;
   }
 
   .skins-copy h3 {
-    margin: 0 0 0.35rem;
-    font-family: var(--font-punch);
-    font-size: 1.85rem;
-    font-weight: 400;
-    line-height: 1.1;
-    text-transform: uppercase;
+    margin: 0 0 0.5rem;
+    font-size: clamp(1.9rem, 7vw, 3rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
   }
 
   .skins-copy p {
     margin: 0;
-    max-width: 22rem;
-    line-height: 1.5;
+    font-size: 1.15rem;
+    line-height: 1.45;
     color: var(--panel-ink);
   }
 
@@ -920,15 +895,21 @@ const jsonLd = [
     grid-area: copy;
   }
 
-  .floor--coins {
+  .coins-stand {
     grid-area: coins;
-    justify-self: start;
-    margin-bottom: 0.2rem;
-    isolation: isolate;
+    position: relative;
+    margin-bottom: 2.1rem;
   }
 
   .coins {
-    width: clamp(5rem, 24vw, 7.5rem);
+    width: clamp(5.5rem, 26vw, 11rem);
+  }
+
+  .burst--coins {
+    left: 0;
+    top: -1.25rem;
+    width: clamp(2.5rem, 10vw, 4rem);
+    rotate: -30deg;
   }
 
   .skins {
@@ -936,33 +917,48 @@ const jsonLd = [
     display: flex;
     justify-content: flex-end;
     align-items: flex-end;
-    gap: 0.35rem;
+    gap: clamp(0.25rem, 2vw, 1.5rem);
     margin: 0;
     padding: 0;
     list-style: none;
-    isolation: isolate;
   }
 
   .skins li {
     display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .skin {
+    display: flex;
     align-items: center;
   }
 
-  .skins img {
-    width: clamp(2.4rem, 11vw, 3.4rem);
+  .skin img {
+    width: clamp(2.6rem, 12vw, 5.25rem);
+    filter: drop-shadow(0 0 0.6rem color-mix(in srgb, var(--spark) 45%, transparent));
+  }
+
+  .skin-name {
+    font-size: clamp(0.85rem, 3vw, 1.15rem);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink);
   }
 
   /* Three sparks fanning out from each side of a skin's ring. */
   .sparks {
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
+    gap: 0.3rem;
   }
 
   .sparks i {
-    width: 0.5rem;
-    height: 0.2rem;
-    border-radius: 0.1rem;
+    width: clamp(0.45rem, 1.6vw, 0.75rem);
+    height: 0.25rem;
+    border-radius: 0.15rem;
     background: var(--spark);
   }
 
@@ -971,29 +967,36 @@ const jsonLd = [
   .sparks--left i:nth-child(3),
   .sparks--right i:nth-child(1) { transform: rotate(-35deg); }
 
-  .sparks--left { margin-right: -0.15rem; }
-  .sparks--right { margin-left: -0.15rem; }
+  .sparks--left { margin-right: 0.15rem; }
+  .sparks--right { margin-left: 0.15rem; }
 
   .features {
-    padding: 1rem 1.5rem 3.5rem;
+    padding: 4.5rem 1.5rem 2rem;
     max-width: var(--section-wide);
     width: 100%;
     margin: 0 auto;
   }
 
-  .features h2 {
-    margin: 0 0 0.75rem;
-    font-size: clamp(1.5rem, 4vw, 2rem);
+  /* Tilted like the "Easy to play" heading above. */
+  .features h2,
+  .faq h2 {
+    width: fit-content;
+    margin: 0 auto 1.1rem;
+    font-size: clamp(1.9rem, 6vw, 2.75rem);
     font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
     text-align: center;
     color: var(--ink);
+    rotate: -2deg;
   }
 
   .features-intro {
-    margin: 0 auto 2rem;
+    margin: 0 auto 2.25rem;
     max-width: 34rem;
+    font-size: 1.05rem;
     text-align: center;
-    line-height: 1.55;
+    line-height: 1.5;
     color: var(--panel-ink);
   }
 
@@ -1006,44 +1009,54 @@ const jsonLd = [
     grid-template-columns: 1fr;
   }
 
+  /* Soft panels like the modes cards, each icon on a tint that cycles gold, blue, pink. */
   .feature-grid li {
+    --tint: rgba(255, 228, 120, 0.55);
     display: flex;
     align-items: flex-start;
     gap: 1rem;
-    padding: 1.15rem 1.25rem;
-    border-radius: 1rem;
-    border: 2px solid rgba(26, 28, 44, 0.1);
-    background: rgba(255, 255, 255, 0.45);
+    padding: 1.35rem 1.4rem;
+    border-radius: 1.5rem;
+    background: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 0.6rem 1.5rem rgba(20, 90, 170, 0.08);
+  }
+
+  .feature-grid li:nth-child(3n + 2) {
+    --tint: rgba(150, 200, 245, 0.5);
+  }
+
+  .feature-grid li:nth-child(3n) {
+    --tint: rgba(255, 140, 160, 0.25);
   }
 
   .feature-icon {
     flex-shrink: 0;
-    width: 3rem;
-    height: 3rem;
+    width: 3.5rem;
+    height: 3.5rem;
+    padding: 0.5rem;
+    border-radius: 1.1rem;
+    background: var(--tint);
     object-fit: contain;
   }
 
   .feature-grid h3 {
-    margin: 0 0 0.4rem;
-    font-size: 1.05rem;
-    font-weight: 600;
+    margin: 0.15rem 0 0.35rem;
+    font-size: 1.2rem;
+    font-weight: 700;
+    line-height: 1.2;
   }
 
   .feature-grid p {
     margin: 0;
     line-height: 1.5;
     color: var(--panel-ink);
-    font-size: 0.95rem;
+    font-size: 0.98rem;
   }
 
+  /* Carries the pale sky of the how section down to the closing band. */
   .bottom-band {
     margin-top: auto;
-    background: linear-gradient(
-      180deg,
-      transparent 0%,
-      color-mix(in srgb, var(--lemon) 22%, transparent) 28%,
-      color-mix(in srgb, var(--lemon) 48%, var(--sky-bottom)) 100%
-    );
+    background: #d3effd;
   }
 
   .faq {
@@ -1054,11 +1067,8 @@ const jsonLd = [
   }
 
   .faq h2 {
-    margin: 0 0 1.25rem;
-    font-size: clamp(1.5rem, 4vw, 2rem);
-    font-weight: 700;
-    text-align: center;
-    color: var(--ink);
+    margin-bottom: 1.5rem;
+    rotate: none;
   }
 
   .faq-list {
@@ -1109,6 +1119,16 @@ const jsonLd = [
   .faq-question {
     margin: 0;
     font: inherit;
+  }
+
+  /* The ring goes round the rounded card, not the square summary inside it. */
+  .faq-item summary:focus-visible {
+    outline: none;
+  }
+
+  .faq-item:has(summary:focus-visible) {
+    outline: 3px solid var(--ink);
+    outline-offset: 3px;
   }
 
   .faq-item summary::-webkit-details-marker {
@@ -1175,67 +1195,25 @@ const jsonLd = [
     }
   }
 
-  .footer {
-    padding: 2rem 1.5rem 2.5rem;
-    text-align: center;
-    border-top: 2px solid rgba(26, 28, 44, 0.12);
-    background: transparent;
-  }
-
-  .footer-brand {
-    margin: 0 0 1rem;
-    font-weight: 700;
-    font-size: 1.05rem;
-    color: var(--ink);
-  }
-
-  .footer nav {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 1rem 2.25rem;
-    margin-bottom: 1.25rem;
-  }
-
-  .footer a {
-    font-weight: 500;
-    color: var(--ink);
-    text-decoration: underline;
-    text-underline-offset: 0.2em;
-  }
-
-  .footer p {
-    margin: 0;
-    font-size: 0.875rem;
-    color: var(--panel-ink);
-  }
-
   @media (min-width: 560px) {
-    .tap-panel {
-      grid-template-columns: auto 1fr;
-      align-items: center;
-      gap: 1.75rem;
-      padding: 1.75rem;
-    }
-
-    .tap-meter {
-      height: 19rem;
-    }
-
     .modes {
       grid-template-columns: 1fr 1fr;
+    }
+
+    .mode--normal {
+      padding-bottom: 1.6rem;
     }
 
     .skins-card {
       grid-template-areas:
         'copy skins'
         'coins skins';
-      grid-template-columns: 1fr auto;
-      padding: 1.5rem 1.75rem;
+      grid-template-columns: auto 1fr;
+      padding: 2rem 2.25rem 1.75rem;
     }
 
-    .skins img {
-      width: 3.9rem;
+    .skins-copy {
+      align-self: start;
     }
   }
 
@@ -1245,49 +1223,131 @@ const jsonLd = [
     }
   }
 
-  @media (min-width: 900px) {
-    .hero-row {
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items: center;
-      column-gap: 2rem;
+  @media (min-width: 760px) {
+    .how-inner {
+      padding-top: 4.5rem;
     }
 
-    .hero-copy {
-      justify-self: start;
+    .how-title {
       align-items: flex-start;
+      margin: 0;
+    }
+
+    .play-row {
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      gap: 2rem 4rem;
+    }
+
+    .meter {
+      height: 21rem;
+    }
+
+    .top-spot-inner {
+      padding-top: 4.5rem;
+      padding-bottom: 13rem;
+    }
+  }
+
+  /* Side by side only once the podium has room beside the one-line heading; tablets stack. */
+  @media (min-width: 1000px) {
+    /* Heading and podium as one centred pair, so the gap between them stays tight. */
+    .top-spot-inner {
+      width: min(100%, 72rem);
+      grid-template-columns: auto minmax(0, 34rem);
+      justify-content: center;
+      align-items: center;
+      column-gap: 3rem;
+      padding-inline: 2rem;
+    }
+
+    .podium {
+      width: 100%;
+    }
+
+    /* Centred on the podium's blocks rather than its crown. */
+    .top-spot-copy {
+      padding-top: 3rem;
+    }
+
+    .top-spot-copy h3 {
+      white-space: nowrap;
+    }
+  }
+
+  @media (min-width: 900px) {
+    .hero-words::before {
+      opacity: 0.7;
+    }
+
+    .hero-layout {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      column-gap: 3rem;
+    }
+
+    /* Inset, so the tilted headline clears the screen edge on small laptops. */
+    .hero-copy {
+      align-items: flex-start;
+      padding-left: clamp(1rem, 4vw - 1.5rem, 2.5rem);
       text-align: left;
     }
 
     .hero-headline {
       align-items: flex-start;
-    }
-
-    .hero-kicker {
-      max-width: 16rem;
-      color: var(--panel-ink);
-      text-shadow: none;
-    }
-
-    .hero-q {
-      color: var(--panel-ink);
-      text-shadow: none;
+      font-size: clamp(4rem, 7vw, 6rem);
     }
 
     .hero-phone {
-      margin: 0;
+      align-self: end;
+      padding-right: 2rem;
     }
 
-    .hero-actions {
-      justify-self: stretch;
-      align-self: center;
-      align-items: stretch;
-      width: 100%;
+    /*
+     * The phone stands at the bottom of the hero, and the art moves so its
+     * golden ring sits under it. --phone-x is the phone's centre: the layout's
+     * right edge, less the phone's padding and half its width.
+     */
+    .hero {
+      /* As tall as fits between the header and the floor (the phone is ~2.17× its width). */
+      --phone-w: min(25rem, 30vw, calc((100svh - 8.5rem) * 0.46));
+      --phone-x: calc(50vw + min(50vw - 1rem, 36rem) - 2rem - var(--phone-w) / 2);
+      /* The ring's centre, measured from the hero's bottom edge. */
+      --ring-bottom: 2.75rem;
+      padding-bottom: 1.75rem;
     }
 
-    .hero-logo {
-      width: min(13rem, 100%);
-      align-self: flex-start;
+    .hero-layout {
+      align-self: stretch;
+    }
+
+    /*
+     * Tall enough to cover the hero and wide enough to reach both edges from
+     * the phone's centre. The art is 1.777× wider than tall, and its ring's
+     * centre sits 61.5% across (1.093 × height) and 11% up from the bottom.
+     */
+    .hero-bg img {
+      /*
+       * No % here: `left` would resolve it against the hero's width and
+       * `height` against its height, putting the ring in the wrong place.
+       */
+      --bg-h: max(
+        100svh + 6rem,
+        0.915 * var(--phone-x),
+        1.47 * (100vw - var(--phone-x)),
+        2.6 * var(--phone-w)
+      );
+      position: absolute;
+      width: auto;
+      max-width: none;
+      height: var(--bg-h);
+      left: calc(var(--phone-x) - 1.093 * var(--bg-h));
+      bottom: calc(var(--ring-bottom) - 0.11 * var(--bg-h));
+    }
+
+    .hero-bg::after {
+      height: 4.5rem;
     }
   }
 </style>

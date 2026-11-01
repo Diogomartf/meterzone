@@ -24,6 +24,13 @@ test('records coarse click dimensions and discards extra identifying fields', as
   assert.match((points[0] as any).sql, /rate_limits/);
 });
 
+test('records header download clicks on every page', async () => {
+  for (const page of ['/', '/how-to-play/', '/support/', '/privacy/']) {
+    const { response } = await send({ ...payload, page, placement: 'header' });
+    assert.equal(response.status, 204);
+  }
+});
+
 test('honors privacy headers without recording', async () => {
   for (const header of ['DNT', 'Sec-GPC']) {
     const { response, points } = await send(payload, { [header]: '1' });

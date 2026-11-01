@@ -5,108 +5,113 @@ const { type, src, poster, alt } = HERO_MEDIA;
 ---
 
 <div class="phone">
-  <div class="phone-bezel">
-    <div class="phone-notch" aria-hidden="true"></div>
-    <div class="phone-screen">
-      {
-        type === 'video' ? (
-          <>
-            <video
-              id="hero-preview"
-              src={src}
-              poster={poster}
-              muted
-              loop
-              playsinline
-              preload="metadata"
-              aria-label={alt}
-              title={alt}
-            />
-            <button
-              type="button"
-              class="play-hit"
-              id="hero-play-toggle"
-              aria-controls="hero-preview"
-              aria-label="Play preview"
-              title="Tap to play"
-            >
-              <span class="play-hit__badge" aria-hidden="true">
-                <svg class="icon-pause" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                  <rect x="6" y="5" width="4" height="14" rx="1" />
-                  <rect x="14" y="5" width="4" height="14" rx="1" />
-                </svg>
-                <svg class="icon-play" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                  <path d="M8 5.5v13l11-6.5L8 5.5Z" />
-                </svg>
-              </span>
-            </button>
-            <div class="screen-controls">
-              <span class="play-indicator" id="hero-play-indicator" aria-hidden="true">
-                <svg class="icon-pause" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-                  <rect x="6" y="5" width="4" height="14" rx="1" />
-                  <rect x="14" y="5" width="4" height="14" rx="1" />
-                </svg>
-                <svg class="icon-play" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-                  <path d="M8 5.5v13l11-6.5L8 5.5Z" />
-                </svg>
-              </span>
+  <div class="phone-frame">
+    <span class="phone-button phone-button--action" aria-hidden="true"></span>
+    <span class="phone-button phone-button--volume-up" aria-hidden="true"></span>
+    <span class="phone-button phone-button--volume-down" aria-hidden="true"></span>
+    <span class="phone-button phone-button--power" aria-hidden="true"></span>
+    <div class="phone-bezel">
+      <div class="phone-island" aria-hidden="true"></div>
+      <div class="phone-screen">
+        {
+          type === 'video' ? (
+            <>
+              <video
+                id="hero-preview"
+                src={src}
+                poster={poster}
+                muted
+                loop
+                playsinline
+                preload="metadata"
+                aria-label={alt}
+                title={alt}
+              />
               <button
                 type="button"
-                class="audio-toggle"
-                id="hero-audio-toggle"
-                aria-pressed="false"
+                class="play-hit"
+                id="hero-play-toggle"
                 aria-controls="hero-preview"
-                aria-label="Sound"
-                title="Sound off — tap to unmute"
+                aria-label="Play preview"
+                title="Tap to play"
               >
-                <span class="audio-toggle__icon" aria-hidden="true">
-                  <svg class="icon-muted" viewBox="0 0 24 24" width="18" height="18" fill="none">
-                    <path
-                      d="M11 5 6 9H3v6h3l5 4V5Z"
-                      stroke="currentColor"
-                      stroke-width="1.75"
-                      stroke-linejoin="round"
-                    />
-                    <path
-                      d="m16 10 5 5M21 10l-5 5"
-                      stroke="currentColor"
-                      stroke-width="1.75"
-                      stroke-linecap="round"
-                    />
+                <span class="play-hit__badge" aria-hidden="true">
+                  <svg class="icon-pause" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                    <rect x="6" y="5" width="4" height="14" rx="1" />
+                    <rect x="14" y="5" width="4" height="14" rx="1" />
                   </svg>
-                  <svg class="icon-on" viewBox="0 0 24 24" width="18" height="18" fill="none">
-                    <path
-                      d="M11 5 6 9H3v6h3l5 4V5Z"
-                      stroke="currentColor"
-                      stroke-width="1.75"
-                      stroke-linejoin="round"
-                    />
-                    <path
-                      d="M15.5 8.5a5 5 0 0 1 0 7M18.5 6a9 9 0 0 1 0 12"
-                      stroke="currentColor"
-                      stroke-width="1.75"
-                      stroke-linecap="round"
-                    />
+                  <svg class="icon-play" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                    <path d="M8 5.5v13l11-6.5L8 5.5Z" />
                   </svg>
                 </span>
-                <span class="audio-toggle__label">Sound</span>
               </button>
-            </div>
-          </>
-        ) : (
-          <img
-            src={src}
-            alt={alt}
-            width="472"
-            height="1024"
-            loading="eager"
-            decoding="async"
-            fetchpriority="high"
-          />
-        )
-      }
+              <div class="screen-controls">
+                <span class="play-indicator" id="hero-play-indicator" aria-hidden="true">
+                  <svg class="icon-pause" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                    <rect x="6" y="5" width="4" height="14" rx="1" />
+                    <rect x="14" y="5" width="4" height="14" rx="1" />
+                  </svg>
+                  <svg class="icon-play" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                    <path d="M8 5.5v13l11-6.5L8 5.5Z" />
+                  </svg>
+                </span>
+                <button
+                  type="button"
+                  class="audio-toggle"
+                  id="hero-audio-toggle"
+                  aria-pressed="false"
+                  aria-controls="hero-preview"
+                  aria-label="Sound"
+                  title="Sound off — tap to unmute"
+                >
+                  <span class="audio-toggle__icon" aria-hidden="true">
+                    <svg class="icon-muted" viewBox="0 0 24 24" width="18" height="18" fill="none">
+                      <path
+                        d="M11 5 6 9H3v6h3l5 4V5Z"
+                        stroke="currentColor"
+                        stroke-width="1.75"
+                        stroke-linejoin="round"
+                      />
+                      <path
+                        d="m16 10 5 5M21 10l-5 5"
+                        stroke="currentColor"
+                        stroke-width="1.75"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                    <svg class="icon-on" viewBox="0 0 24 24" width="18" height="18" fill="none">
+                      <path
+                        d="M11 5 6 9H3v6h3l5 4V5Z"
+                        stroke="currentColor"
+                        stroke-width="1.75"
+                        stroke-linejoin="round"
+                      />
+                      <path
+                        d="M15.5 8.5a5 5 0 0 1 0 7M18.5 6a9 9 0 0 1 0 12"
+                        stroke="currentColor"
+                        stroke-width="1.75"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                  </span>
+                  <span class="audio-toggle__label">Sound</span>
+                </button>
+              </div>
+            </>
+          ) : (
+            <img
+              src={src}
+              alt={alt}
+              width="472"
+              height="1024"
+              loading="eager"
+              decoding="async"
+              fetchpriority="high"
+            />
+          )
+        }
+      </div>
     </div>
-    <div class="phone-home" aria-hidden="true"></div>
   </div>
 </div>
 
@@ -180,10 +185,37 @@ const { type, src, poster, alt } = HERO_MEDIA;
 }
 
 <style>
+  /*
+   * A front-on iPhone: a thin metal band around a black bezel, side buttons and
+   * the Dynamic Island. Sizes are in cqw so the whole phone scales with its
+   * width, which a page can set through --phone-w.
+   */
   .phone {
-    width: min(17rem, 46vw);
-    filter: drop-shadow(0 1.25rem 2.5rem rgba(26, 28, 44, 0.45));
+    container-type: inline-size;
+    width: var(--phone-w, min(17rem, 46vw));
     animation: phone-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
+  }
+
+  /* cqw resolves against the nearest container above, so the frame sits inside .phone. */
+  .phone-frame {
+    position: relative;
+    padding: 1.1cqw;
+    border-radius: 15.5cqw;
+    background: linear-gradient(
+      90deg,
+      #2b2d33 0%,
+      #a7abb4 2.5%,
+      #5d6069 6%,
+      #3a3c43 50%,
+      #5d6069 94%,
+      #a7abb4 97.5%,
+      #2b2d33 100%
+    );
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+      /* Short enough to end above the hero's bottom edge, which would cut it off. */
+      0 1.25rem 1.75rem -0.75rem rgba(0, 9, 60, 0.45),
+      0 0.6rem 0.9rem -0.4rem rgba(0, 9, 60, 0.3);
   }
 
   @keyframes phone-rise {
@@ -197,34 +229,54 @@ const { type, src, poster, alt } = HERO_MEDIA;
     }
   }
 
-  .phone-bezel {
-    position: relative;
-    padding: 0.55rem;
-    border-radius: 2.25rem;
-    background: linear-gradient(145deg, #2a2d3a 0%, #12131a 100%);
-    border: 3px solid var(--ink);
-    box-shadow:
-      inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-      0 6px 0 var(--ink);
+  .phone-button {
+    position: absolute;
+    width: 1.1cqw;
+    border-radius: 0.6cqw;
+    background: linear-gradient(90deg, #4a4d55, #9da1aa 50%, #4a4d55);
   }
 
-  .phone-notch {
+  .phone-button--action,
+  .phone-button--volume-up,
+  .phone-button--volume-down {
+    right: 100%;
+    margin-right: -0.2cqw;
+  }
+
+  .phone-button--action { top: 20%; height: 6.5cqw; }
+  .phone-button--volume-up { top: 28%; height: 13cqw; }
+  .phone-button--volume-down { top: 36%; height: 13cqw; }
+
+  .phone-button--power {
+    left: 100%;
+    margin-left: -0.2cqw;
+    top: 30%;
+    height: 20cqw;
+  }
+
+  .phone-bezel {
+    position: relative;
+    padding: 2.6cqw;
+    border-radius: 14.4cqw;
+    background: #050507;
+  }
+
+  .phone-island {
     position: absolute;
-    top: 0.85rem;
+    top: 5.4cqw;
     left: 50%;
-    z-index: 2;
-    width: 28%;
-    height: 0.95rem;
+    z-index: 4;
+    width: 29cqw;
+    height: 8.6cqw;
     transform: translateX(-50%);
     border-radius: 999px;
-    background: #0a0b10;
-    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.08);
+    background: #000;
   }
 
   .phone-screen {
     position: relative;
     overflow: hidden;
-    border-radius: 1.65rem;
+    border-radius: 11.8cqw;
     background: #000;
     aspect-ratio: 472 / 1024;
   }
@@ -402,23 +454,4 @@ const { type, src, poster, alt } = HERO_MEDIA;
     border-color: rgba(255, 255, 255, 0.4);
   }
 
-  .phone-home {
-    width: 32%;
-    height: 0.22rem;
-    margin: 0.45rem auto 0.15rem;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.35);
-  }
-
-  @media (min-width: 768px) {
-    .phone {
-      width: min(19rem, 28vw);
-    }
-  }
-
-  @media (min-width: 900px) {
-    .phone {
-      width: min(21rem, 24vw);
-    }
-  }
 </style>

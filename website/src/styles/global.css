@@ -156,16 +156,40 @@ button {
   padding: 0.6rem 1.5rem;
   border: 3px solid var(--outline);
   border-radius: 999px;
-  background: linear-gradient(
-    180deg,
-    var(--face-0) 0%,
-    var(--face-0) 12%,
-    var(--face-1) 20%,
-    var(--face-2) 60%,
-    var(--face-3) 100%
-  );
+  background:
+    radial-gradient(
+      circle 5rem at var(--mx, 50%) var(--my, 50%),
+      rgb(255 255 255 / var(--shine, 0)),
+      transparent
+    ),
+    linear-gradient(
+      180deg,
+      var(--face-0) 0%,
+      var(--face-0) 12%,
+      var(--face-1) 20%,
+      var(--face-2) 60%,
+      var(--face-3) 100%
+    );
   text-shadow: 0 2px 0 var(--text-shadow);
-  transition: transform 90ms ease-out;
+  transition:
+    transform 90ms ease-out,
+    --shine 200ms ease-out;
+}
+
+/*
+ * A glint that follows the mouse across the face. BaseLayout's script sets
+ * --mx/--my; registered so the glint fades in and out instead of popping.
+ */
+@property --shine {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+
+@media (hover: hover) {
+  .main-btn:hover .main-btn-face {
+    --shine: 0.6;
+  }
 }
 
 .main-btn:active .main-btn-face {
@@ -195,6 +219,29 @@ button {
   --surface-shadow: rgba(122, 74, 0, 0.45);
 }
 
+/* The lime of the app's PLAY button. Ink text, like green. */
+.main-btn--lime {
+  --face-0: #d2ff9a;
+  --face-1: #b2ff5c;
+  --face-2: #9cff3a;
+  --face-3: #8cff2a;
+  --lip: #4c9e0a;
+  --text-shadow: rgba(255, 255, 255, 0.45);
+  --surface-shadow: rgba(0, 9, 80, 0.35);
+  color: var(--ink);
+}
+
+.main-btn--small {
+  --lip-depth: 4px;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+}
+
+.main-btn--small .main-btn-face {
+  min-height: 2.75rem;
+  padding: 0.4rem 1.1rem;
+}
+
 .main-btn[aria-disabled='true'] {
   cursor: default;
   filter: saturate(0.4);
@@ -202,6 +249,73 @@ button {
 
 .main-btn[aria-disabled='true'] .main-btn-face {
   transform: none;
+}
+
+/*
+ * Chunky toy lettering, like the app's logo: a dark outline, a coloured edge
+ * underneath, and a glossy gradient face. One line per element, since the
+ * face is a copy of the text (data-text) laid over the outlined original.
+ * Markup: <span class="toy-text toy-text--gold" data-text="Right in">Right in</span>
+ */
+.toy-text {
+  position: relative;
+  display: block;
+  font-family: 'Fredoka', system-ui, sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  color: var(--edge);
+  -webkit-text-stroke: 0.16em var(--outline);
+  paint-order: stroke fill;
+  text-shadow:
+    0 0.035em 0 var(--outline),
+    0 0.06em 0 var(--outline),
+    0 0.1em 0.1em rgba(0, 9, 80, 0.3);
+}
+
+.toy-text::after {
+  content: attr(data-text);
+  content: attr(data-text) / '';
+  position: absolute;
+  /* Taller than the line, so descenders (g, p, y) get the face too and not just the edge colour. */
+  inset: 0 0 -0.3em;
+  /* Lifted, so the edge colour of the outlined copy shows along the bottom. */
+  transform: translateY(-0.04em);
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+  color: transparent;
+  background: linear-gradient(
+    180deg,
+    var(--face-0) 18%,
+    var(--face-1) 48%,
+    var(--face-2) 82%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  pointer-events: none;
+}
+
+/* A slight upward tilt for a toy-text headline, padded so the low end clears the text below. */
+.toy-tilt {
+  rotate: -4deg;
+  padding-block: 0.15em;
+}
+
+.toy-text--white {
+  --face-0: #ffffff;
+  --face-1: #f2f8ff;
+  --face-2: #bcd9ff;
+  --edge: #7fa8e8;
+  --outline: #0b1d86;
+}
+
+.toy-text--gold {
+  --face-0: #fff9b8;
+  --face-1: #ffe04a;
+  --face-2: #ffb81c;
+  --edge: #e08a00;
+  --outline: #5a2a00;
 }
 
 @media (prefers-reduced-motion: reduce) {

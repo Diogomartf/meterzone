@@ -10,8 +10,10 @@ interface Context {
 const pages = new Set(['/', '/how-to-play/', '/support/', '/privacy/']);
 const sources = new Set(['direct', 'internal', 'google', 'bing', 'instagram', 'facebook', 'tiktok', 'reddit', 'youtube', 'newsletter', 'other', 'other-campaign']);
 const placements: Record<string, string[]> = {
-  '/': ['hero', 'after-faq'],
-  '/how-to-play/': ['gameplay-guide'],
+  '/': ['header', 'hero', 'after-faq'],
+  '/how-to-play/': ['header', 'gameplay-guide'],
+  '/support/': ['header'],
+  '/privacy/': ['header'],
 };
 const MAX_EVENTS_PER_MINUTE = 60;
 

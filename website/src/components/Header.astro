@@ -1,0 +1,181 @@
+---
+import { APP_NAME, APP_STORE_URL } from '../site';
+
+interface Props {
+  /** Float over the page's own art (the home hero) instead of drawing a blue band. */
+  overlay?: boolean;
+}
+
+const { overlay = false } = Astro.props;
+
+const links = [
+  { href: '/how-to-play/', label: 'How to play' },
+  { href: '/how-to-play/#daily', label: 'Daily challenge' },
+];
+---
+
+<header class:list={['site-header', { 'site-header--overlay': overlay }]}>
+  {!overlay && (
+    <img
+      class="band-bg"
+      src="/images/web-bg-640.webp"
+      srcset="/images/web-bg-640.webp 640w, /images/web-bg.webp 1024w"
+      sizes="100vw"
+      alt=""
+      width="1024"
+      height="576"
+      decoding="async"
+    />
+  )}
+  <div class="bar">
+    <a class="brand" href="/">
+      <img
+        src="/images/zone-meter-logo-320.webp"
+        srcset="/images/zone-meter-logo-320.webp 320w, /images/zone-meter-logo.webp 611w"
+        sizes="8rem"
+        alt={`${APP_NAME} home`}
+        width="611"
+        height="439"
+        decoding="async"
+        fetchpriority="high"
+      />
+    </a>
+
+    <nav aria-label="Main">
+      {links.map((link) => <a href={link.href}>{link.label}</a>)}
+    </nav>
+
+    {APP_STORE_URL && (
+      <a class="main-btn main-btn--lime main-btn--small cta" href={APP_STORE_URL} data-download-location="header" aria-label="Download on the App Store" rel="noopener">
+        <span class="main-btn-face">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+            <path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
+          </svg>
+          <span class="cta-long">Download on the App Store</span>
+          <span class="cta-short" aria-hidden="true">App Store</span>
+        </span>
+      </a>
+    )}
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: relative;
+    z-index: 10;
+    overflow: hidden;
+    background: #0009c1;
+  }
+
+  .site-header--overlay {
+    position: absolute;
+    inset: 0 0 auto;
+    background: none;
+  }
+
+  /*
+   * The top of the hero art: deep blue rays. Never narrower than 64rem, so on
+   * phones the clouds stay below the band instead of scaling up into it.
+   */
+  .band-bg {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: max(100%, 64rem);
+    max-width: none;
+    transform: translateX(-50%);
+  }
+
+  .bar {
+    position: relative;
+    display: grid;
+    grid-template-areas:
+      'brand cta'
+      'nav nav';
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    width: min(100%, 76rem);
+    margin: 0 auto;
+    padding: 0.75rem 1rem;
+  }
+
+  .brand {
+    grid-area: brand;
+    display: block;
+  }
+
+  .brand img {
+    width: 5.5rem;
+    filter: drop-shadow(0 0.25rem 0.6rem rgba(0, 9, 80, 0.35));
+  }
+
+  nav {
+    grid-area: nav;
+    display: flex;
+    justify-content: center;
+    gap: 0.25rem 1.5rem;
+  }
+
+  nav a {
+    padding: 0.35rem 0;
+    color: #fff;
+    font-weight: 600;
+    font-size: 1rem;
+    text-decoration: none;
+    text-shadow: 0 2px 0 rgba(0, 9, 80, 0.35);
+    white-space: nowrap;
+  }
+
+  nav a:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.3em;
+  }
+
+  .cta {
+    grid-area: cta;
+    justify-self: end;
+  }
+
+  .cta svg {
+    flex-shrink: 0;
+    margin-top: -0.15em;
+  }
+
+  .cta-long {
+    display: none;
+  }
+
+  @media (min-width: 760px) {
+    .bar {
+      grid-template-areas: 'brand nav cta';
+      grid-template-columns: auto 1fr auto;
+      column-gap: 2.5rem;
+      padding: 1rem 2rem;
+    }
+
+    .brand img {
+      width: 7.5rem;
+    }
+
+    nav {
+      justify-content: flex-start;
+      gap: 2.25rem;
+    }
+
+    nav a {
+      font-size: 1.1rem;
+    }
+  }
+
+  @media (min-width: 960px) {
+    .cta-long {
+      display: inline;
+    }
+
+    .cta-short {
+      display: none;
+    }
+  }
+</style>
