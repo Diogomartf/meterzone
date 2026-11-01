@@ -204,5 +204,20 @@ const structuredData = {
     <Header overlay={headerOverlay} />
     <slot />
     <Analytics />
+    <script>
+      // Feeds the mouse position to the buttons' glint (.main-btn-face in global.css).
+      document.addEventListener(
+        'pointermove',
+        (event) => {
+          if (event.pointerType !== 'mouse' || !(event.target instanceof Element)) return;
+          const face = event.target.closest('.main-btn')?.querySelector<HTMLElement>('.main-btn-face');
+          if (!face) return;
+          const rect = face.getBoundingClientRect();
+          face.style.setProperty('--mx', `${event.clientX - rect.left}px`);
+          face.style.setProperty('--my', `${event.clientY - rect.top}px`);
+        },
+        { passive: true },
+      );
+    </script>
   </body>
 </html>

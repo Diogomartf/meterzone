@@ -382,6 +382,7 @@ const jsonLd = [
 
   .hero-sub {
     position: relative;
+    text-wrap: balance;
     isolation: isolate;
     margin: 1.25rem 0 0;
     max-width: 24rem;
@@ -461,6 +462,7 @@ const jsonLd = [
   /* Positioned, so it paints above the button's blue pool. As wide as the button, so it centres under it. */
   .hero-note {
     position: relative;
+    text-wrap: balance;
     width: min(100%, 27rem);
     text-align: center;
     margin: 1rem 0 0;
@@ -1059,6 +1061,7 @@ const jsonLd = [
 
   .faq h2 {
     margin-bottom: 1.5rem;
+    rotate: none;
   }
 
   .faq-list {
@@ -1109,6 +1112,16 @@ const jsonLd = [
   .faq-question {
     margin: 0;
     font: inherit;
+  }
+
+  /* The ring goes round the rounded card, not the square summary inside it. */
+  .faq-item summary:focus-visible {
+    outline: none;
+  }
+
+  .faq-item:has(summary:focus-visible) {
+    outline: 3px solid var(--ink);
+    outline-offset: 3px;
   }
 
   .faq-item summary::-webkit-details-marker {
@@ -1223,14 +1236,20 @@ const jsonLd = [
       height: 21rem;
     }
 
+    .top-spot-inner {
+      padding-top: 4.5rem;
+      padding-bottom: 13rem;
+    }
+  }
+
+  /* Side by side only once the podium has room beside the one-line heading; tablets stack. */
+  @media (min-width: 1000px) {
     /* Wider than the rest of the section, so the podium can be big beside the heading. */
     .top-spot-inner {
       width: min(100%, 80rem);
       grid-template-columns: auto minmax(0, 1fr);
       align-items: center;
       column-gap: 2.5rem;
-      padding-top: 7rem;
-      padding-bottom: 13rem;
     }
 
     /* Centred on the podium's blocks rather than its crown. */
@@ -1255,8 +1274,10 @@ const jsonLd = [
       column-gap: 3rem;
     }
 
+    /* Inset, so the tilted headline clears the screen edge on small laptops. */
     .hero-copy {
       align-items: flex-start;
+      padding-left: clamp(1rem, 4vw - 1.5rem, 2.5rem);
       text-align: left;
     }
 

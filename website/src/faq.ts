@@ -13,7 +13,7 @@ export const GAME_FAQS = [
   {
     question: 'Is MeterZone on Android?',
     answer:
-      'MeterZone is available for iPhone on the App Store. There is no Android version currently available.',
+      'MeterZone is available for iPhone on the App Store. Android will come soon.',
   },
   {
     question: 'Do I need an account?',

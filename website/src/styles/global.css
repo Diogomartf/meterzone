@@ -156,16 +156,40 @@ button {
   padding: 0.6rem 1.5rem;
   border: 3px solid var(--outline);
   border-radius: 999px;
-  background: linear-gradient(
-    180deg,
-    var(--face-0) 0%,
-    var(--face-0) 12%,
-    var(--face-1) 20%,
-    var(--face-2) 60%,
-    var(--face-3) 100%
-  );
+  background:
+    radial-gradient(
+      circle 5rem at var(--mx, 50%) var(--my, 50%),
+      rgb(255 255 255 / var(--shine)),
+      transparent
+    ),
+    linear-gradient(
+      180deg,
+      var(--face-0) 0%,
+      var(--face-0) 12%,
+      var(--face-1) 20%,
+      var(--face-2) 60%,
+      var(--face-3) 100%
+    );
   text-shadow: 0 2px 0 var(--text-shadow);
-  transition: transform 90ms ease-out;
+  transition:
+    transform 90ms ease-out,
+    --shine 200ms ease-out;
+}
+
+/*
+ * A glint that follows the mouse across the face. BaseLayout's script sets
+ * --mx/--my; registered so the glint fades in and out instead of popping.
+ */
+@property --shine {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+
+@media (hover: hover) {
+  .main-btn:hover .main-btn-face {
+    --shine: 0.6;
+  }
 }
 
 .main-btn:active .main-btn-face {
@@ -254,7 +278,8 @@ button {
   content: attr(data-text);
   content: attr(data-text) / '';
   position: absolute;
-  inset: 0;
+  /* Taller than the line, so descenders (g, p, y) get the face too and not just the edge colour. */
+  inset: 0 0 -0.3em;
   /* Lifted, so the edge colour of the outlined copy shows along the bottom. */
   transform: translateY(-0.04em);
   -webkit-text-stroke: 0;
