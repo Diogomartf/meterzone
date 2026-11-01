@@ -14,7 +14,7 @@ export const OG_IMAGE = {
   type: 'image/png',
   width: 1200,
   height: 630,
-  alt: `${APP_NAME} — free one-tap timing game. Stop the meter in the zone and stack combos.`,
+  alt: `${APP_NAME}: One tap. Right in the zone. A glowing meter being tapped as it fills into the target zone.`,
 } as const;
 
 /** Matches top of hero `web-bg.png` — tints mobile browser chrome / status bar. */
