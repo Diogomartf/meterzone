@@ -31,6 +31,11 @@ test('records header download clicks on every page', async () => {
   }
 });
 
+test('records About page download clicks', async () => {
+  const { response } = await send({ ...payload, page: '/about/', placement: 'about' });
+  assert.equal(response.status, 204);
+});
+
 test('honors privacy headers without recording', async () => {
   for (const header of ['DNT', 'Sec-GPC']) {
     const { response, points } = await send(payload, { [header]: '1' });

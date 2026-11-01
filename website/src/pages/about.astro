@@ -1,6 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { APP_NAME, APP_STORE_URL, CONTACT_EMAIL, DEVELOPER_NAME, SITE_URL } from '../site';
+import { APP_NAME, APP_STORE_URL, CONTACT_EMAIL, DEVELOPER_NAME, DEVELOPER_X_URL, SITE_URL } from '../site';
 
 const aboutDescription = `${APP_NAME} is a free one-tap timing game for iPhone, made by independent developer ${DEVELOPER_NAME}. Released in August 2026.`;
 
@@ -49,7 +49,7 @@ const jsonLd = [
       <header class="about-hero">
         <h1 class="about-title">About {APP_NAME}</h1>
         <p class="lede">
-          {APP_NAME} is a free one-tap timing game for iPhone, made by independent developer {DEVELOPER_NAME}.
+          {APP_NAME} is a free one-tap timing game for iPhone, made by independent developer <a href={DEVELOPER_X_URL} rel="me noopener">{DEVELOPER_NAME}</a>.
         </p>
       </header>
 
@@ -82,8 +82,8 @@ const jsonLd = [
           <h2 id="contact-title">Get in touch</h2>
           <p>
             Questions, bugs or ideas: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>, or see{' '}
-            <a href="/support/">Support</a>.
-            {APP_STORE_URL && <> Get the game on the <a href={APP_STORE_URL} rel="noopener">App Store</a>.</>}
+            <a href="/support/">Support</a>. For news, follow <a href={DEVELOPER_X_URL} rel="me noopener">@diogomartf on X</a>.
+            {APP_STORE_URL && <> Get the game on the <a href={APP_STORE_URL} data-download-location="about" rel="noopener">App Store</a>.</>}
           </p>
         </section>
       </div>
@@ -158,6 +158,11 @@ const jsonLd = [
     line-height: 1.5;
     text-wrap: balance;
     text-shadow: 0 1px 3px rgba(26, 28, 44, 0.45);
+  }
+
+  .lede a {
+    color: inherit;
+    text-underline-offset: 0.2em;
   }
 
   .card {

@@ -12,7 +12,7 @@ const sources = new Set(['direct', 'internal', 'google', 'bing', 'instagram', 'f
 const placements: Record<string, string[]> = {
   '/': ['header', 'hero', 'after-faq'],
   '/how-to-play/': ['header', 'gameplay-guide'],
-  '/about/': ['header'],
+  '/about/': ['header', 'about'],
   '/support/': ['header'],
   '/privacy/': ['header'],
 };

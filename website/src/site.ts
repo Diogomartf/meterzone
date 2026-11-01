@@ -4,6 +4,7 @@ export const CONTACT_EMAIL = 'hello@meterzone.net';
 export const APP_NAME = 'MeterZone';
 /** The developer, as on the App Store listing. */
 export const DEVELOPER_NAME = 'Diogo Ferreira';
+export const DEVELOPER_X_URL = 'https://x.com/diogomartf';
 
 /** Default SEO copy — keep under ~155 chars for meta descriptions. */
 export const SITE_DESCRIPTION =
