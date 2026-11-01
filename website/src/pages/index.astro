@@ -106,7 +106,7 @@ const jsonLd = [
               <span class="toy-text toy-text--gold" data-text="Right in">Right in</span>
               <span class="toy-text toy-text--gold" data-text="the zone.">the zone.</span>
             </h1>
-            <p class="hero-sub">Stop the rising meter. Stack combos. Beat your best.</p>
+            <p class="hero-sub">Stop the rising meter. Stack combos. <span class="nowrap">Beat your best.</span></p>
           </div>
 
           <div class="cta-group">
@@ -366,7 +366,7 @@ const jsonLd = [
     inset: -16% -20%;
     z-index: -1;
     /* Lighter on phones, where the words sit on open blue sky. */
-    opacity: 0.55;
+    opacity: 0.4;
     background: radial-gradient(closest-side, rgba(0, 10, 110, 0.85), rgba(0, 10, 110, 0.6) 50%, transparent);
     pointer-events: none;
   }
@@ -380,12 +380,15 @@ const jsonLd = [
     line-height: 0.98;
   }
 
+  /* As wide as the headline: zero width, so it never widens the block, then stretched to fill it. */
   .hero-sub {
     position: relative;
-    text-wrap: balance;
+    text-wrap: pretty;
     isolation: isolate;
     margin: 1.25rem 0 0;
-    max-width: 24rem;
+    width: 0;
+    min-width: 100%;
+    padding-inline: 0.75rem;
     font-size: clamp(1.1rem, 4.4vw, 1.45rem);
     font-weight: 600;
     line-height: 1.35;
@@ -396,6 +399,10 @@ const jsonLd = [
       0 0 0.75rem rgba(0, 9, 80, 0.45);
   }
   /* Its own blue pool, since the subline crosses the brightest clouds. */
+  .hero-sub .nowrap {
+    white-space: nowrap;
+  }
+
   .hero-sub::before {
     content: '';
     position: absolute;
@@ -430,7 +437,7 @@ const jsonLd = [
     flex-direction: column;
     gap: 0.75rem;
     width: min(100%, 27rem);
-    margin-top: 3.25rem;
+    margin-top: 4.25rem;
   }
 
   /* A blue pool under the button, reaching down behind the note. */
@@ -1244,12 +1251,18 @@ const jsonLd = [
 
   /* Side by side only once the podium has room beside the one-line heading; tablets stack. */
   @media (min-width: 1000px) {
-    /* Wider than the rest of the section, so the podium can be big beside the heading. */
+    /* Heading and podium as one centred pair, so the gap between them stays tight. */
     .top-spot-inner {
-      width: min(100%, 80rem);
-      grid-template-columns: auto minmax(0, 1fr);
+      width: min(100%, 72rem);
+      grid-template-columns: auto minmax(0, 34rem);
+      justify-content: center;
       align-items: center;
-      column-gap: 2.5rem;
+      column-gap: 3rem;
+      padding-inline: 2rem;
+    }
+
+    .podium {
+      width: 100%;
     }
 
     /* Centred on the podium's blocks rather than its crown. */
@@ -1264,7 +1277,7 @@ const jsonLd = [
 
   @media (min-width: 900px) {
     .hero-words::before {
-      opacity: 1;
+      opacity: 0.7;
     }
 
     .hero-layout {

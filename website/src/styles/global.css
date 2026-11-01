@@ -159,7 +159,7 @@ button {
   background:
     radial-gradient(
       circle 5rem at var(--mx, 50%) var(--my, 50%),
-      rgb(255 255 255 / var(--shine)),
+      rgb(255 255 255 / var(--shine, 0)),
       transparent
     ),
     linear-gradient(
