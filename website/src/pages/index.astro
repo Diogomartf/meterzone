@@ -100,12 +100,14 @@ const jsonLd = [
 
       <div class="hero-layout">
         <div class="hero-copy">
-          <h1 class="hero-headline toy-tilt" id="hero-title">
-            <span class="toy-text toy-text--white" data-text="One tap.">One tap.</span>
-            <span class="toy-text toy-text--gold" data-text="Right in">Right in</span>
-            <span class="toy-text toy-text--gold" data-text="the zone.">the zone.</span>
-          </h1>
-          <p class="hero-sub">Stop the rising meter. Stack combos. Beat your best.</p>
+          <div class="hero-words toy-tilt">
+            <h1 class="hero-headline" id="hero-title">
+              <span class="toy-text toy-text--white" data-text="One tap.">One tap.</span>
+              <span class="toy-text toy-text--gold" data-text="Right in">Right in</span>
+              <span class="toy-text toy-text--gold" data-text="the zone.">the zone.</span>
+            </h1>
+            <p class="hero-sub">Stop the rising meter. Stack combos. Beat your best.</p>
+          </div>
 
           <div class="cta-group">
             {APP_STORE_URL ? (
@@ -238,28 +240,28 @@ const jsonLd = [
       </div>
     </section>
 
-    <section class="features" aria-labelledby="features-title">
-      <h2 id="features-title">Why players love {APP_NAME}</h2>
-      <p class="features-intro">
-        A simple arcade-style timing challenge with worldwide leaderboards,
-        coins to spend, offline play, and just enough pressure for one more try.
-      </p>
-      <ul class="feature-grid">
-        {features.map((feature) => (
-          <li>
-            <img class="feature-icon" src={feature.icon} alt="" width="64" height="64" loading="lazy" decoding="async" />
-            <div>
-              <h3>{feature.title}</h3>
-              <p>{feature.body}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </section>
-
     <div class="bottom-band">
+      <section class="features" aria-labelledby="features-title">
+        <h2 id="features-title">Why players love {APP_NAME}</h2>
+        <p class="features-intro">
+          A simple arcade-style timing challenge with worldwide leaderboards,
+          coins to spend, offline play, and just enough pressure for one more try.
+        </p>
+        <ul class="feature-grid">
+          {features.map((feature) => (
+            <li>
+              <img class="feature-icon" src={feature.icon} alt="" width="64" height="64" loading="lazy" decoding="async" />
+              <div>
+                <h3>{feature.title}</h3>
+                <p>{feature.body}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+
       <section class="faq" aria-labelledby="faq-title">
-        <h2 id="faq-title">Frequently asked questions</h2>
+        <h2 id="faq-title">A few quick answers</h2>
         <div class="faq-list">
           {faqs.map((faq) => (
             <details class="faq-item">
@@ -271,7 +273,6 @@ const jsonLd = [
           ))}
         </div>
       </section>
-
     </div>
 
     <Closing placement="after-faq" />
@@ -316,7 +317,8 @@ const jsonLd = [
     background: linear-gradient(
       180deg,
       color-mix(in srgb, var(--how-sky) 0%, transparent) 0%,
-      color-mix(in srgb, var(--how-sky) 55%, transparent) 55%,
+      color-mix(in srgb, var(--how-sky) 25%, transparent) 30%,
+      color-mix(in srgb, var(--how-sky) 70%, transparent) 65%,
       var(--how-sky) 100%
     );
     pointer-events: none;
@@ -348,6 +350,27 @@ const jsonLd = [
     animation: rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
   }
 
+  /* The headline and subline tilt as one block, so their edges stay lined up. */
+  .hero-words {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    align-items: inherit;
+  }
+
+  /* A soft blue pool behind the words, so they stand out from the rays and clouds. */
+  .hero-words::before {
+    content: '';
+    position: absolute;
+    inset: -16% -20%;
+    z-index: -1;
+    /* Lighter on phones, where the words sit on open blue sky. */
+    opacity: 0.55;
+    background: radial-gradient(closest-side, rgba(0, 10, 110, 0.85), rgba(0, 10, 110, 0.6) 50%, transparent);
+    pointer-events: none;
+  }
+
   .hero-headline {
     margin: 0;
     display: flex;
@@ -358,6 +381,8 @@ const jsonLd = [
   }
 
   .hero-sub {
+    position: relative;
+    isolation: isolate;
     margin: 1.25rem 0 0;
     max-width: 24rem;
     font-size: clamp(1.1rem, 4.4vw, 1.45rem);
@@ -369,6 +394,16 @@ const jsonLd = [
       0 2px 0 rgba(0, 9, 80, 0.5),
       0 0 0.75rem rgba(0, 9, 80, 0.45);
   }
+  /* Its own blue pool, since the subline crosses the brightest clouds. */
+  .hero-sub::before {
+    content: '';
+    position: absolute;
+    inset: -75% -25%;
+    z-index: -1;
+    background: radial-gradient(closest-side, rgba(0, 10, 110, 0.7), rgba(0, 10, 110, 0.45) 55%, transparent);
+    pointer-events: none;
+  }
+
 
   .hero-phone {
     display: flex;
@@ -388,11 +423,23 @@ const jsonLd = [
   }
 
   .cta-group {
+    position: relative;
+    isolation: isolate;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
     width: min(100%, 27rem);
-    margin-top: 1.5rem;
+    margin-top: 3.25rem;
+  }
+
+  /* A blue pool under the button, reaching down behind the note. */
+  .cta-group::before {
+    content: '';
+    position: absolute;
+    inset: -2.75rem -25% -5.5rem;
+    z-index: -1;
+    background: radial-gradient(closest-side, rgba(0, 10, 110, 0.65), rgba(0, 10, 110, 0.4) 55%, transparent);
+    pointer-events: none;
   }
 
   .cta-group .main-btn {
@@ -411,7 +458,11 @@ const jsonLd = [
     margin-top: -0.2em;
   }
 
+  /* Positioned, so it paints above the button's blue pool. As wide as the button, so it centres under it. */
   .hero-note {
+    position: relative;
+    width: min(100%, 27rem);
+    text-align: center;
     margin: 1rem 0 0;
     font-size: 0.95rem;
     font-weight: 500;
@@ -529,7 +580,10 @@ const jsonLd = [
     rotate: 75deg;
   }
 
+  /* Above the meter's clouds, which reach over the step numbers and the heart card. */
   .play-side {
+    position: relative;
+    z-index: 1;
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -584,6 +638,23 @@ const jsonLd = [
   .miss-note img {
     flex-shrink: 0;
     width: 2rem;
+    animation: heart-float 2.8s ease-in-out infinite;
+  }
+
+  .miss-note:hover img {
+    animation: heart-bounce 0.7s cubic-bezier(0.3, 0, 0.3, 1) infinite;
+  }
+
+  @keyframes heart-float {
+    0%, 100% { translate: 0 0; }
+    50% { translate: 0 -0.2rem; }
+  }
+
+  @keyframes heart-bounce {
+    0%, 100% { translate: 0 0; scale: 1; }
+    30% { translate: 0 -0.45rem; scale: 1.08 0.94; }
+    55% { translate: 0 0; scale: 1.06 0.94; }
+    70% { scale: 0.97 1.03; }
   }
 
   .modes {
@@ -682,9 +753,15 @@ const jsonLd = [
     width: max(100%, 56rem);
     max-width: none;
     transform: translateX(-50%);
-    /* The art's top edge is a rough cut-out; fade it into the section. */
-    mask-image: linear-gradient(180deg, transparent 10%, #000 75%);
-    -webkit-mask-image: linear-gradient(180deg, transparent 10%, #000 75%);
+    /* Fade every edge into the section: top, bottom, and the sides. */
+    mask-image:
+      linear-gradient(180deg, transparent 5%, #000 65%, #000 72%, transparent 100%),
+      linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent);
+    mask-composite: intersect;
+    -webkit-mask-image:
+      linear-gradient(180deg, transparent 5%, #000 65%, #000 72%, transparent 100%),
+      linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent);
+    -webkit-mask-composite: source-in;
   }
 
   .top-spot-inner {
@@ -693,7 +770,7 @@ const jsonLd = [
     width: min(100%, 60rem);
     margin: 0 auto;
     /* Room under the podium for the cloud banks to show. */
-    padding: 2rem 1.25rem 2.5rem;
+    padding: 4rem 1.25rem 7rem;
   }
 
   .top-spot-copy h3 {
@@ -725,7 +802,7 @@ const jsonLd = [
 
   .podium {
     justify-self: center;
-    width: min(100%, 34rem);
+    width: min(80%, 37rem);
   }
 
   .skins-card {
@@ -885,25 +962,32 @@ const jsonLd = [
   .sparks--right { margin-left: 0.15rem; }
 
   .features {
-    padding: 4rem 1.5rem 3.5rem;
+    padding: 4.5rem 1.5rem 2rem;
     max-width: var(--section-wide);
     width: 100%;
     margin: 0 auto;
   }
 
-  .features h2 {
-    margin: 0 0 0.75rem;
-    font-size: clamp(1.5rem, 4vw, 2rem);
+  /* Tilted like the "Easy to play" heading above. */
+  .features h2,
+  .faq h2 {
+    width: fit-content;
+    margin: 0 auto 1.1rem;
+    font-size: clamp(1.9rem, 6vw, 2.75rem);
     font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
     text-align: center;
     color: var(--ink);
+    rotate: -2deg;
   }
 
   .features-intro {
-    margin: 0 auto 2rem;
+    margin: 0 auto 2.25rem;
     max-width: 34rem;
+    font-size: 1.05rem;
     text-align: center;
-    line-height: 1.55;
+    line-height: 1.5;
     color: var(--panel-ink);
   }
 
@@ -916,44 +1000,54 @@ const jsonLd = [
     grid-template-columns: 1fr;
   }
 
+  /* Soft panels like the modes cards, each icon on a tint that cycles gold, blue, pink. */
   .feature-grid li {
+    --tint: rgba(255, 228, 120, 0.55);
     display: flex;
     align-items: flex-start;
     gap: 1rem;
-    padding: 1.15rem 1.25rem;
-    border-radius: 1rem;
-    border: 2px solid rgba(26, 28, 44, 0.1);
-    background: rgba(255, 255, 255, 0.45);
+    padding: 1.35rem 1.4rem;
+    border-radius: 1.5rem;
+    background: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 0.6rem 1.5rem rgba(20, 90, 170, 0.08);
+  }
+
+  .feature-grid li:nth-child(3n + 2) {
+    --tint: rgba(150, 200, 245, 0.5);
+  }
+
+  .feature-grid li:nth-child(3n) {
+    --tint: rgba(255, 140, 160, 0.25);
   }
 
   .feature-icon {
     flex-shrink: 0;
-    width: 3rem;
-    height: 3rem;
+    width: 3.5rem;
+    height: 3.5rem;
+    padding: 0.5rem;
+    border-radius: 1.1rem;
+    background: var(--tint);
     object-fit: contain;
   }
 
   .feature-grid h3 {
-    margin: 0 0 0.4rem;
-    font-size: 1.05rem;
-    font-weight: 600;
+    margin: 0.15rem 0 0.35rem;
+    font-size: 1.2rem;
+    font-weight: 700;
+    line-height: 1.2;
   }
 
   .feature-grid p {
     margin: 0;
     line-height: 1.5;
     color: var(--panel-ink);
-    font-size: 0.95rem;
+    font-size: 0.98rem;
   }
 
+  /* Carries the pale sky of the how section down to the closing band. */
   .bottom-band {
     margin-top: auto;
-    background: linear-gradient(
-      180deg,
-      transparent 0%,
-      color-mix(in srgb, var(--lemon) 22%, transparent) 28%,
-      color-mix(in srgb, var(--lemon) 48%, var(--sky-bottom)) 100%
-    );
+    background: #d3effd;
   }
 
   .faq {
@@ -964,11 +1058,7 @@ const jsonLd = [
   }
 
   .faq h2 {
-    margin: 0 0 1.25rem;
-    font-size: clamp(1.5rem, 4vw, 2rem);
-    font-weight: 700;
-    text-align: center;
-    color: var(--ink);
+    margin-bottom: 1.5rem;
   }
 
   .faq-list {
@@ -1126,19 +1216,21 @@ const jsonLd = [
     .play-row {
       grid-template-columns: 1fr 1fr;
       align-items: center;
-      gap: 2rem;
+      gap: 2rem 4rem;
     }
 
     .meter {
       height: 21rem;
     }
 
+    /* Wider than the rest of the section, so the podium can be big beside the heading. */
     .top-spot-inner {
-      grid-template-columns: 1.2fr 1fr;
+      width: min(100%, 80rem);
+      grid-template-columns: auto minmax(0, 1fr);
       align-items: center;
-      column-gap: 3rem;
-      padding-top: 3rem;
-      padding-bottom: 4.5rem;
+      column-gap: 2.5rem;
+      padding-top: 7rem;
+      padding-bottom: 13rem;
     }
 
     /* Centred on the podium's blocks rather than its crown. */
@@ -1152,6 +1244,10 @@ const jsonLd = [
   }
 
   @media (min-width: 900px) {
+    .hero-words::before {
+      opacity: 1;
+    }
+
     .hero-layout {
       display: grid;
       grid-template-columns: 1fr auto;
@@ -1217,7 +1313,7 @@ const jsonLd = [
     }
 
     .hero-bg::after {
-      height: 2.5rem;
+      height: 4.5rem;
     }
   }
 </style>
