@@ -1,5 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
+import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -46,6 +47,29 @@ const TONES = {
     shadow: GameColors.ink,
     shadowOpacity: 0.25,
   },
+  /** Glossy white tile beside the menu one, holding the language flag. */
+  white: {
+    outline: '#4F6F96',
+    face: ['#FFFFFF', '#FFFFFF', '#F4F8FC', '#E2ECF6', '#D3E1EF'],
+    lip: '#9DB4CD',
+    text: GameColors.ink,
+    textShadow: 'rgba(255,255,255,0.4)',
+    shadow: GameColors.ink,
+    shadowOpacity: 0.3,
+  },
+  /**
+   * Muted blue for utility tiles like the menu button: it sits back against
+   * the sky so RETRY and PLAY stay the brightest thing on screen.
+   */
+  quiet: {
+    outline: '#1B3C86',
+    face: ['#7DB0EE', '#7DB0EE', '#5592E0', '#4483D6', '#3B78CC'],
+    lip: '#2A5AAE',
+    text: GameColors.white,
+    textShadow: 'rgba(10,30,90,0.4)',
+    shadow: GameColors.ink,
+    shadowOpacity: 0.3,
+  },
 } as const;
 
 /** Where the face colours change — the first two hold the bevel band. */
@@ -54,8 +78,19 @@ const FACE_STOPS = [0, 0.12, 0.2, 0.6, 1] as const;
 /** Lip depth per size: how far the button sits up, and drops when pressed. */
 const LIP = { small: 4, regular: 6, large: 7 } as const;
 
+/** Shallower lip for the square tiles, which read chunkier than a pill. */
+const SQUARE_LIP = { small: 2, regular: 3, large: 4 } as const;
+
+/** Side of the square face when there's no label. */
+const SQUARE = { small: 44, regular: 52, large: 64 } as const;
+
 type MainButtonProps = {
-  label: string;
+  /** Visible text. Leave out for a square icon tile (the home menu button). */
+  label?: string;
+  /** Read out by screen readers; defaults to the label (and subtitle). */
+  accessibilityLabel?: string;
+  /** Custom content for a square icon tile, like the menu bars. */
+  children?: ReactNode;
   onPress: () => void;
   tone?: keyof typeof TONES;
   /**
@@ -81,6 +116,8 @@ type MainButtonProps = {
  */
 export function MainButton({
   label,
+  accessibilityLabel,
+  children,
   onPress,
   tone = 'blue',
   size = 'regular',
@@ -91,7 +128,9 @@ export function MainButton({
   clickSound = true,
 }: MainButtonProps) {
   const colors = TONES[tone];
-  const lip = LIP[size];
+  const square = label == null;
+  const lip = square ? SQUARE_LIP[size] : LIP[size];
+  const radius = square ? Math.round(SQUARE[size] * 0.38) : 999;
 
   return (
     <Pressable
@@ -101,12 +140,14 @@ export function MainButton({
       disabled={loading}
       style={[
         styles.pressable,
-        size === 'small' && styles.pressableSmall,
+        (size === 'small' || square) && styles.pressableSmall,
         { paddingBottom: lip },
         style,
       ]}
       accessibilityRole="button"
-      accessibilityLabel={subtitle ? `${label}. ${subtitle}` : label}
+      accessibilityLabel={
+        accessibilityLabel ?? (subtitle ? `${label}. ${subtitle}` : label)
+      }
       accessibilityState={{ busy: loading, disabled: loading }}
     >
       {({ pressed }) => (
@@ -117,6 +158,7 @@ export function MainButton({
               styles.lip,
               {
                 top: lip,
+                borderRadius: radius,
                 borderColor: colors.outline,
                 backgroundColor: colors.lip,
                 shadowColor: colors.shadow,
@@ -128,40 +170,60 @@ export function MainButton({
           <View
             style={[
               styles.shell,
-              { borderColor: colors.outline },
+              { borderColor: colors.outline, borderRadius: radius },
               pressed && { transform: [{ translateY: lip }] },
             ]}
           >
             <LinearGradient
               colors={colors.face}
               locations={FACE_STOPS}
-              style={[styles.face, FACE_SIZE[size]]}
+              style={[
+                styles.face,
+                square
+                  ? { width: SQUARE[size], height: SQUARE[size] }
+                  : FACE_SIZE[size],
+              ]}
             >
-              <View style={styles.labelRow}>
-                {loading ? (
-                  <ActivityIndicator size="small" color={colors.text} />
-                ) : icon ? (
+              {square ? (
+                (children ??
+                (icon ? (
                   <SymbolView
                     name={icon}
-                    size={LABEL_SIZE[size].fontSize * 0.85}
+                    size={Math.round(SQUARE[size] * 0.45)}
                     tintColor={colors.text}
-                    weight="bold"
+                    weight="heavy"
                   />
-                ) : null}
-                <Text
-                  style={[
-                    styles.label,
-                    LABEL_SIZE[size],
-                    { color: colors.text, textShadowColor: colors.textShadow },
-                  ]}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.8}
-                >
-                  {label}
-                </Text>
-              </View>
-              {subtitle ? (
+                ) : null))
+              ) : (
+                <View style={styles.labelRow}>
+                  {loading ? (
+                    <ActivityIndicator size="small" color={colors.text} />
+                  ) : icon ? (
+                    <SymbolView
+                      name={icon}
+                      size={LABEL_SIZE[size].fontSize * 0.85}
+                      tintColor={colors.text}
+                      weight="bold"
+                    />
+                  ) : null}
+                  <Text
+                    style={[
+                      styles.label,
+                      LABEL_SIZE[size],
+                      {
+                        color: colors.text,
+                        textShadowColor: colors.textShadow,
+                      },
+                    ]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.8}
+                  >
+                    {label}
+                  </Text>
+                </View>
+              )}
+              {!square && subtitle ? (
                 <Text style={[styles.subtitle, { color: colors.text }]}>
                   {subtitle}
                 </Text>
