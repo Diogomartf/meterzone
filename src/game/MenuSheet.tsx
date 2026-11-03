@@ -38,6 +38,7 @@ import {
 import { AvatarPicker } from '@/game/AvatarPicker';
 import { FlatButton } from '@/game/FlatButton';
 import { HowToPlay } from '@/game/HowToPlay';
+import { PlayModeSheet } from '@/game/PlayModeSheet';
 import { styles } from '@/game/menuSheetStyles';
 import { rankingAvailable } from '@/game/ranking';
 import { RankingScreen } from '@/game/RankingScreen';
@@ -70,7 +71,6 @@ const LOCALE_ORDER = [gtConfig.defaultLocale, ...gtConfig.locales];
 
 type MenuView =
   | 'menu'
-  | 'mode'
   | 'highscores'
   | 'ranking'
   | 'howto'
@@ -166,6 +166,7 @@ export function MenuSheet({
   const bodyX = useSharedValue(0);
   const [view, setView] = useState<MenuView>('menu');
   const [shopTab, setShopTab] = useState<'skins' | 'avatar'>('skins');
+  const [modeSheetOpen, setModeSheetOpen] = useState(false);
 
   const [sharingKind, setSharingKind] = useState<HighscoreKind | null>(null);
   const normalShareRef = useRef<View>(null);
@@ -181,6 +182,7 @@ export function MenuSheet({
   if (visible !== wasVisible) {
     setWasVisible(visible);
     if (visible) setView(initialView);
+    else setModeSheetOpen(false);
   }
 
   useEffect(() => {
@@ -244,19 +246,17 @@ export function MenuSheet({
   const title =
     view === 'menu'
       ? gt('MENU')
-      : view === 'mode'
-        ? gt('PLAY MODE')
-        : view === 'highscores'
-          ? gt('HALL OF FAME')
-          : view === 'ranking'
-            ? gt('RANKING')
-            : view === 'howto'
-              ? gt('HOW TO PLAY')
-              : view === 'language'
-                ? gt('LANGUAGE')
-                : view === 'skins'
-                  ? gt('AVATAR & SKINS')
-                  : gt('SETTINGS');
+      : view === 'highscores'
+        ? gt('HALL OF FAME')
+        : view === 'ranking'
+          ? gt('RANKING')
+          : view === 'howto'
+            ? gt('HOW TO PLAY')
+            : view === 'language'
+              ? gt('LANGUAGE')
+              : view === 'skins'
+                ? gt('AVATAR & SKINS')
+                : gt('SETTINGS');
 
   const formatDay = (iso: string) =>
     new Date(iso + 'T12:00:00').toLocaleDateString(locale, {
@@ -370,7 +370,13 @@ export function MenuSheet({
       visible={visible}
       transparent
       animationType="none"
-      onRequestClose={view === 'menu' ? dismiss : () => setView('menu')}
+      onRequestClose={
+        modeSheetOpen
+          ? () => setModeSheetOpen(false)
+          : view === 'menu'
+            ? dismiss
+            : () => setView('menu')
+      }
       statusBarTranslucent
     >
       <GestureHandlerRootView style={styles.overlayRoot}>
@@ -477,7 +483,7 @@ export function MenuSheet({
                         subtitle={
                           dailyMode ? gt('Daily challenge') : gt('Normal run')
                         }
-                        onPress={() => setView('mode')}
+                        onPress={() => setModeSheetOpen(true)}
                       />
                       <View style={styles.divider} />
                       <ActionRow
@@ -534,26 +540,6 @@ export function MenuSheet({
                     dailyTodayScore={dailyTodayScore}
                     onPlay={(kind) => onStartMode(kind === 'daily')}
                   />
-                ) : null}
-
-                {view === 'mode' ? (
-                  <View style={styles.card}>
-                    <ModeRow
-                      label={gt('Normal')}
-                      subtitle={gt('Classic endless run')}
-                      selected={!dailyMode}
-                      onPress={() => onStartMode(false)}
-                    />
-                    <View style={styles.divider} />
-                    <ModeRow
-                      label={gt('Daily')}
-                      subtitle={gt(
-                        'Same sequence for everyone · updates daily',
-                      )}
-                      selected={dailyMode}
-                      onPress={() => onStartMode(true)}
-                    />
-                  </View>
                 ) : null}
 
                 {view === 'highscores' ? (
@@ -780,6 +766,13 @@ export function MenuSheet({
             </GestureDetector>
           </Animated.View>
         </View>
+        {modeSheetOpen ? (
+          <PlayModeSheet
+            daily={dailyMode}
+            onPlay={onStartMode}
+            onClose={() => setModeSheetOpen(false)}
+          />
+        ) : null}
       </GestureHandlerRootView>
     </Modal>
   );
