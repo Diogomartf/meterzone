@@ -1,6 +1,12 @@
 import { Image } from 'expo-image';
 import { useGT, useLocale } from 'gt-react-native';
-import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import Animated, {
   Easing,
   FadeIn,
@@ -87,16 +93,17 @@ export function ResultScreen({
   const locale = useLocale();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  // Shorter phones (SE, mini) shrink the trophy and score to keep it on one screen.
+  // Shorter phones (SE, mini) shrink the trophy and score, and the body
+  // scrolls above the buttons if it still doesn't fit (an SE leaves ~350pt).
   const compact = height < 800;
-  const trophySize = compact ? 100 : 136;
+  const trophySize = compact ? 64 : 136;
 
   // Sized from the digit count: `adjustsFontSizeToFit` sometimes shrinks a
   // short score to a few points on iOS.
   const scoreText = formatScore(record.score);
   const scoreSize =
-    (scoreText.length <= 4 ? 128 : scoreText.length <= 5 ? 108 : 90) *
-    (compact ? 0.78 : 1);
+    (scoreText.length <= 4 ? 112 : scoreText.length <= 5 ? 96 : 80) *
+    (compact ? 0.64 : 1);
 
   const gap = record.best - record.score;
   const subtitle = record.isNewBest
@@ -128,7 +135,11 @@ export function ResultScreen({
         style={[styles.header, { paddingTop: insets.top + 8 }]}
         pointerEvents="box-none"
       >
-        <Image source={LOGO} style={styles.logo} contentFit="contain" />
+        <Image
+          source={LOGO}
+          style={[styles.logo, compact && styles.logoCompact]}
+          contentFit="contain"
+        />
         {!capturing ? (
           <MainButton
             tone="quiet"
@@ -141,7 +152,12 @@ export function ResultScreen({
         ) : null}
       </View>
 
-      <View style={styles.body} pointerEvents="box-none">
+      <ScrollView
+        style={styles.body}
+        contentContainerStyle={styles.bodyContent}
+        showsVerticalScrollIndicator={false}
+        alwaysBounceVertical={false}
+      >
         {record.daily ? (
           <>
             <View style={styles.titleRow}>
@@ -150,7 +166,9 @@ export function ResultScreen({
                 style={compact ? styles.calendarCompact : styles.calendar}
                 contentFit="contain"
               />
-              <Text style={styles.title}>{gt('DAILY\nCHALLENGE')}</Text>
+              <Text style={[styles.title, compact && styles.titleCompact]}>
+                {gt('DAILY\nCHALLENGE')}
+              </Text>
             </View>
             <View style={styles.dateRow}>
               <View style={styles.dateLine} />
@@ -206,17 +224,29 @@ export function ResultScreen({
           style={[styles.stats, compact && styles.statsCompact]}
         >
           <View style={styles.stat}>
-            <Text style={styles.statValue}>{record.accuracy}%</Text>
+            <Text
+              style={[styles.statValue, compact && styles.statValueCompact]}
+            >
+              {record.accuracy}%
+            </Text>
             <Text style={styles.statLabel}>{gt('Accuracy')}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.stat}>
-            <Text style={styles.statValue}>{record.combo}</Text>
+            <Text
+              style={[styles.statValue, compact && styles.statValueCompact]}
+            >
+              {record.combo}
+            </Text>
             <Text style={styles.statLabel}>{gt('Combo')}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.stat}>
-            <Text style={styles.statValue}>{record.level}</Text>
+            <Text
+              style={[styles.statValue, compact && styles.statValueCompact]}
+            >
+              {record.level}
+            </Text>
             <Text style={styles.statLabel}>{gt('Level')}</Text>
           </View>
         </Animated.View>
@@ -238,14 +268,19 @@ export function ResultScreen({
             </Text>
           </View>
         ) : null}
-      </View>
+      </ScrollView>
 
       <View
         style={[
           styles.actions,
           // Lifted off the yellow pad at the bottom of the art, so Share stays
-          // on the sky.
-          { paddingBottom: Math.max(insets.bottom + 16, height * 0.095) },
+          // on the sky. Short phones need the room more than the lift.
+          {
+            paddingBottom: compact
+              ? insets.bottom + 16
+              : Math.max(insets.bottom + 16, height * 0.095),
+          },
+          compact && styles.actionsCompact,
           capturing && styles.hidden,
         ]}
         pointerEvents={capturing ? 'none' : 'box-none'}
@@ -295,6 +330,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
   },
+  logoCompact: { width: 80, height: 58 },
   logo: {
     width: 104,
     height: 75,
@@ -302,9 +338,13 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
+  },
+  bodyContent: {
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
+    paddingVertical: 8,
   },
   titleRow: {
     flexDirection: 'row',
@@ -312,7 +352,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   calendar: { width: 46, height: 46 },
-  calendarCompact: { width: 36, height: 36 },
+  calendarCompact: { width: 30, height: 30 },
+  titleCompact: { fontSize: 19, lineHeight: 20 },
   title: {
     fontFamily: GameFonts.display,
     fontSize: 24,
@@ -352,7 +393,7 @@ const styles = StyleSheet.create({
   gameOver: {
     color: '#FF5A5A',
   },
-  newBestCompact: { fontSize: 40, lineHeight: 46 },
+  newBestCompact: { fontSize: 34, lineHeight: 40 },
   score: {
     fontFamily: GameFonts.display,
     color: GameColors.white,
@@ -390,7 +431,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.55,
     shadowRadius: 8,
   },
-  statsCompact: { marginTop: 12, paddingVertical: 8 },
+  statValueCompact: { fontSize: 30, lineHeight: 34 },
+  statsCompact: { marginTop: 10, paddingVertical: 6 },
   stat: {
     flex: 1,
     alignItems: 'center',
@@ -418,7 +460,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginTop: 10,
+    marginTop: 12,
+    // The coin stack and text shadow overhang their boxes; room below keeps
+    // the scroll view from clipping them.
+    paddingBottom: 6,
   },
   coins: { width: 44, height: 34 },
   coinsText: {
@@ -431,6 +476,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 0,
   },
   coinsAmount: { color: GameColors.lemon },
+  actionsCompact: { paddingTop: 12 },
   actions: {
     paddingTop: 24,
     paddingHorizontal: 24,

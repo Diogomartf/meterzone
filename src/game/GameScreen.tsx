@@ -911,35 +911,22 @@ export function GameScreen() {
         }),
       shouldCollapse: true,
     });
+    // One entry per screen first; their variants after, so the list starts
+    // with everything there is to look at.
     void registerDevMenuItems([
-      reward(1),
-      reward(2),
-      reward(3),
-      reward(7),
-      preview('Result · daily, first record', {
-        daily: true,
-        isNewBest: true,
-        score: 230,
-        best: 0,
-      }),
-      preview('Result · daily, beat best', {
-        daily: true,
-        isNewBest: true,
-        score: 1840,
-        best: 1215,
-      }),
-      preview('Result · game over', {
+      preview('Game over', {
         daily: false,
         isNewBest: false,
         score: 655,
         best: 4861,
       }),
-      preview('Result · daily game over', {
+      preview('Daily new record', {
         daily: true,
-        isNewBest: false,
-        score: 120,
-        best: 230,
+        isNewBest: true,
+        score: 230,
+        best: 0,
       }),
+      reward(1),
       {
         name: 'Review prompt',
         callback: () => setReviewPromptVisible(true),
@@ -950,6 +937,27 @@ export function GameScreen() {
         callback: () => openSampleRanking(8, 5),
         shouldCollapse: true,
       },
+      preview('Game over · new best', {
+        daily: false,
+        isNewBest: true,
+        score: 5120,
+        best: 4861,
+      }),
+      preview('Game over · daily', {
+        daily: true,
+        isNewBest: false,
+        score: 120,
+        best: 230,
+      }),
+      preview('Daily new record · beat best', {
+        daily: true,
+        isNewBest: true,
+        score: 1840,
+        best: 1215,
+      }),
+      reward(2),
+      reward(3),
+      reward(7),
       {
         name: 'Ranking · 30 players, you #23',
         callback: () => openSampleRanking(30, 23),
