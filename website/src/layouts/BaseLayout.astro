@@ -3,6 +3,8 @@ import {
   APP_NAME,
   APP_STORE_URL,
   CONTACT_EMAIL,
+  DEVELOPER_NAME,
+  DEVELOPER_X_URL,
   OG_IMAGE,
   PLAY_STORE_URL,
   SITE_DESCRIPTION,
@@ -64,6 +66,7 @@ const organization = {
   name: APP_NAME,
   url: SITE_URL,
   email: CONTACT_EMAIL,
+  founder: { '@type': 'Person', name: DEVELOPER_NAME, sameAs: [DEVELOPER_X_URL] },
   logo: {
     '@type': 'ImageObject',
     url: new URL('/images/zone-meter-logo.png', SITE_URL).href,

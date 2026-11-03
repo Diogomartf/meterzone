@@ -7,11 +7,12 @@ interface Context {
   env: { DB?: AnalyticsDatabase };
 }
 
-const pages = new Set(['/', '/how-to-play/', '/support/', '/privacy/']);
+const pages = new Set(['/', '/how-to-play/', '/about/', '/support/', '/privacy/']);
 const sources = new Set(['direct', 'internal', 'google', 'bing', 'instagram', 'facebook', 'tiktok', 'reddit', 'youtube', 'newsletter', 'other', 'other-campaign']);
 const placements: Record<string, string[]> = {
   '/': ['header', 'hero', 'after-faq'],
   '/how-to-play/': ['header', 'gameplay-guide'],
+  '/about/': ['header', 'about'],
   '/support/': ['header'],
   '/privacy/': ['header'],
 };

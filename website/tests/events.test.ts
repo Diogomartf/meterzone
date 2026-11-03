@@ -25,10 +25,15 @@ test('records coarse click dimensions and discards extra identifying fields', as
 });
 
 test('records header download clicks on every page', async () => {
-  for (const page of ['/', '/how-to-play/', '/support/', '/privacy/']) {
+  for (const page of ['/', '/how-to-play/', '/about/', '/support/', '/privacy/']) {
     const { response } = await send({ ...payload, page, placement: 'header' });
     assert.equal(response.status, 204);
   }
+});
+
+test('records About page download clicks', async () => {
+  const { response } = await send({ ...payload, page: '/about/', placement: 'about' });
+  assert.equal(response.status, 204);
 });
 
 test('honors privacy headers without recording', async () => {

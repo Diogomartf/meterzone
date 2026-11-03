@@ -1,0 +1,243 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { APP_NAME, APP_STORE_URL, CONTACT_EMAIL, DEVELOPER_NAME, DEVELOPER_X_URL, SITE_URL } from '../site';
+
+const aboutDescription = `${APP_NAME} is a free one-tap timing game for iPhone, made by independent developer ${DEVELOPER_NAME}. Released in August 2026.`;
+
+/** From the App Store listing. */
+const facts = [
+  { label: 'Developer', value: DEVELOPER_NAME },
+  { label: 'Released', value: '18 August 2026' },
+  { label: 'Price', value: 'Free' },
+  { label: 'Requires', value: 'iPhone with iOS 16.4 or later' },
+  { label: 'Age rating', value: '4+' },
+  { label: 'Account', value: 'None needed; plays offline' },
+];
+
+const jsonLd = [
+  {
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE_URL}/` },
+      { '@type': 'ListItem', position: 2, name: 'About', item: `${SITE_URL}/about/` },
+    ],
+  },
+  {
+    '@type': 'AboutPage',
+    name: `About ${APP_NAME}`,
+    url: `${SITE_URL}/about/`,
+    description: aboutDescription,
+    about: { '@id': `${SITE_URL}/#organization` },
+  },
+];
+---
+
+<BaseLayout
+  title="About"
+  description={aboutDescription}
+  canonicalPath="/about/"
+  jsonLd={jsonLd}
+>
+  <main id="main" class="about">
+    <div class="about-bg" aria-hidden="true">
+      <img src="/images/web-bg.webp" alt="" width="1024" height="576" decoding="async" fetchpriority="high" />
+    </div>
+
+    <div class="about-inner">
+      <a class="back" href="/">← Back to {APP_NAME}</a>
+
+      <header class="about-hero">
+        <h1 class="about-title">About {APP_NAME}</h1>
+        <p class="lede">
+          {APP_NAME} is a free one-tap timing game for iPhone, made by independent developer <a href={DEVELOPER_X_URL} rel="me noopener">{DEVELOPER_NAME}</a>.
+        </p>
+      </header>
+
+      <div class="card">
+        <section aria-labelledby="game-title">
+          <h2 id="game-title">The game</h2>
+          <p>
+            A meter rises; tap to stop it inside the zone. A Perfect hit starts at 100 points, a streak builds your
+            multiplier up to 5×, and each miss costs one of your 3 hearts.
+          </p>
+          <p>
+            Every day brings a new challenge with the same sequence for everyone. When the board closes at midnight
+            UTC, the top 10 win up to 500 coins. <a class="nowrap" href="/how-to-play/">Read the full guide →</a>
+          </p>
+        </section>
+
+        <section aria-labelledby="facts-title">
+          <h2 id="facts-title">At a glance</h2>
+          <dl class="facts">
+            {facts.map((fact) => (
+              <div>
+                <dt>{fact.label}</dt>
+                <dd>{fact.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        <section class="contact" aria-labelledby="contact-title">
+          <h2 id="contact-title">Get in touch</h2>
+          <p>
+            Questions, bugs or ideas: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>, or see{' '}
+            <a href="/support/">Support</a>. For news, follow <a href={DEVELOPER_X_URL} rel="me noopener">@diogomartf on X</a>.
+            {APP_STORE_URL && <> Get the game on the <a href={APP_STORE_URL} data-download-location="about" rel="noopener">App Store</a>.</>}
+          </p>
+        </section>
+      </div>
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .about {
+    position: relative;
+    min-height: 100svh;
+    overflow: hidden;
+    padding: 1.5rem 1rem 3rem;
+  }
+
+  .about-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  .about-bg img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center bottom;
+  }
+
+  .about-inner {
+    position: relative;
+    z-index: 1;
+    max-width: 40rem;
+    margin: 0 auto;
+  }
+
+  .back {
+    display: inline-block;
+    margin-bottom: 1.25rem;
+    padding: 0.4rem 0.85rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    color: var(--ink);
+    background: rgba(255, 255, 255, 0.72);
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+    box-shadow: 0 2px 0 var(--ink);
+  }
+
+  .about-hero {
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .about-title {
+    margin: 0;
+    font-size: clamp(1.75rem, 5vw, 2.35rem);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--lemon);
+    text-shadow:
+      0 2px 0 var(--ink),
+      0 3px 8px rgba(26, 28, 44, 0.25);
+  }
+
+  .lede {
+    margin: 0.65rem auto 0;
+    max-width: 28rem;
+    color: #e8edf2;
+    font-size: clamp(0.98rem, 2.2vw, 1.08rem);
+    font-weight: 500;
+    line-height: 1.5;
+    text-wrap: balance;
+    text-shadow: 0 1px 3px rgba(26, 28, 44, 0.45);
+  }
+
+  .lede a {
+    color: inherit;
+    text-underline-offset: 0.2em;
+  }
+
+  .card {
+    display: grid;
+    gap: 1.5rem;
+    background: var(--white);
+    border: 3px solid var(--ink);
+    border-radius: 1.35rem;
+    box-shadow: 0 6px 0 var(--ink);
+    padding: 1.5rem 1.35rem 1.65rem;
+    line-height: 1.55;
+  }
+
+  .card h2 {
+    margin: 0 0 0.6rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+
+  .card p {
+    margin: 0 0 0.75rem;
+    color: var(--panel-ink);
+  }
+
+  .card p:last-child {
+    margin-bottom: 0;
+  }
+
+  .card a {
+    color: #124a85;
+    font-weight: 600;
+    text-underline-offset: 0.15em;
+  }
+
+  .nowrap {
+    white-space: nowrap;
+  }
+
+  .facts {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+  }
+
+  .facts div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.6rem 0.9rem;
+    border-radius: 0.85rem;
+    background: rgba(78, 192, 202, 0.1);
+  }
+
+  .facts dt {
+    font-weight: 600;
+  }
+
+  .facts dd {
+    margin: 0;
+    text-align: right;
+    color: var(--panel-ink);
+  }
+
+  .contact {
+    padding-top: 1.15rem;
+    border-top: 2px solid rgba(26, 28, 44, 0.08);
+  }
+
+  @media (min-width: 560px) {
+    .about {
+      padding: 2rem 1.5rem 3.5rem;
+    }
+
+    .card {
+      padding: 1.75rem 1.75rem 1.85rem;
+    }
+  }
+</style>
