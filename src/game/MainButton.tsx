@@ -50,7 +50,7 @@ const TONES = {
   /** Glossy white tile beside the menu one, holding the language flag. */
   white: {
     outline: '#4F6F96',
-    face: ['#FFFFFF', '#FFFFFF', '#F4F8FC', '#E2ECF6', '#D3E1EF'],
+    face: ['#FFFFFF', '#FFFFFF', '#F6F9FC', '#EDF3F9', '#E5EEF7'],
     lip: '#9DB4CD',
     text: GameColors.ink,
     textShadow: 'rgba(255,255,255,0.4)',
@@ -63,7 +63,7 @@ const TONES = {
    */
   quiet: {
     outline: '#1B3C86',
-    face: ['#7DB0EE', '#7DB0EE', '#5592E0', '#4483D6', '#3B78CC'],
+    face: ['#72A8EA', '#72A8EA', '#5592E0', '#4D8BDC', '#4786D9'],
     lip: '#2A5AAE',
     text: GameColors.white,
     textShadow: 'rgba(10,30,90,0.4)',
@@ -79,7 +79,7 @@ const FACE_STOPS = [0, 0.12, 0.2, 0.6, 1] as const;
 const LIP = { small: 4, regular: 6, large: 7 } as const;
 
 /** Shallower lip for the square tiles, which read chunkier than a pill. */
-const SQUARE_LIP = { small: 2, regular: 3, large: 4 } as const;
+const SQUARE_LIP = { small: 1.5, regular: 2, large: 3 } as const;
 
 /** Side of the square face when there's no label. */
 const SQUARE = { small: 44, regular: 52, large: 64 } as const;
@@ -164,6 +164,7 @@ export function MainButton({
                 shadowColor: colors.shadow,
                 shadowOpacity: colors.shadowOpacity,
               },
+              square && styles.lipSquare,
             ]}
           />
           {/* Pressing drops the whole pill onto the lip, hiding it. */}
@@ -271,6 +272,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     // No `elevation`: on Android it would draw the lip over the pill.
     shadowRadius: 1.5,
+  },
+  /** Tiles sit flatter: a tighter, fainter shadow under the shallow lip. */
+  lipSquare: {
+    shadowOffset: { width: 0, height: 1.5 },
+    shadowRadius: 1,
+    shadowOpacity: 0.18,
   },
   shell: {
     borderRadius: 999,
