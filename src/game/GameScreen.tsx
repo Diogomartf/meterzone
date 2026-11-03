@@ -920,6 +920,12 @@ export function GameScreen() {
         score: 655,
         best: 4861,
       }),
+      preview('New record', {
+        daily: false,
+        isNewBest: true,
+        score: 5120,
+        best: 4861,
+      }),
       preview('Daily new record', {
         daily: true,
         isNewBest: true,
@@ -937,12 +943,6 @@ export function GameScreen() {
         callback: () => openSampleRanking(8, 5),
         shouldCollapse: true,
       },
-      preview('Game over · new best', {
-        daily: false,
-        isNewBest: true,
-        score: 5120,
-        best: 4861,
-      }),
       preview('Game over · daily', {
         daily: true,
         isNewBest: false,
