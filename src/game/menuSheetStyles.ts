@@ -75,18 +75,21 @@ export const styles = StyleSheet.create({
   coinPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    height: 40,
-    paddingLeft: 10,
-    paddingRight: 14,
-    borderRadius: 14,
-    borderWidth: 1.25,
-    borderColor: GameColors.ink,
-    backgroundColor: GameColors.xpGold,
+    gap: 8,
+    height: 42,
+    paddingLeft: 7,
+    paddingRight: 18,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: '#E6A800',
   },
   coinPillIcon: {
-    width: 22,
-    height: 22,
+    width: 28,
+    height: 28,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 10,
   },
   coinPillText: {
     fontFamily: GameFonts.display,
@@ -144,6 +147,71 @@ export const styles = StyleSheet.create({
     borderWidth: 2.5,
     borderColor: GameColors.ink,
     overflow: 'hidden',
+  },
+  /** The big tinted links on the menu root (MenuTile). */
+  tile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    minHeight: 88,
+    paddingVertical: 12,
+    paddingLeft: 12,
+    paddingRight: 18,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.7)',
+  },
+  tilePressed: {
+    transform: [{ scale: 0.98 }],
+  },
+  tileArt: {
+    width: 76,
+    height: 64,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tileLabel: {
+    fontFamily: GameFonts.display,
+    fontSize: 23,
+    lineHeight: 27,
+    color: GameColors.ink,
+  },
+  tileSub: {
+    fontFamily: GameFonts.soft,
+    fontSize: 15,
+    lineHeight: 19,
+    color: 'rgba(26,28,44,0.75)',
+  },
+  tiles: {
+    gap: 12,
+  },
+  tileArtPlayMode: {
+    width: 64,
+    height: 64,
+  },
+  tileArtCrown: {
+    width: 76,
+    height: 50,
+  },
+  tileArtRanking: {
+    width: 76,
+    height: 50,
+  },
+  tileArtSkins: {
+    width: 50,
+    height: 64,
+  },
+  /** White card for the plain links under the tiles, outlined softly. */
+  linkCard: {
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: '#D3E7F6',
+    overflow: 'hidden',
+  },
+  rowCompact: {
+    paddingVertical: 15,
+    gap: 16,
   },
   row: {
     flexDirection: 'row',
@@ -1084,10 +1152,10 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: GameColors.xpGold,
+    // Same gold and outline as the header's coin pill, with square-ish corners.
     borderRadius: 18,
-    borderWidth: 2.5,
-    borderColor: GameColors.ink,
+    borderWidth: 2,
+    borderColor: '#E6A800',
     paddingHorizontal: 16,
     paddingVertical: 12,
     marginBottom: 12,

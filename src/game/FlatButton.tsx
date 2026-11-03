@@ -13,7 +13,8 @@ import { GameColors, GameFonts } from '@/constants/gameTheme';
 /**
  * `white` and `blue` sit on light or busy backgrounds with an ink outline;
  * `glass` is a see-through white for coloured cards like the support card;
- * `sky` a see-through blue over the game art (the daily record's Share).
+ * `sky` a see-through blue over the game art (the daily record's Share);
+ * `soft` a pale blue with a light outline for sheet headers (home, close, back).
  */
 const TONES = {
   white: {
@@ -42,6 +43,13 @@ const TONES = {
     pressed: 'rgba(22,104,228,0.8)',
     /** Soft cyan halo around the outline. */
     glow: '#4FD8FF',
+  },
+  /** Pale blue on the light sheets, quieter than an ink outline. */
+  soft: {
+    face: '#F5FBFF',
+    outline: '#B7D8F0',
+    text: GameColors.ink,
+    pressed: '#E3F1FC',
   },
 } as const;
 

@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { msg, useGT, useMessages } from 'gt-react-native';
 
+import { Gradients } from '@/constants/gameTheme';
 import { formatScore } from '@/game/format';
 import { styles } from '@/game/menuSheetStyles';
 import {
@@ -166,7 +167,7 @@ function SkinRow({
 export function CoinBank({ coins }: { coins: number }) {
   const gt = useGT();
   return (
-    <View style={styles.skinBank}>
+    <LinearGradient colors={Gradients.coinGold} style={styles.skinBank}>
       <View style={styles.skinBankText}>
         <Text style={styles.skinBankLabel}>{gt('YOUR COINS')}</Text>
         <Text style={styles.skinBankHint}>
@@ -184,7 +185,7 @@ export function CoinBank({ coins }: { coins: number }) {
           {formatScore(coins)}
         </Text>
       </View>
-    </View>
+    </LinearGradient>
   );
 }
 

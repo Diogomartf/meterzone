@@ -1,4 +1,5 @@
-import { Image, type ImageSource } from 'expo-image';
+import { Image, type ImageSource, type ImageStyle } from 'expo-image';
+import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { ReactNode } from 'react';
 import {
@@ -11,6 +12,7 @@ import {
 } from 'react-native';
 import { useGT, useMessages } from 'gt-react-native';
 
+import { GameColors } from '@/constants/gameTheme';
 import { FlatButton } from '@/game/FlatButton';
 import { formatScore } from '@/game/format';
 import {
@@ -24,6 +26,11 @@ import { styles } from '@/game/menuSheetStyles';
 const SUNBURST = require('../../assets/images/reward-sunburst.webp');
 
 const STAR_ICON = { ios: 'star.fill', android: 'star', web: 'star' } as const;
+const CHEVRON_ICON = {
+  ios: 'chevron.right',
+  android: 'chevron_right',
+  web: 'chevron_right',
+} as const;
 const SHARE_ICON = {
   ios: 'square.and.arrow.up',
   android: 'share',
@@ -66,20 +73,35 @@ export function ToggleRow({
 export function ActionRow({
   label,
   subtitle,
+  icon,
   onPress,
   destructive,
 }: {
   label: string;
   subtitle?: string;
+  /** Line icon before the label, for the compact links on the menu root. */
+  icon?: SymbolViewProps['name'];
   onPress: () => void;
   destructive?: boolean;
 }) {
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+      style={({ pressed }) => [
+        styles.row,
+        icon != null && styles.rowCompact,
+        pressed && styles.rowPressed,
+      ]}
       accessibilityRole="button"
     >
+      {icon != null ? (
+        <SymbolView
+          name={icon}
+          size={26}
+          tintColor={GameColors.ink}
+          weight="semibold"
+        />
+      ) : null}
       <View style={styles.rowText}>
         <Text style={[styles.rowLabel, destructive && styles.rowLabelDanger]}>
           {label}
@@ -89,6 +111,57 @@ export function ActionRow({
       <Text style={[styles.chevron, destructive && styles.rowLabelDanger]}>
         ›
       </Text>
+    </Pressable>
+  );
+}
+
+/**
+ * A big tinted link on the menu root: art on the left, a bold label and a
+ * short line, and a chevron. `tint` is the card's top-to-bottom wash.
+ */
+export function MenuTile({
+  label,
+  subtitle,
+  art,
+  artStyle,
+  tint,
+  onPress,
+}: {
+  label: string;
+  subtitle: string;
+  art: ImageSource;
+  /** The art's own size, since each emblem has a different shape. */
+  artStyle: StyleProp<ImageStyle>;
+  tint: readonly [string, string];
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => pressed && styles.tilePressed}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}. ${subtitle}`}
+    >
+      <LinearGradient
+        colors={tint}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.tile}
+      >
+        <View style={styles.tileArt}>
+          <Image source={art} style={artStyle} contentFit="contain" />
+        </View>
+        <View style={styles.rowText}>
+          <Text style={styles.tileLabel}>{label}</Text>
+          <Text style={styles.tileSub}>{subtitle}</Text>
+        </View>
+        <SymbolView
+          name={CHEVRON_ICON}
+          size={20}
+          tintColor={GameColors.ink}
+          weight="heavy"
+        />
+      </LinearGradient>
     </Pressable>
   );
 }
@@ -103,18 +176,16 @@ export function SupportCard() {
       end={{ x: 1, y: 1 }}
       style={styles.supportCard}
     >
-      <Text style={styles.supportTitle}>{gt('Support our ad-free app')}</Text>
+      <Text style={styles.supportTitle}>{gt('Enjoying MeterZone?')}</Text>
       <Text style={styles.supportBody}>
-        {gt(
-          'Your support helps small developers like us keep building free, ad-free games like this.',
-        )}
+        {gt('Help our little ad-free game grow.')}
       </Text>
       <View style={styles.supportActions}>
         <FlatButton
           tone="glass"
           style={styles.supportBtn}
           icon={STAR_ICON}
-          label={gt('Review')}
+          label={gt('Rate app')}
           accessibilityLabel={gt('Leave a 5-star review')}
           onPress={() => {
             // Stop future soft prompts once they choose to review.
