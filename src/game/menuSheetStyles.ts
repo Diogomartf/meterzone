@@ -75,18 +75,21 @@ export const styles = StyleSheet.create({
   coinPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    height: 40,
-    paddingLeft: 10,
-    paddingRight: 14,
-    borderRadius: 14,
-    borderWidth: 1.25,
-    borderColor: GameColors.ink,
-    backgroundColor: GameColors.xpGold,
+    gap: 8,
+    height: 42,
+    paddingLeft: 7,
+    paddingRight: 18,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: '#E6A800',
   },
   coinPillIcon: {
-    width: 22,
-    height: 22,
+    width: 28,
+    height: 28,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 10,
   },
   coinPillText: {
     fontFamily: GameFonts.display,
@@ -144,6 +147,71 @@ export const styles = StyleSheet.create({
     borderWidth: 2.5,
     borderColor: GameColors.ink,
     overflow: 'hidden',
+  },
+  /** The big tinted links on the menu root (MenuTile). */
+  tile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    minHeight: 88,
+    paddingVertical: 12,
+    paddingLeft: 12,
+    paddingRight: 18,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.7)',
+  },
+  tilePressed: {
+    transform: [{ scale: 0.98 }],
+  },
+  tileArt: {
+    width: 76,
+    height: 64,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tileLabel: {
+    fontFamily: GameFonts.display,
+    fontSize: 23,
+    lineHeight: 27,
+    color: GameColors.ink,
+  },
+  tileSub: {
+    fontFamily: GameFonts.soft,
+    fontSize: 15,
+    lineHeight: 19,
+    color: 'rgba(26,28,44,0.75)',
+  },
+  tiles: {
+    gap: 12,
+  },
+  tileArtPlayMode: {
+    width: 64,
+    height: 64,
+  },
+  tileArtCrown: {
+    width: 76,
+    height: 50,
+  },
+  tileArtRanking: {
+    width: 76,
+    height: 50,
+  },
+  tileArtSkins: {
+    width: 50,
+    height: 64,
+  },
+  /** White card for the plain links under the tiles, outlined softly. */
+  linkCard: {
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: '#D3E7F6',
+    overflow: 'hidden',
+  },
+  rowCompact: {
+    paddingVertical: 15,
+    gap: 16,
   },
   row: {
     flexDirection: 'row',
@@ -373,25 +441,53 @@ export const styles = StyleSheet.create({
     lineHeight: 28,
     color: GameColors.playBlue,
   },
-  toggle: {
-    minWidth: 58,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    borderWidth: 2.5,
-    borderColor: GameColors.ink,
+  // iOS-style switch on the settings toggles: cyan when on, slate when off.
+  switch: {
+    width: 54,
+    height: 32,
+    borderRadius: 16,
+    padding: 3,
+    justifyContent: 'center',
+  },
+  switchOn: {
+    backgroundColor: '#14CDE0',
+  },
+  switchOff: {
+    backgroundColor: '#7F9CC6',
+  },
+  switchKnob: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: GameColors.white,
+    shadowColor: GameColors.ink,
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  switchKnobOn: {
+    alignSelf: 'flex-end',
+  },
+  rowIcon: {
+    width: 30,
     alignItems: 'center',
   },
-  toggleOn: {
-    backgroundColor: GameColors.bubble,
-  },
-  toggleOff: {
-    backgroundColor: '#D1D5DB',
-  },
-  toggleText: {
+  rowValue: {
+    flexShrink: 1,
     fontFamily: GameFonts.body,
-    fontSize: 14,
-    color: GameColors.ink,
+    fontSize: 16,
+    lineHeight: 20,
+    color: '#34507F',
+  },
+  // Small caps label above each settings card.
+  sectionLabel: {
+    fontFamily: GameFonts.display,
+    fontSize: 16,
+    lineHeight: 20,
+    letterSpacing: 0.4,
+    color: '#34507F',
+    marginLeft: 6,
+    marginBottom: -6,
   },
   chevron: {
     fontFamily: GameFonts.display,
@@ -852,7 +948,7 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   shopTabs: {
-    marginBottom: 12,
+    marginBottom: 14,
   },
   avatarPreviewCard: {
     alignItems: 'center',
@@ -1080,14 +1176,27 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
     color: GameColors.panelInk,
   },
+  // Sits right under the version line, inside the menu's 16pt gaps.
+  madeBy: {
+    marginTop: -12,
+    fontFamily: GameFonts.soft,
+    fontSize: 13,
+    textAlign: 'center',
+    color: GameColors.panelInk,
+  },
+  madeByLink: {
+    fontFamily: GameFonts.body,
+    color: '#1565D8',
+    textDecorationLine: 'underline',
+  },
   skinBank: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: GameColors.xpGold,
+    // Same gold and outline as the header's coin pill, with square-ish corners.
     borderRadius: 18,
-    borderWidth: 2.5,
-    borderColor: GameColors.ink,
+    borderWidth: 2,
+    borderColor: '#E6A800',
     paddingHorizontal: 16,
     paddingVertical: 12,
     marginBottom: 12,
@@ -1127,89 +1236,141 @@ export const styles = StyleSheet.create({
     color: GameColors.ink,
     fontVariant: ['tabular-nums'],
   },
-  skinRow: {
+  skinGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 16,
+    // Room for the equipped card's border and glow under the scroll edge.
+    paddingTop: 6,
+  },
+  skinCard: {
+    width: '47.5%',
+    alignItems: 'center',
+    gap: 8,
+    paddingTop: 20,
+    paddingBottom: 18,
+    paddingHorizontal: 10,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.8)',
+  },
+  skinCardEquipped: {
+    borderWidth: 3,
+    borderColor: '#14CDE0',
+    shadowColor: '#14CDE0',
+    shadowOpacity: 0.55,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  skinArt: {
+    width: 46,
+    height: 116,
+  },
+  // Drawn stand-in, sized and rimmed like the capsule art.
+  skinCapsule: {
+    marginVertical: 4,
+    width: 36,
+    height: 108,
+    borderRadius: 18,
+    borderWidth: 3.5,
+    borderColor: '#1F2550',
+    overflow: 'hidden',
+  },
+  skinCapsuleLiquid: {
+    ...StyleSheet.absoluteFill,
+  },
+  skinCapsuleShine: {
+    position: 'absolute',
+    top: 10,
+    left: 6,
+    width: 6,
+    height: 26,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.55)',
+  },
+  skinCapsuleRing: {
+    position: 'absolute',
+    top: 48,
+    left: -1,
+    right: -1,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: '#1F2550',
+    backgroundColor: '#F4F6FB',
+  },
+  skinName: {
+    marginTop: 4,
+    fontFamily: GameFonts.display,
+    fontSize: 24,
+    lineHeight: 28,
+    color: GameColors.ink,
+  },
+  skinBlurb: {
+    fontFamily: GameFonts.soft,
+    fontSize: 14,
+    lineHeight: 18,
+    color: '#4A5878',
+  },
+  skinBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    gap: 12,
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 999,
   },
-  skinSwatchShell: {
-    width: 44,
-    height: 64,
-    borderRadius: 14,
-    borderWidth: 2.5,
-    borderColor: GameColors.ink,
-    padding: 3,
-    justifyContent: 'center',
-    alignItems: 'center',
+  skinBadgeEquipped: {
+    backgroundColor: '#12B9D6',
   },
-  skinSwatch: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 9,
-    borderWidth: 2,
+  skinBadgeEquip: {
+    backgroundColor: GameColors.white,
+    borderWidth: 1.5,
+    borderColor: '#B7D8F0',
   },
-  skinAction: {
-    minWidth: 88,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 12,
-    borderWidth: 2.5,
-    borderColor: GameColors.ink,
-    alignItems: 'center',
-  },
-  skinActionEquipped: {
-    backgroundColor: GameColors.xpGold,
-  },
-  skinActionEquip: {
-    backgroundColor: GameColors.playBlue,
-  },
-  skinActionUnlock: {
+  skinBadgeUnlock: {
     backgroundColor: GameColors.bubble,
   },
-  skinActionLocked: {
-    backgroundColor: '#D1D5DB',
-  },
-  skinActionText: {
+  skinBadgeText: {
     fontFamily: GameFonts.body,
-    fontSize: 13,
-    lineHeight: 16,
+    fontSize: 15,
+    lineHeight: 19,
     color: GameColors.ink,
-    letterSpacing: 0.4,
   },
-  skinActionTextLocked: {
-    color: GameColors.panelInk,
+  skinBadgeTextEquipped: {
+    color: GameColors.white,
   },
-  skinNameRow: {
+  skinPrice: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  skinPriceTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 5,
-    borderWidth: 1.25,
-    borderColor: GameColors.ink,
-    backgroundColor: GameColors.xpGold,
-  },
-  skinPriceTagOwned: {
-    backgroundColor: GameColors.white,
+    gap: 6,
+    paddingLeft: 5,
+    paddingRight: 12,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,200,0,0.32)',
   },
   skinPriceCoin: {
-    width: 11,
-    height: 11,
+    width: 24,
+    height: 24,
   },
-  skinPriceTagText: {
-    fontFamily: GameFonts.body,
-    fontSize: 11,
-    lineHeight: 13,
+  skinPriceText: {
+    fontFamily: GameFonts.display,
+    fontSize: 17,
+    lineHeight: 21,
     color: GameColors.ink,
-    letterSpacing: 0.2,
+  },
+  skinShort: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  skinShortText: {
+    flexShrink: 1,
+    fontFamily: GameFonts.soft,
+    fontSize: 13,
+    lineHeight: 17,
+    color: '#6B7A99',
   },
 });

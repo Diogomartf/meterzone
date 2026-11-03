@@ -4,22 +4,22 @@
   "entries": [
     {
       "fileId": "879f3a5f954ee8b75bf1e91f4ea9916b41c933e5beba7eb6362647a637c9c66d",
-      "versionId": "595a91d8dfb642cd5e1ba8b9f48ca641cdb2c691bc65ff2cc1c300415576f7b5",
+      "versionId": "facc4e5f6672d719a875f2e451d3636284021de3d80f2dc4d0583ac10a13dfd0",
       "translations": {
-        "pt-PT": {
-          "updatedAt": "2026-10-30T20:10:45.771Z",
-          "fileName": "src/_gt/pt-PT.json",
-          "postProcessHash": "544f65dd6ed955a5bceae456ba14227583d4ba7ce796bf460d9325e23b61bc87"
+        "pt": {
+          "updatedAt": "2026-11-03T16:50:16.755Z",
+          "fileName": "src/_gt/pt.json",
+          "postProcessHash": "8a6edcac006b6a8af52faf64ba29dca3ac5830637348ffeeca1940ecd54e249e"
         },
         "es": {
-          "updatedAt": "2026-10-30T20:10:45.774Z",
+          "updatedAt": "2026-11-03T16:50:16.759Z",
           "fileName": "src/_gt/es.json",
-          "postProcessHash": "33b06c9cb59fe136f4c31dcc23edd706569edb8bdc99626bd4119feb6a3d2163"
+          "postProcessHash": "f3b8474d142540d11a94ad0b4deb2f808aec593309f5b12c629d77486b4e9599"
         },
-        "pt": {
-          "updatedAt": "2026-10-30T20:10:45.776Z",
-          "fileName": "src/_gt/pt.json",
-          "postProcessHash": "61c85f1f43b8a03cfb384407a4555c9b8d2680e7291c8661047e225cdda67159"
+        "pt-PT": {
+          "updatedAt": "2026-11-03T16:50:16.760Z",
+          "fileName": "src/_gt/pt-PT.json",
+          "postProcessHash": "1b927c51eaa133762686858abde9f792ad185f4a2793b4642f57c44cce6ca1a7"
         }
       },
       "fileName": "__INTERNAL_GT_TEMPLATE_NAME__"

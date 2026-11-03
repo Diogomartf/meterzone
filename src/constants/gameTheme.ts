@@ -42,6 +42,8 @@ export const Gradients = {
   sky: [GameColors.skyTop, GameColors.skyMid, GameColors.skyBottom] as const,
   skyStops: [0, 0.55, 1] as const,
   playZone: [GameColors.playZone, GameColors.playZoneDeep] as const,
+  /** Coin balances (menu header pill, shop bank): bright to deep gold. */
+  coinGold: ['#FFDD55', '#FFC414'] as const,
   playZoneStops: [0, 1] as const,
   zone: [
     '#123A78',

@@ -1,8 +1,10 @@
 import Constants from 'expo-constants';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { startTransition, useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  Linking,
   Modal,
   Pressable,
   ScrollView,
@@ -24,9 +26,10 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useGT, useLocaleSelector, useMessages } from 'gt-react-native';
 
-import { GameColors } from '@/constants/gameTheme';
+import { GameColors, Gradients } from '@/constants/gameTheme';
 import {
   ActionRow,
+  MenuTile,
   RecordCard,
   TodayStrip,
   ModeRow,
@@ -38,8 +41,10 @@ import {
 import { AvatarPicker } from '@/game/AvatarPicker';
 import { FlatButton } from '@/game/FlatButton';
 import { HowToPlay } from '@/game/HowToPlay';
+import { PlayModeSheet } from '@/game/PlayModeSheet';
 import { styles } from '@/game/menuSheetStyles';
 import { rankingAvailable } from '@/game/ranking';
+import { MARKETING_URL } from '@/game/review';
 import { RankingScreen } from '@/game/RankingScreen';
 import { CoinBank, SkinShop } from '@/game/SkinShop';
 import { captureAndShare, shareScoreCaption } from '@/game/share';
@@ -52,6 +57,18 @@ import gtConfig from '../../gt.config.json';
 const LOGO = require('../../assets/images/zone-meter-logo.webp');
 const COIN = require('../../assets/images/coin.webp');
 const CROWN = require('../../assets/images/hof-crown.webp');
+const PLAY_MODE_ART = require('../../assets/images/menu-play-mode.webp');
+const CROWN_ART = require('../../assets/images/crown.webp');
+const RANKING_ART = require('../../assets/images/menu-ranking.webp');
+const SKINS_ART = require('../../assets/images/menu-skins.webp');
+
+/** Top-to-bottom washes for the menu root's tiles. */
+const TILE_TINTS = {
+  blue: ['#DDF0FF', '#C6E5FC'],
+  gold: ['#FFF5D6', '#FFE9AE'],
+  lavender: ['#ECEBFF', '#DCDCFB'],
+  mint: ['#DDF8F0', '#C3F0E3'],
+} as const;
 const MEDAL = require('../../assets/images/hof-medal.webp');
 
 const BACK_ICON = {
@@ -60,6 +77,50 @@ const BACK_ICON = {
   web: 'chevron_left',
 } as const;
 const CLOSE_ICON = { ios: 'xmark', android: 'close', web: 'close' } as const;
+const HOME_ICON = { ios: 'house', android: 'home', web: 'home' } as const;
+const SETTINGS_ICON = {
+  ios: 'gearshape',
+  android: 'settings',
+  web: 'settings',
+} as const;
+const HELP_ICON = {
+  ios: 'questionmark.circle',
+  android: 'help',
+  web: 'help',
+} as const;
+const SOUND_ICON = {
+  ios: 'speaker.wave.2',
+  android: 'volume_up',
+  web: 'volume_up',
+} as const;
+const TAP_ICON = {
+  ios: 'hand.tap',
+  android: 'touch_app',
+  web: 'touch_app',
+} as const;
+const HAPTICS_ICON = {
+  ios: 'iphone.radiowaves.left.and.right',
+  android: 'vibration',
+  web: 'vibration',
+} as const;
+const GLOBE_ICON = {
+  ios: 'globe',
+  android: 'language',
+  web: 'language',
+} as const;
+const PRIVACY_ICON = {
+  ios: 'checkmark.shield',
+  android: 'verified_user',
+  web: 'verified_user',
+} as const;
+const DELETE_ICON = { ios: 'trash', android: 'delete', web: 'delete' } as const;
+const PRIVACY_URL = `${MARKETING_URL}privacy/`;
+const AUTHOR_URL = 'https://diogo.xyz';
+const FEEDBACK_ICON = {
+  ios: 'envelope',
+  android: 'mail',
+  web: 'mail',
+} as const;
 
 /**
  * Display order for the picker. `useLocaleSelector` otherwise sorts locales
@@ -70,7 +131,6 @@ const LOCALE_ORDER = [gtConfig.defaultLocale, ...gtConfig.locales];
 
 type MenuView =
   | 'menu'
-  | 'mode'
   | 'highscores'
   | 'ranking'
   | 'howto'
@@ -166,6 +226,7 @@ export function MenuSheet({
   const bodyX = useSharedValue(0);
   const [view, setView] = useState<MenuView>('menu');
   const [shopTab, setShopTab] = useState<'skins' | 'avatar'>('skins');
+  const [modeSheetOpen, setModeSheetOpen] = useState(false);
 
   const [sharingKind, setSharingKind] = useState<HighscoreKind | null>(null);
   const normalShareRef = useRef<View>(null);
@@ -181,6 +242,7 @@ export function MenuSheet({
   if (visible !== wasVisible) {
     setWasVisible(visible);
     if (visible) setView(initialView);
+    else setModeSheetOpen(false);
   }
 
   useEffect(() => {
@@ -244,19 +306,17 @@ export function MenuSheet({
   const title =
     view === 'menu'
       ? gt('MENU')
-      : view === 'mode'
-        ? gt('PLAY MODE')
-        : view === 'highscores'
-          ? gt('HALL OF FAME')
-          : view === 'ranking'
-            ? gt('RANKING')
-            : view === 'howto'
-              ? gt('HOW TO PLAY')
-              : view === 'language'
-                ? gt('LANGUAGE')
-                : view === 'skins'
-                  ? gt('AVATAR & SKINS')
-                  : gt('SETTINGS');
+      : view === 'highscores'
+        ? gt('HALL OF FAME')
+        : view === 'ranking'
+          ? gt('RANKING')
+          : view === 'howto'
+            ? gt('HOW TO PLAY')
+            : view === 'language'
+              ? gt('LANGUAGE')
+              : view === 'skins'
+                ? gt('AVATAR & SKINS')
+                : gt('SETTINGS');
 
   const formatDay = (iso: string) =>
     new Date(iso + 'T12:00:00').toLocaleDateString(locale, {
@@ -370,7 +430,13 @@ export function MenuSheet({
       visible={visible}
       transparent
       animationType="none"
-      onRequestClose={view === 'menu' ? dismiss : () => setView('menu')}
+      onRequestClose={
+        modeSheetOpen
+          ? () => setModeSheetOpen(false)
+          : view === 'menu'
+            ? dismiss
+            : () => setView('menu')
+      }
       statusBarTranslucent
     >
       <GestureHandlerRootView style={styles.overlayRoot}>
@@ -398,6 +464,7 @@ export function MenuSheet({
                 <View style={styles.header}>
                   {view !== 'menu' ? (
                     <FlatButton
+                      tone="soft"
                       onPress={() => setView('menu')}
                       icon={BACK_ICON}
                       hitSlop={10}
@@ -413,34 +480,50 @@ export function MenuSheet({
                     <View style={styles.coinPillSlot} pointerEvents="box-none">
                       <Pressable
                         onPress={() => setView('skins')}
-                        style={({ pressed }) => [
-                          styles.coinPill,
-                          pressed && styles.closeBtnPressed,
-                        ]}
+                        style={({ pressed }) =>
+                          pressed ? styles.closeBtnPressed : undefined
+                        }
                         hitSlop={6}
                         accessibilityRole="button"
                         accessibilityLabel={gt('{count} coins', {
                           count: formatScore(coins),
                         })}
                       >
-                        <Image
-                          source={COIN}
-                          style={styles.coinPillIcon}
-                          contentFit="contain"
-                        />
-                        <Text style={styles.coinPillText}>
-                          {formatScore(coins)}
-                        </Text>
+                        <LinearGradient
+                          colors={Gradients.coinGold}
+                          style={styles.coinPill}
+                        >
+                          <Image
+                            source={COIN}
+                            style={styles.coinPillIcon}
+                            contentFit="contain"
+                          />
+                          <Text style={styles.coinPillText}>
+                            {formatScore(coins)}
+                          </Text>
+                        </LinearGradient>
                       </Pressable>
                     </View>
                   ) : null}
                   {view === 'menu' ? (
-                    <FlatButton
-                      onPress={dismiss}
-                      icon={CLOSE_ICON}
-                      hitSlop={10}
-                      accessibilityLabel={gt('Close')}
-                    />
+                    <View style={styles.headerActions}>
+                      {canGoBack ? (
+                        <FlatButton
+                          tone="soft"
+                          onPress={onGoBack}
+                          icon={HOME_ICON}
+                          hitSlop={6}
+                          accessibilityLabel={gt('Go home')}
+                        />
+                      ) : null}
+                      <FlatButton
+                        tone="soft"
+                        onPress={dismiss}
+                        icon={CLOSE_ICON}
+                        hitSlop={6}
+                        accessibilityLabel={gt('Close')}
+                      />
+                    </View>
                   ) : null}
                 </View>
               </View>
@@ -460,70 +543,78 @@ export function MenuSheet({
                     nestedScrollEnabled
                     keyboardShouldPersistTaps="handled"
                   >
-                    <SupportCard />
-
-                    {canGoBack ? (
-                      <FlatButton
-                        tone="blue"
-                        onPress={onGoBack}
-                        label={gt('GO HOME')}
-                        accessibilityLabel={gt('Go home')}
-                      />
-                    ) : null}
-
-                    <View style={styles.card}>
-                      <ActionRow
+                    <View style={styles.tiles}>
+                      <MenuTile
                         label={gt('Play mode')}
                         subtitle={
                           dailyMode ? gt('Daily challenge') : gt('Normal run')
                         }
-                        onPress={() => setView('mode')}
+                        art={PLAY_MODE_ART}
+                        artStyle={styles.tileArtPlayMode}
+                        tint={TILE_TINTS.blue}
+                        onPress={() => setModeSheetOpen(true)}
                       />
-                      <View style={styles.divider} />
-                      <ActionRow
+                      <MenuTile
                         label={gt('Hall of fame')}
-                        subtitle={gt('Normal, today & best daily')}
+                        subtitle={gt('Your personal records')}
+                        art={CROWN_ART}
+                        artStyle={styles.tileArtCrown}
+                        tint={TILE_TINTS.gold}
                         onPress={() => setView('highscores')}
                       />
                       {rankingAvailable ? (
-                        <>
-                          <View style={styles.divider} />
-                          <ActionRow
-                            label={gt('Ranking')}
-                            subtitle={gt('Compete with players worldwide')}
-                            onPress={() => setView('ranking')}
-                          />
-                        </>
+                        <MenuTile
+                          label={gt('Ranking')}
+                          subtitle={gt('Compete worldwide')}
+                          art={RANKING_ART}
+                          artStyle={styles.tileArtRanking}
+                          tint={TILE_TINTS.lavender}
+                          onPress={() => setView('ranking')}
+                        />
                       ) : null}
-                      <View style={styles.divider} />
-                      <ActionRow
+                      <MenuTile
                         label={gt('Avatar & skins')}
-                        subtitle={gt('{count} coins', {
-                          count: formatScore(coins),
-                        })}
+                        subtitle={gt('Make it yours')}
+                        art={SKINS_ART}
+                        artStyle={styles.tileArtSkins}
+                        tint={TILE_TINTS.mint}
                         onPress={() => setView('skins')}
                       />
-                      <View style={styles.divider} />
+                    </View>
+
+                    <View style={styles.linkCard}>
                       <ActionRow
+                        icon={SETTINGS_ICON}
                         label={gt('Settings')}
-                        subtitle={gt('Sound, haptics & language')}
                         onPress={() => setView('settings')}
                       />
                       <View style={styles.divider} />
                       <ActionRow
+                        icon={HELP_ICON}
                         label={gt('How to play')}
-                        subtitle={gt('Goal, modes & skins')}
                         onPress={() => setView('howto')}
                       />
                       <View style={styles.divider} />
                       <ActionRow
+                        icon={FEEDBACK_ICON}
                         label={gt('Send feedback')}
-                        subtitle={gt('Ideas, bugs, or love notes')}
                         onPress={onSendFeedback}
                       />
                     </View>
 
+                    <SupportCard />
+
                     <Text style={styles.version}>MeterZone · v{version}</Text>
+                    <Text style={styles.madeBy}>
+                      {gt('Made by')}{' '}
+                      <Text
+                        style={styles.madeByLink}
+                        onPress={() => void Linking.openURL(AUTHOR_URL)}
+                        accessibilityRole="link"
+                      >
+                        Diogo
+                      </Text>
+                    </Text>
                   </ScrollView>
                 ) : null}
 
@@ -534,26 +625,6 @@ export function MenuSheet({
                     dailyTodayScore={dailyTodayScore}
                     onPlay={(kind) => onStartMode(kind === 'daily')}
                   />
-                ) : null}
-
-                {view === 'mode' ? (
-                  <View style={styles.card}>
-                    <ModeRow
-                      label={gt('Normal')}
-                      subtitle={gt('Classic endless run')}
-                      selected={!dailyMode}
-                      onPress={() => onStartMode(false)}
-                    />
-                    <View style={styles.divider} />
-                    <ModeRow
-                      label={gt('Daily')}
-                      subtitle={gt(
-                        'Same sequence for everyone · updates daily',
-                      )}
-                      selected={dailyMode}
-                      onPress={() => onStartMode(true)}
-                    />
-                  </View>
                 ) : null}
 
                 {view === 'highscores' ? (
@@ -735,41 +806,62 @@ export function MenuSheet({
                     nestedScrollEnabled
                     keyboardShouldPersistTaps="handled"
                   >
-                    <View style={styles.card}>
+                    <Text style={styles.sectionLabel}>
+                      {gt('AUDIO & FEEDBACK')}
+                    </Text>
+                    <View style={styles.linkCard}>
                       <ToggleRow
-                        label={gt('Sound')}
-                        subtitle={gt('Effects & countdown ticks')}
+                        icon={SOUND_ICON}
+                        label={gt('Sound effects')}
                         value={soundOn}
                         onPress={onToggleSound}
                       />
                       <View style={styles.divider} />
                       <ToggleRow
+                        icon={TAP_ICON}
                         label={gt('Button sounds')}
-                        subtitle={gt('A click on the big buttons')}
                         value={buttonSoundsOn}
                         onPress={onToggleButtonSounds}
                       />
                       <View style={styles.divider} />
                       <ToggleRow
+                        icon={HAPTICS_ICON}
                         label={gt('Haptics')}
-                        subtitle={gt('Vibration on taps & results')}
                         value={hapticsOn}
                         onPress={onToggleHaptics}
                       />
                     </View>
 
-                    <View style={styles.card}>
+                    <Text style={styles.sectionLabel}>{gt('LANGUAGE')}</Text>
+                    <View style={styles.linkCard}>
                       <ActionRow
-                        label={gt('Language')}
-                        subtitle={currentLanguageName}
+                        icon={GLOBE_ICON}
+                        label={gt('App language')}
+                        value={currentLanguageName}
                         onPress={() => setView('language')}
                       />
                     </View>
 
-                    <View style={styles.card}>
+                    <Text style={styles.sectionLabel}>{gt('ABOUT')}</Text>
+                    <View style={styles.linkCard}>
                       <ActionRow
+                        icon={PRIVACY_ICON}
+                        label={gt('Privacy policy')}
+                        external
+                        onPress={() => void Linking.openURL(PRIVACY_URL)}
+                      />
+                      <View style={styles.divider} />
+                      <ActionRow
+                        icon={FEEDBACK_ICON}
+                        label={gt('Contact us')}
+                        onPress={onSendFeedback}
+                      />
+                    </View>
+
+                    <View style={styles.linkCard}>
+                      <ActionRow
+                        icon={DELETE_ICON}
                         label={gt('Delete data')}
-                        subtitle={gt('High score, progress & unlocks')}
                         onPress={confirmDeleteData}
                         destructive
                       />
@@ -780,6 +872,13 @@ export function MenuSheet({
             </GestureDetector>
           </Animated.View>
         </View>
+        {modeSheetOpen ? (
+          <PlayModeSheet
+            daily={dailyMode}
+            onPlay={onStartMode}
+            onClose={() => setModeSheetOpen(false)}
+          />
+        ) : null}
       </GestureHandlerRootView>
     </Modal>
   );
