@@ -40,49 +40,39 @@ const SHARE_ICON = {
 /** Shared presentational rows and cards used across the menu's views. */
 export type HighscoreKind = 'normal' | 'today' | 'record';
 
+const EXTERNAL_ICON = {
+  ios: 'arrow.up.right.square',
+  android: 'open_in_new',
+  web: 'open_in_new',
+} as const;
+
+/** Line icon in a fixed-width slot, so every row's label starts in line. */
+function RowIcon({
+  name,
+  color = GameColors.ink,
+}: {
+  name: SymbolViewProps['name'];
+  color?: string;
+}) {
+  return (
+    <View style={styles.rowIcon}>
+      <SymbolView name={name} size={24} tintColor={color} weight="semibold" />
+    </View>
+  );
+}
+
 export function ToggleRow({
   label,
   subtitle,
+  icon,
   value,
   onPress,
 }: {
   label: string;
-  subtitle: string;
+  subtitle?: string;
+  icon?: SymbolViewProps['name'];
   value: boolean;
   onPress: () => void;
-}) {
-  const gt = useGT();
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-      accessibilityRole="switch"
-      accessibilityState={{ checked: value }}
-    >
-      <View style={styles.rowText}>
-        <Text style={styles.rowLabel}>{label}</Text>
-        <Text style={styles.rowSub}>{subtitle}</Text>
-      </View>
-      <View style={[styles.toggle, value ? styles.toggleOn : styles.toggleOff]}>
-        <Text style={styles.toggleText}>{value ? gt('ON') : gt('OFF')}</Text>
-      </View>
-    </Pressable>
-  );
-}
-
-export function ActionRow({
-  label,
-  subtitle,
-  icon,
-  onPress,
-  destructive,
-}: {
-  label: string;
-  subtitle?: string;
-  /** Line icon before the label, for the compact links on the menu root. */
-  icon?: SymbolViewProps['name'];
-  onPress: () => void;
-  destructive?: boolean;
 }) {
   return (
     <Pressable
@@ -92,25 +82,78 @@ export function ActionRow({
         icon != null && styles.rowCompact,
         pressed && styles.rowPressed,
       ]}
-      accessibilityRole="button"
+      accessibilityRole="switch"
+      accessibilityLabel={label}
+      accessibilityState={{ checked: value }}
     >
-      {icon != null ? (
-        <SymbolView
-          name={icon}
-          size={26}
-          tintColor={GameColors.ink}
-          weight="semibold"
-        />
-      ) : null}
+      {icon != null ? <RowIcon name={icon} /> : null}
+      <View style={styles.rowText}>
+        <Text style={styles.rowLabel}>{label}</Text>
+        {subtitle ? <Text style={styles.rowSub}>{subtitle}</Text> : null}
+      </View>
+      <View style={[styles.switch, value ? styles.switchOn : styles.switchOff]}>
+        <View style={[styles.switchKnob, value && styles.switchKnobOn]} />
+      </View>
+    </Pressable>
+  );
+}
+
+export function ActionRow({
+  label,
+  subtitle,
+  icon,
+  value,
+  external,
+  onPress,
+  destructive,
+}: {
+  label: string;
+  subtitle?: string;
+  /** Line icon before the label, for the compact rows on the menu and settings. */
+  icon?: SymbolViewProps['name'];
+  /** Current setting, shown before the chevron (the app language). */
+  value?: string;
+  /** Opens outside the app: an external-link mark replaces the chevron. */
+  external?: boolean;
+  onPress: () => void;
+  destructive?: boolean;
+}) {
+  const ink = destructive ? GameColors.scoreBad : GameColors.ink;
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.row,
+        icon != null && styles.rowCompact,
+        pressed && styles.rowPressed,
+      ]}
+      accessibilityRole={external ? 'link' : 'button'}
+      accessibilityLabel={value ? `${label}, ${value}` : label}
+    >
+      {icon != null ? <RowIcon name={icon} color={ink} /> : null}
       <View style={styles.rowText}>
         <Text style={[styles.rowLabel, destructive && styles.rowLabelDanger]}>
           {label}
         </Text>
         {subtitle ? <Text style={styles.rowSub}>{subtitle}</Text> : null}
       </View>
-      <Text style={[styles.chevron, destructive && styles.rowLabelDanger]}>
-        ›
-      </Text>
+      {value ? (
+        <Text style={styles.rowValue} numberOfLines={1}>
+          {value}
+        </Text>
+      ) : null}
+      {external ? (
+        <SymbolView
+          name={EXTERNAL_ICON}
+          size={20}
+          tintColor={ink}
+          weight="semibold"
+        />
+      ) : (
+        <Text style={[styles.chevron, destructive && styles.rowLabelDanger]}>
+          ›
+        </Text>
+      )}
     </Pressable>
   );
 }

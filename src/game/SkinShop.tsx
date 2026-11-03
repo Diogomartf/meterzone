@@ -1,9 +1,10 @@
 import { Image } from 'expo-image';
+import { SymbolView } from 'expo-symbols';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { msg, useGT, useMessages } from 'gt-react-native';
 
-import { Gradients } from '@/constants/gameTheme';
+import { GameColors, Gradients } from '@/constants/gameTheme';
 import { formatScore } from '@/game/format';
 import { styles } from '@/game/menuSheetStyles';
 import {
@@ -32,12 +33,27 @@ const SKIN_BLURB: Record<SkinId, string> = {
   gold: msg('Champion shine'),
 };
 
-const ACTION_LABEL: Record<SkinAction, string> = {
-  equipped: msg('EQUIPPED'),
-  equip: msg('EQUIP'),
-  unlock: msg('UNLOCK'),
-  locked: msg('LOCKED'),
+/** Capsule art per skin. Toxic has none yet, so it's drawn from its colours. */
+const SKIN_ART: Partial<Record<SkinId, number>> = {
+  lava: require('../../assets/images/skin-lava.webp'),
+  ice: require('../../assets/images/skin-ice.webp'),
+  gold: require('../../assets/images/skin-gold.webp'),
 };
+
+/** Each card's wash, a pale take on the skin's own colour. */
+const SKIN_TINT: Record<SkinId, string> = {
+  toxic: '#E3F8EC',
+  lava: '#FFE8E0',
+  ice: '#E2F0FC',
+  gold: '#FFF2DA',
+};
+
+const CHECK_ICON = {
+  ios: 'checkmark',
+  android: 'check',
+  web: 'check',
+} as const;
+const LOCK_ICON = { ios: 'lock.fill', android: 'lock', web: 'lock' } as const;
 
 type SkinShopProps = {
   coins: number;
@@ -47,28 +63,42 @@ type SkinShopProps = {
   onEquip: (id: SkinId) => void;
 };
 
-function actionStyle(action: SkinAction) {
-  if (action === 'equipped') return styles.skinActionEquipped;
-  if (action === 'equip') return styles.skinActionEquip;
-  if (action === 'unlock') return styles.skinActionUnlock;
-  return styles.skinActionLocked;
-}
-
-function PriceTag({ cost, owned }: { cost: number; owned: boolean }) {
+function PriceTag({ cost }: { cost: number }) {
   const gt = useGT();
-  if (cost <= 0) return null;
   return (
     <View
-      style={[styles.skinPriceTag, owned && styles.skinPriceTagOwned]}
+      style={styles.skinPrice}
       accessibilityLabel={gt('{cost} coins', { cost })}
     >
       <Image source={COIN} style={styles.skinPriceCoin} contentFit="contain" />
-      <Text style={styles.skinPriceTagText}>{formatScore(cost)}</Text>
+      <Text style={styles.skinPriceText}>{formatScore(cost)}</Text>
     </View>
   );
 }
 
-function SkinRow({
+/** Stand-in capsule for a skin without art: its liquid in an ink-rimmed pill. */
+function DrawnCapsule({ skin }: { skin: SkinDef }) {
+  return (
+    <View style={styles.skinCapsule}>
+      <LinearGradient
+        // Skip the foam colour so it reads as liquid top to bottom.
+        colors={[
+          skin.liquid[1],
+          skin.liquid[2],
+          skin.liquid[3],
+          skin.liquid[4],
+        ]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={styles.skinCapsuleLiquid}
+      />
+      <View style={styles.skinCapsuleShine} />
+      <View style={styles.skinCapsuleRing} />
+    </View>
+  );
+}
+
+function SkinCard({
   skin,
   action,
   coins,
@@ -86,6 +116,7 @@ function SkinRow({
   const lockedShort = Math.max(0, skin.cost - coins);
   const name = m(SKIN_NAME[skin.id]);
   const pressable = action === 'equip' || action === 'unlock';
+  const art = SKIN_ART[skin.id];
 
   const onPress = () => {
     if (action === 'equip') onEquip(skin.id);
@@ -97,8 +128,10 @@ function SkinRow({
       onPress={onPress}
       disabled={!pressable}
       style={({ pressed }) => [
-        styles.skinRow,
-        pressed && pressable && styles.rowPressed,
+        styles.skinCard,
+        { backgroundColor: SKIN_TINT[skin.id] },
+        action === 'equipped' && styles.skinCardEquipped,
+        pressed && pressable && styles.tilePressed,
       ]}
       accessibilityRole="button"
       accessibilityState={{
@@ -125,45 +158,66 @@ function SkinRow({
                 )
       }
     >
-      <View
-        style={[styles.skinSwatchShell, { backgroundColor: skin.shellDark }]}
-      >
-        <LinearGradient
-          colors={[...skin.liquid]}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={[styles.skinSwatch, { borderColor: skin.shell }]}
-        />
-      </View>
-      <View style={styles.rowText}>
-        <View style={styles.skinNameRow}>
-          <Text style={styles.rowLabel}>{name}</Text>
-          <PriceTag
-            cost={skin.cost}
-            owned={action === 'equipped' || action === 'equip'}
-          />
-        </View>
-        <Text style={styles.rowSub}>
-          {action === 'locked'
-            ? gt('Need {count} more', { count: lockedShort })
-            : m(SKIN_BLURB[skin.id])}
-        </Text>
-      </View>
-      <View style={[styles.skinAction, actionStyle(action)]}>
-        <Text
-          style={[
-            styles.skinActionText,
-            action === 'locked' && styles.skinActionTextLocked,
-          ]}
-        >
-          {m(ACTION_LABEL[action])}
-        </Text>
-      </View>
+      {art != null ? (
+        <Image source={art} style={styles.skinArt} contentFit="contain" />
+      ) : (
+        <DrawnCapsule skin={skin} />
+      )}
+      <Text style={styles.skinName} numberOfLines={1}>
+        {name}
+      </Text>
+
+      {action === 'equipped' || action === 'equip' ? (
+        <>
+          <Text style={styles.skinBlurb} numberOfLines={1}>
+            {m(SKIN_BLURB[skin.id])}
+          </Text>
+          {action === 'equipped' ? (
+            <View style={[styles.skinBadge, styles.skinBadgeEquipped]}>
+              <SymbolView
+                name={CHECK_ICON}
+                size={15}
+                tintColor={GameColors.white}
+                weight="heavy"
+              />
+              <Text
+                style={[styles.skinBadgeText, styles.skinBadgeTextEquipped]}
+              >
+                {gt('Equipped')}
+              </Text>
+            </View>
+          ) : (
+            <View style={[styles.skinBadge, styles.skinBadgeEquip]}>
+              <Text style={styles.skinBadgeText}>{gt('Equip')}</Text>
+            </View>
+          )}
+        </>
+      ) : (
+        <>
+          <PriceTag cost={skin.cost} />
+          {action === 'unlock' ? (
+            <View style={[styles.skinBadge, styles.skinBadgeUnlock]}>
+              <Text style={styles.skinBadgeText}>{gt('Unlock')}</Text>
+            </View>
+          ) : (
+            <View style={styles.skinShort}>
+              <SymbolView
+                name={LOCK_ICON}
+                size={13}
+                tintColor="#6B7A99"
+                weight="bold"
+              />
+              <Text style={styles.skinShortText} numberOfLines={1}>
+                {gt('{count} more coins', { count: formatScore(lockedShort) })}
+              </Text>
+            </View>
+          )}
+        </>
+      )}
     </Pressable>
   );
 }
 
-/** The coin balance above the Skins | Avatar tabs, shared by both. */
 export function CoinBank({ coins }: { coins: number }) {
   const gt = useGT();
   return (
@@ -208,20 +262,18 @@ export function SkinShop({
       nestedScrollEnabled
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.card}>
-        {SKIN_IDS.map((id, i) => {
+      <View style={styles.skinGrid}>
+        {SKIN_IDS.map((id) => {
           const skin = SKINS[id];
           return (
-            <View key={id}>
-              {i > 0 ? <View style={styles.divider} /> : null}
-              <SkinRow
-                skin={skin}
-                action={skinAction(skin, equippedSkin, unlockedSkins, coins)}
-                coins={coins}
-                onUnlock={onUnlock}
-                onEquip={onEquip}
-              />
-            </View>
+            <SkinCard
+              key={id}
+              skin={skin}
+              action={skinAction(skin, equippedSkin, unlockedSkins, coins)}
+              coins={coins}
+              onUnlock={onUnlock}
+              onEquip={onEquip}
+            />
           );
         })}
       </View>

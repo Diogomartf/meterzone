@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { startTransition, useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  Linking,
   Modal,
   Pressable,
   ScrollView,
@@ -43,6 +44,7 @@ import { HowToPlay } from '@/game/HowToPlay';
 import { PlayModeSheet } from '@/game/PlayModeSheet';
 import { styles } from '@/game/menuSheetStyles';
 import { rankingAvailable } from '@/game/ranking';
+import { MARKETING_URL } from '@/game/review';
 import { RankingScreen } from '@/game/RankingScreen';
 import { CoinBank, SkinShop } from '@/game/SkinShop';
 import { captureAndShare, shareScoreCaption } from '@/game/share';
@@ -86,6 +88,34 @@ const HELP_ICON = {
   android: 'help',
   web: 'help',
 } as const;
+const SOUND_ICON = {
+  ios: 'speaker.wave.2',
+  android: 'volume_up',
+  web: 'volume_up',
+} as const;
+const TAP_ICON = {
+  ios: 'hand.tap',
+  android: 'touch_app',
+  web: 'touch_app',
+} as const;
+const HAPTICS_ICON = {
+  ios: 'iphone.radiowaves.left.and.right',
+  android: 'vibration',
+  web: 'vibration',
+} as const;
+const GLOBE_ICON = {
+  ios: 'globe',
+  android: 'language',
+  web: 'language',
+} as const;
+const PRIVACY_ICON = {
+  ios: 'checkmark.shield',
+  android: 'verified_user',
+  web: 'verified_user',
+} as const;
+const DELETE_ICON = { ios: 'trash', android: 'delete', web: 'delete' } as const;
+const PRIVACY_URL = `${MARKETING_URL}privacy/`;
+const AUTHOR_URL = 'https://diogo.xyz';
 const FEEDBACK_ICON = {
   ios: 'envelope',
   android: 'mail',
@@ -575,6 +605,16 @@ export function MenuSheet({
                     <SupportCard />
 
                     <Text style={styles.version}>MeterZone · v{version}</Text>
+                    <Text style={styles.madeBy}>
+                      {gt('Made by')}{' '}
+                      <Text
+                        style={styles.madeByLink}
+                        onPress={() => void Linking.openURL(AUTHOR_URL)}
+                        accessibilityRole="link"
+                      >
+                        Diogo
+                      </Text>
+                    </Text>
                   </ScrollView>
                 ) : null}
 
@@ -766,41 +806,62 @@ export function MenuSheet({
                     nestedScrollEnabled
                     keyboardShouldPersistTaps="handled"
                   >
-                    <View style={styles.card}>
+                    <Text style={styles.sectionLabel}>
+                      {gt('AUDIO & FEEDBACK')}
+                    </Text>
+                    <View style={styles.linkCard}>
                       <ToggleRow
-                        label={gt('Sound')}
-                        subtitle={gt('Effects & countdown ticks')}
+                        icon={SOUND_ICON}
+                        label={gt('Sound effects')}
                         value={soundOn}
                         onPress={onToggleSound}
                       />
                       <View style={styles.divider} />
                       <ToggleRow
+                        icon={TAP_ICON}
                         label={gt('Button sounds')}
-                        subtitle={gt('A click on the big buttons')}
                         value={buttonSoundsOn}
                         onPress={onToggleButtonSounds}
                       />
                       <View style={styles.divider} />
                       <ToggleRow
+                        icon={HAPTICS_ICON}
                         label={gt('Haptics')}
-                        subtitle={gt('Vibration on taps & results')}
                         value={hapticsOn}
                         onPress={onToggleHaptics}
                       />
                     </View>
 
-                    <View style={styles.card}>
+                    <Text style={styles.sectionLabel}>{gt('LANGUAGE')}</Text>
+                    <View style={styles.linkCard}>
                       <ActionRow
-                        label={gt('Language')}
-                        subtitle={currentLanguageName}
+                        icon={GLOBE_ICON}
+                        label={gt('App language')}
+                        value={currentLanguageName}
                         onPress={() => setView('language')}
                       />
                     </View>
 
-                    <View style={styles.card}>
+                    <Text style={styles.sectionLabel}>{gt('ABOUT')}</Text>
+                    <View style={styles.linkCard}>
                       <ActionRow
+                        icon={PRIVACY_ICON}
+                        label={gt('Privacy policy')}
+                        external
+                        onPress={() => void Linking.openURL(PRIVACY_URL)}
+                      />
+                      <View style={styles.divider} />
+                      <ActionRow
+                        icon={FEEDBACK_ICON}
+                        label={gt('Contact us')}
+                        onPress={onSendFeedback}
+                      />
+                    </View>
+
+                    <View style={styles.linkCard}>
+                      <ActionRow
+                        icon={DELETE_ICON}
                         label={gt('Delete data')}
-                        subtitle={gt('High score, progress & unlocks')}
                         onPress={confirmDeleteData}
                         destructive
                       />
