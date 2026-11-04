@@ -9,6 +9,7 @@
  *
  * Run with `bun run sim:coins`.
  */
+/* global Bun */
 // `gt-react-native` can't load off-device; pack names only need `msg`.
 Bun.plugin({
   setup(build) {
