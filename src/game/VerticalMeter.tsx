@@ -68,10 +68,10 @@ const EYE = {
 
 /** Light from the upper left: bright left edge, darker right edge. */
 const FRAME_LIGHT = [
-  'rgba(255,255,255,0.32)',
-  'rgba(255,255,255,0.06)',
+  'rgba(255,255,255,0.38)',
+  'rgba(255,255,255,0.08)',
   'rgba(0,0,0,0)',
-  'rgba(0,0,0,0.22)',
+  'rgba(0,0,0,0.23)',
 ] as const;
 const FRAME_LIGHT_STOPS = [0, 0.28, 0.62, 1] as const;
 
@@ -177,6 +177,7 @@ function VerticalMeterComponent({
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
+        <View style={styles.pipeGloss} pointerEvents="none" />
       </View>
       <View
         style={[
@@ -196,6 +197,25 @@ function VerticalMeterComponent({
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0.15 }}
           style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
+        {/* Glossy specular streak down the frame's lit left side */}
+        <LinearGradient
+          colors={[
+            'rgba(255,255,255,0.5)',
+            'rgba(255,255,255,0.22)',
+            'rgba(255,255,255,0.05)',
+          ]}
+          locations={[0, 0.4, 1]}
+          style={[
+            styles.shellGloss,
+            {
+              left: 2 * scale,
+              width: 4.5 * scale,
+              top: 16 * scale,
+              bottom: 22 * scale,
+            },
+          ]}
           pointerEvents="none"
         />
         <View style={[styles.glass, { borderRadius: 18 * scale }]}>
@@ -320,27 +340,16 @@ function VerticalMeterComponent({
             ))}
           </View>
 
-          {/* Glass: a soft vertical streak and a short curved glint up top */}
+          {/* Glass: a soft vertical streak */}
           <LinearGradient
             colors={[
               'rgba(255,255,255,0)',
-              'rgba(255,255,255,0.2)',
-              'rgba(255,255,255,0.2)',
+              'rgba(255,255,255,0.25)',
+              'rgba(255,255,255,0.25)',
               'rgba(255,255,255,0)',
             ]}
             locations={[0, 0.2, 0.75, 1]}
             style={[styles.glassStreak, { width: 5 * scale }]}
-            pointerEvents="none"
-          />
-          <View
-            style={[
-              styles.glassGlint,
-              {
-                width: 22 * scale,
-                height: 22 * scale,
-                borderTopLeftRadius: 16 * scale,
-              },
-            ]}
             pointerEvents="none"
           />
         </View>
@@ -363,6 +372,7 @@ function VerticalMeterComponent({
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
+        <View style={styles.pipeGloss} pointerEvents="none" />
       </View>
     </View>
   );
@@ -478,14 +488,20 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     zIndex: 6,
   },
-  glassGlint: {
+  /** White highlight along the top of the cap and base, for gloss. */
+  pipeGloss: {
     position: 'absolute',
-    left: 12,
-    top: 8,
-    borderTopWidth: 2.5,
-    borderLeftWidth: 2.5,
-    borderColor: 'rgba(255,255,255,0.45)',
-    zIndex: 6,
+    top: 1.5,
+    left: 8,
+    right: 8,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+  },
+  shellGloss: {
+    position: 'absolute',
+    borderRadius: 999,
+    zIndex: 1,
   },
   pipeBase: {
     height: 16,

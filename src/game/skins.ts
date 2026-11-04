@@ -16,8 +16,8 @@ export const SKINS: Record<SkinId, SkinDef> = {
     cost: 0,
     // Top → bottom: hot yellow surface → lime → cyan base (matches art)
     liquid: ['#FFE94A', '#B8FF2A', '#2DFF6A', '#00E0D0', '#00A8FF'],
-    shell: '#73BF2E',
-    shellDark: '#4E9A16',
+    shell: '#4CD137',
+    shellDark: '#2E9E1F',
   },
   lava: {
     id: 'lava',
