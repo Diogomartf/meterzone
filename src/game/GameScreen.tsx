@@ -272,6 +272,10 @@ export function GameScreen() {
   const halfTo = useSharedValue(round.zoneHalf);
   const zoneShrinks = useSharedValue(0);
   const meterX = useSharedValue(0);
+  // Bumped whenever a run is halted. Meter-slide callbacks carry the value
+  // from when they started and do nothing if it has changed since, so a slide
+  // that finishes just after the player leaves can't spawn a round on home.
+  const runTokenRef = useRef(0);
   const feedbackOpacity = useSharedValue(0);
   const feedbackScale = useSharedValue(0.7);
   const comboPulse = useSharedValue(1);
@@ -652,7 +656,9 @@ export function GameScreen() {
     }
 
     // Later levels: land the meter, pause so the zone is readable, then fill
-    const startAfterReadPause = () => {
+    const token = runTokenRef.current;
+    const startAfterReadPause = (from: number) => {
+      if (from !== runTokenRef.current) return;
       if (stateRef.current.paused) {
         dispatch({ type: 'park', resume: { kind: 'startFill' } });
         return;
@@ -676,13 +682,13 @@ export function GameScreen() {
           0,
           { duration: TIMING.meterSlideIn, easing: Easing.out(Easing.cubic) },
           (done) => {
-            if (done) runOnJS(startAfterReadPause)();
+            if (done) runOnJS(startAfterReadPause)(token);
           },
         ),
       );
     } else {
       meterX.set(0);
-      startAfterReadPause();
+      startAfterReadPause(token);
     }
   };
 
@@ -695,7 +701,8 @@ export function GameScreen() {
     beginRound(next, true);
   };
 
-  const onMeterSlidOut = () => {
+  const onMeterSlidOut = (from: number) => {
+    if (from !== runTokenRef.current) return;
     if (stateRef.current.paused) {
       dispatch({ type: 'park', resume: { kind: 'advance' } });
       return;
@@ -707,12 +714,13 @@ export function GameScreen() {
     if (autoTimer.current) clearTimeout(autoTimer.current);
     dispatch({ type: 'pendingTimer', pending: null });
     // Slide current meter out, then bring next in
+    const token = runTokenRef.current;
     meterX.set(
       withTiming(
         METER_EXIT_X,
         { duration: TIMING.meterSlideOut, easing: Easing.in(Easing.cubic) },
         (done) => {
-          if (done) runOnJS(onMeterSlidOut)();
+          if (done) runOnJS(onMeterSlidOut)(token);
         },
       ),
     );
@@ -759,6 +767,7 @@ export function GameScreen() {
    * so nothing queued from the previous run can fire into the next one.
    */
   const haltRun = () => {
+    runTokenRef.current += 1;
     haltCoach();
     if (countTimer.current) clearTimeout(countTimer.current);
     if (autoTimer.current) clearTimeout(autoTimer.current);
