@@ -43,6 +43,8 @@ export const AVATAR_PACKS: readonly AvatarPack[] = [
   {
     id: 'food',
     name: msg('Food'),
+    // About 30 games for an average player; each pack after it costs 3x
+    // the one before, like the skins.
     cost: 1500,
     emojis: [
       '🍕',
@@ -68,7 +70,7 @@ export const AVATAR_PACKS: readonly AvatarPack[] = [
   {
     id: 'space',
     name: msg('Space'),
-    cost: 5000,
+    cost: 4500,
     emojis: [
       '🚀',
       '👽',
@@ -93,7 +95,7 @@ export const AVATAR_PACKS: readonly AvatarPack[] = [
   {
     id: 'sports',
     name: msg('Sports'),
-    cost: 12000,
+    cost: 13500,
     emojis: [
       '⚽',
       '🏀',
@@ -118,7 +120,7 @@ export const AVATAR_PACKS: readonly AvatarPack[] = [
   {
     id: 'legends',
     name: msg('Legends'),
-    cost: 30000,
+    cost: 40500,
     emojis: [
       '👑',
       '💎',

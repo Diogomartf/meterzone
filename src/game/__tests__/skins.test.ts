@@ -29,16 +29,16 @@ function coinsFromPerfectRun(levels: number): number {
 }
 
 /** Hard ceiling on the search below — far past anything a person plays. */
-const MAX_SEARCHED_LEVEL = 5000;
+const MAX_SEARCHED_LEVEL = 50000;
 
 /**
  * Consecutive Perfects, from level 1, that a single run needs to afford `cost`.
  *
  * This is the unit the pricing is really denominated in. The game has no
- * terminal level and Perfect pays `5 + floor(combo / 2)`, so a flawless run
- * banks coins without bound — no price can put a look beyond one run in
- * principle. What a price does fix is the depth of flawless play it demands,
- * and that is what these tests pin down.
+ * terminal level and Perfect pays up to 8 coins, so a flawless run banks coins
+ * without bound — no price can put a look beyond one run in principle. What a
+ * price does fix is the depth of flawless play it demands, and that is what
+ * these tests pin down.
  */
 function perfectLevelsToAfford(cost: number): number {
   let coins = 0;
