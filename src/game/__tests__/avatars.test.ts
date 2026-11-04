@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   AVATAR_COLORS,
+  AVATAR_PACKS,
   avatarPack,
   avatarPackAction,
   isValidAvatar,
@@ -31,6 +32,16 @@ describe('avatarPackAction', () => {
 
   test('bought packs stay owned', () => {
     expect(avatarPackAction(food, ['animals', 'food'], 0)).toBe('owned');
+  });
+});
+
+describe('AVATAR_PACKS', () => {
+  test('each paid pack costs 3x the one before', () => {
+    const costs = AVATAR_PACKS.map((p) => p.cost).filter((c) => c > 0);
+    expect(costs.length).toBeGreaterThan(1);
+    for (let i = 1; i < costs.length; i++) {
+      expect(costs[i]).toBe(costs[i - 1] * 3);
+    }
   });
 });
 

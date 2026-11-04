@@ -149,6 +149,13 @@ describe('SKIN_IDS', () => {
     }
   });
 
+  test('each paid look costs 3x the one before', () => {
+    const costs = SKIN_IDS.map((id) => SKINS[id].cost).filter((c) => c > 0);
+    for (let i = 1; i < costs.length; i++) {
+      expect(costs[i]).toBe(costs[i - 1] * 3);
+    }
+  });
+
   test('each look is a clear step up from the last', () => {
     // Guards the escalation, not the exact prices: retuning one cost must not
     // quietly flatten the ladder into three looks that land in the same week.

@@ -156,6 +156,17 @@ describe('scoreFill scaling', () => {
     expect(scoreFill(0.9, r, 0).coins).toBe(0);
   });
 
+  test('a Perfect streak adds coins up to 8 a tap, then stops', () => {
+    const r = round();
+    const coinsAt = (streak: number) => scoreFill(0.5, r, streak).coins;
+    expect(coinsAt(0)).toBe(5);
+    expect(coinsAt(2)).toBe(6);
+    expect(coinsAt(5)).toBe(7);
+    expect(coinsAt(6)).toBe(8);
+    expect(coinsAt(7)).toBe(8);
+    expect(coinsAt(200)).toBe(8);
+  });
+
   test('reports the distance from the zone center', () => {
     expect(scoreFill(0.62, round(), 0).distance).toBeCloseTo(0.12, 10);
   });
