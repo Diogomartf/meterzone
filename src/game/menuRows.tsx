@@ -23,7 +23,8 @@ import {
 import { markReviewAccepted } from '@/game/storage';
 import { styles } from '@/game/menuSheetStyles';
 
-const SUNBURST = require('../../assets/images/reward-sunburst.webp');
+// Higher-contrast cut of reward-sunburst so the rays read at card size.
+const SUNBURST = require('../../assets/images/hall-of-fame-sunburst.webp');
 
 const STAR_ICON = { ios: 'star.fill', android: 'star', web: 'star' } as const;
 const CHEVRON_ICON = {

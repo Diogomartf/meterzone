@@ -1201,21 +1201,12 @@ export const styles = StyleSheet.create({
     paddingVertical: 12,
     marginBottom: 12,
   },
-  skinBankText: {
-    flex: 1,
-    gap: 2,
-  },
   skinBankLabel: {
+    flex: 1,
     fontFamily: GameFonts.display,
     fontSize: 19,
     lineHeight: 24,
     letterSpacing: 0.5,
-    color: GameColors.ink,
-  },
-  skinBankHint: {
-    fontFamily: GameFonts.soft,
-    fontSize: 13,
-    lineHeight: 17,
     color: GameColors.ink,
   },
   skinBankValueRow: {
