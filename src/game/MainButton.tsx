@@ -38,14 +38,24 @@ const TONES = {
     shadow: GameColors.ink,
     shadowOpacity: 0.25,
   },
+  /**
+   * The home header coin badge's 3D look: gold face, thin gold outline, a
+   * darker gold lip with no outline of its own, and a soft drop shadow.
+   */
   gold: {
-    outline: GameColors.ink,
-    face: ['#FFE04A', '#FFE04A', '#FFD000', '#FFC500', '#FFBA00'],
-    lip: '#E87000',
-    text: GameColors.ink,
-    textShadow: 'rgba(255,255,255,0.4)',
-    shadow: GameColors.ink,
-    shadowOpacity: 0.25,
+    outline: '#C98200',
+    face: ['#FFE866', '#FFE866', '#FFD21F', '#FFC714', '#FFBE0B'],
+    lip: '#D98A00',
+    text: '#1A2F6B',
+    textShadow: 'rgba(255,255,255,0.35)',
+    shadow: '#0A2A70',
+    shadowOpacity: 0.3,
+    gloss: true,
+    border: 2,
+    lipBorder: 0,
+    softShadow: true,
+    /** A dark ring around the whole button, outside the gold edges. */
+    outerOutline: '#0B1450',
   },
   /** Glossy white tile beside the menu one, holding the language flag. */
   white: {
@@ -90,6 +100,9 @@ const LIP = { small: 4, regular: 6, large: 7 } as const;
 
 /** Shallower lip for the square tiles, which read chunkier than a pill. */
 const SQUARE_LIP = { small: 1.5, regular: 2, large: 3 } as const;
+
+/** Width of the dark ring some tones draw around the whole button. */
+const OUTER_OUTLINE = 3.5;
 
 /** Side of the square face when there's no label. */
 const SQUARE = { small: 44, regular: 52, large: 64 } as const;
@@ -171,6 +184,9 @@ export function MainButton({
                 borderRadius: radius,
                 borderColor: colors.outline,
                 backgroundColor: colors.lip,
+                ...('border' in colors && { borderWidth: colors.border }),
+                ...('lipBorder' in colors && { borderWidth: colors.lipBorder }),
+                ...('softShadow' in colors && styles.lipSoftShadow),
                 shadowColor: colors.shadow,
                 shadowOpacity: colors.shadowOpacity,
               },
@@ -182,6 +198,7 @@ export function MainButton({
             style={[
               styles.shell,
               { borderColor: colors.outline, borderRadius: radius },
+              'border' in colors && { borderWidth: colors.border },
               pressed && { transform: [{ translateY: lip }] },
             ]}
           >
@@ -195,6 +212,14 @@ export function MainButton({
                   : FACE_SIZE[size],
               ]}
             >
+              {'gloss' in colors && colors.gloss && !square ? (
+                // A soft white band across the top: the glossy highlight.
+                <LinearGradient
+                  colors={['rgba(255,255,255,0.5)', 'rgba(255,255,255,0.2)']}
+                  style={styles.gloss}
+                  pointerEvents="none"
+                />
+              ) : null}
               {square ? (
                 (children ??
                 (icon ? (
@@ -241,6 +266,20 @@ export function MainButton({
               ) : null}
             </LinearGradient>
           </View>
+          {'outerOutline' in colors ? (
+            <View
+              pointerEvents="none"
+              style={[
+                styles.outerOutline,
+                {
+                  borderColor: colors.outerOutline,
+                  borderRadius: radius,
+                  // Follows the face down when pressed, hugging the lip.
+                  top: -OUTER_OUTLINE + (pressed ? lip : 0),
+                },
+              ]}
+            />
+          ) : null}
         </>
       )}
     </Pressable>
@@ -283,6 +322,18 @@ const styles = StyleSheet.create({
     // No `elevation`: on Android it would draw the lip over the pill.
     shadowRadius: 1.5,
   },
+  outerOutline: {
+    position: 'absolute',
+    left: -OUTER_OUTLINE,
+    right: -OUTER_OUTLINE,
+    bottom: -OUTER_OUTLINE,
+    borderWidth: OUTER_OUTLINE,
+  },
+  /** The coin badge's blurred drop, for tones that float rather than sit. */
+  lipSoftShadow: {
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 4,
+  },
   /** Tiles sit flatter: a tighter, fainter shadow under the shallow lip. */
   lipSquare: {
     shadowOffset: { width: 0, height: 1.5 },
@@ -297,6 +348,14 @@ const styles = StyleSheet.create({
   face: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  gloss: {
+    position: 'absolute',
+    top: 3,
+    left: 16,
+    right: 16,
+    height: '32%',
+    borderRadius: 999,
   },
   labelRow: {
     flexDirection: 'row',
