@@ -19,6 +19,14 @@ Any card, modal or sheet that only appears behind a hard-to-reach condition (a r
 - `registerDevMenuItems` replaces the whole list, so keep every item in that one call.
 - Keep `expo-dev-menu` on the same version `expo-dev-client` bundles (check `node_modules/expo-dev-client/package.json`); `expo install` may pick a newer SDK's release.
 
+# Coin rewards and prices
+
+Coins are meant to be slow. An average player (dies around level 21, about 53 coins a game) should need about 100 games for the first skin, and each unlock after that should take about 3× as long as the one before.
+
+- Payouts are per tap in `scoreFill` (`src/game/scoring.ts`): Perfect 5 plus half the streak, capped at 8 by `MAX_STREAK_COIN_BONUS`; Great 3; Nice 1. Keep the cap: without it, long runs pay far more than everything else.
+- Skins (`src/game/skins.ts`) and avatar packs (`src/game/avatars.ts`) each climb a ×3 price ladder, and tests enforce it. A new skin or pack continues its ladder at 3× the last price, not a price picked on its own.
+- Before changing a payout or a price, run `bun run sim:coins` and put its games-per-item table, before and after, in the PR description. It plays simulated runs through the real scoring and catalog. The players are made up because the app has no analytics, so treat the counts as estimates.
+
 # Translations
 
 UI strings go through `gt('…')` or `msg('…')` (gt-react-native) and are translated into `src/_gt/pt.json` (Brazil, "você"), `pt-PT.json` ("tu") and `es.json`. Run `bun run translate` after adding or changing a string.
