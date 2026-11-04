@@ -49,8 +49,8 @@ export const styles = StyleSheet.create({
     paddingRight: 4,
   },
   logoHud: {
-    width: 104,
-    height: 75,
+    width: 140,
+    height: 101,
     marginLeft: -4,
   },
   bottomBar: {
@@ -108,48 +108,6 @@ export const styles = StyleSheet.create({
   bestValueHot: {
     fontFamily: GameFonts.display,
   },
-  // Home-screen score module — dominant BEST over a shorter tinted Daily.
-  scoreModule: {
-    width: 122,
-    flexShrink: 0,
-    borderRadius: 15,
-    borderWidth: 2.5,
-    borderColor: GameColors.ink,
-    backgroundColor: '#FBEFBE',
-    overflow: 'hidden',
-  },
-  scoreMain: {
-    paddingHorizontal: 10,
-    paddingTop: 7,
-    paddingBottom: 8,
-    gap: 3,
-    alignItems: 'stretch',
-  },
-  scoreSectionPressed: {
-    backgroundColor: 'rgba(26,28,44,0.06)',
-  },
-  scoreMainHead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  trophyIcon: {
-    width: 24,
-    height: 24,
-  },
-  scoreBestLabel: {
-    fontFamily: GameFonts.display,
-    fontSize: 13,
-    lineHeight: 16,
-    color: GameColors.ink,
-    letterSpacing: 0.4,
-  },
-  scoreBestValue: {
-    fontFamily: GameFonts.display,
-    fontSize: 24,
-    color: GameColors.ink,
-    letterSpacing: -0.5,
-  },
   scoreLevelPill: {
     marginTop: 1,
     borderRadius: 10,
@@ -164,58 +122,122 @@ export const styles = StyleSheet.create({
     lineHeight: 15,
     color: GameColors.ink,
   },
-  scoreDivider: {
-    height: 2.5,
-    backgroundColor: GameColors.ink,
+  // Home header: coin balance beside the menu button, best card underneath.
+  coinBadgeShell: {
+    borderRadius: 999,
+    // A darker gold under the face, like the 3D buttons' lip.
+    backgroundColor: '#D98A00',
+    paddingBottom: 4,
+    shadowColor: '#0A2A70',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
-  scoreDaily: {
-    paddingHorizontal: 10,
-    paddingTop: 5,
-    paddingBottom: 6,
-    gap: 1,
-    alignItems: 'flex-start',
-    backgroundColor: 'rgba(88,204,2,0.18)',
+  coinBadgePressed: {
+    paddingBottom: 1,
+    marginTop: 3,
   },
-  scoreDailyLabel: {
+  coinBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    height: 46,
+    paddingLeft: 6,
+    paddingRight: 20,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: '#C98200',
+    overflow: 'hidden',
+  },
+  /** Light band along the top edge for the glossy look. */
+  coinBadgeShine: {
+    position: 'absolute',
+    top: 3,
+    left: 16,
+    right: 16,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.45)',
+  },
+  coinBadgeIcon: {
+    width: 34,
+    height: 34,
+  },
+  coinBadgeValue: {
+    fontFamily: GameFonts.display,
+    fontSize: 22,
+    lineHeight: 26,
+    color: '#1A2F6B',
+    fontVariant: ['tabular-nums'],
+  },
+  topRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    // Centre on the logo rather than hugging the top edge.
+    alignSelf: 'center',
+  },
+  bestCardShell: {
+    borderRadius: 22,
+    // A warm lip under the face, and a soft drop onto the sky.
+    backgroundColor: '#E3C477',
+    paddingBottom: 5,
+    shadowColor: '#0A2A70',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+  },
+  bestCardPressed: {
+    paddingBottom: 2,
+    marginTop: 3,
+  },
+  bestCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.9)',
+  },
+  bestCardIcon: {
+    width: 52,
+    height: 52,
+  },
+  bestCardBody: {
+    flex: 1,
+  },
+  bestCardLabel: {
     fontFamily: GameFonts.body,
-    fontSize: 10,
+    fontSize: 16,
+    lineHeight: 20,
     letterSpacing: 0.5,
-    color: GameColors.bubbleDark,
+    color: '#1A2F6B',
   },
-  scoreDailyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  scoreDailyValue: {
+  bestCardValue: {
     fontFamily: GameFonts.display,
-    fontSize: 16,
-    lineHeight: 19,
-    color: GameColors.ink,
+    fontSize: 42,
+    lineHeight: 48,
+    letterSpacing: -0.5,
+    color: '#1A2F6B',
+    fontVariant: ['tabular-nums'],
   },
-  scoreDailyEmpty: {
+  bestCardDivider: {
+    width: 1.5,
+    alignSelf: 'stretch',
+    marginVertical: 4,
+    backgroundColor: 'rgba(26,28,44,0.12)',
+  },
+  bestCardLevel: {
+    borderRadius: 999,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    backgroundColor: GameColors.lemon,
+  },
+  bestCardLevelText: {
     fontFamily: GameFonts.body,
-    fontSize: 12,
-    color: GameColors.bubbleDark,
-  },
-  scoreCoins: {
-    paddingHorizontal: 10,
-    paddingTop: 7,
-    paddingBottom: 7,
-    backgroundColor: 'rgba(255,200,0,0.28)',
-  },
-  scoreCoinsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  coinIcon: {
-    width: 18,
-    height: 18,
-  },
-  scoreCoinsValue: {
-    fontFamily: GameFonts.display,
-    fontSize: 16,
+    fontSize: 15,
     lineHeight: 19,
     color: GameColors.ink,
   },

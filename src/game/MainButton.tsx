@@ -70,6 +70,16 @@ const TONES = {
     shadow: GameColors.ink,
     shadowOpacity: 0.3,
   },
+  /** Pale cyan for the home header's menu tile, with a dark glyph. */
+  cyan: {
+    outline: '#1B5C9E',
+    face: ['#D6F6FF', '#D6F6FF', '#A8EBFF', '#8FE2FB', '#7FDAF6'],
+    lip: '#3FA6D6',
+    text: GameColors.ink,
+    textShadow: 'rgba(255,255,255,0.4)',
+    shadow: GameColors.ink,
+    shadowOpacity: 0.3,
+  },
 } as const;
 
 /** Where the face colours change — the first two hold the bevel band. */

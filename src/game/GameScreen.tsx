@@ -33,7 +33,7 @@ import { PerfectSwoosh } from '@/game/PerfectSwoosh';
 import { DailyRewardModal } from '@/game/DailyRewardModal';
 import { previewSampleRanking } from '@/game/RankingScreen';
 import { ReviewPromptModal } from '@/game/ReviewPromptModal';
-import { ScoreModule } from '@/game/ScoreModule';
+import { CoinBadge, ScoreModule } from '@/game/ScoreModule';
 import { TapHint, TAP_BALL_GAP } from '@/game/TapHint';
 import { TapHowToLine } from '@/game/TapHowToLine';
 import { VerticalMeter } from '@/game/VerticalMeter';
@@ -1162,8 +1162,6 @@ export function GameScreen() {
       : persistedBest;
 
   const dailyPlayedToday = persist?.dailyBest.date === todayKey();
-  const homeDailyScore = dailyPlayedToday ? (persist?.dailyBest.score ?? 0) : 0;
-  const homeDailyLevel = dailyPlayedToday ? (persist?.dailyBest.level ?? 0) : 0;
   const shareScoreImage = async () => {
     if (capturingShare || !shareRef.current) return;
     // Re-renders without the Share/Retry/settings chrome before the capture.
@@ -1296,16 +1294,20 @@ export function GameScreen() {
             </View>
 
             {phase === 'ready' ? (
-              <ScoreModule
-                best={persist?.highScore ?? 0}
-                bestLevel={persist?.bestLevel ?? 0}
-                dailyScore={homeDailyScore}
-                dailyLevel={homeDailyLevel}
-                dailyPlayed={Boolean(dailyPlayedToday)}
-                coins={persist?.coins ?? 0}
-                onOpen={openScores}
-                onOpenSkins={openSkins}
-              />
+              <View style={styles.topRight} pointerEvents="box-none">
+                <CoinBadge coins={persist?.coins ?? 0} onPress={openSkins} />
+                <MainButton
+                  tone="cyan"
+                  size="small"
+                  onPress={() => {
+                    setMenuInitialView('menu');
+                    openMenu();
+                  }}
+                  accessibilityLabel={gt('Menu')}
+                >
+                  <MenuIcon dark />
+                </MainButton>
+              </View>
             ) : phase === 'gameover' ? null : (
               <View
                 style={[styles.bestPill, isNewBest && styles.bestPillHot]}
@@ -1341,6 +1343,13 @@ export function GameScreen() {
               </View>
             )}
           </View>
+          {phase === 'ready' ? (
+            <ScoreModule
+              best={persist?.highScore ?? 0}
+              bestLevel={persist?.bestLevel ?? 0}
+              onOpen={openScores}
+            />
+          ) : null}
         </View>
 
         {phase !== 'ready' && phase !== 'gameover' ? (
@@ -1476,17 +1485,20 @@ export function GameScreen() {
           pointerEvents={capturingShare ? 'none' : 'box-none'}
         >
           <View style={styles.bottomBarLeft} pointerEvents="box-none">
-            <MainButton
-              tone="quiet"
-              size="small"
-              onPress={() => {
-                setMenuInitialView('menu');
-                openMenu();
-              }}
-              accessibilityLabel={gt('Menu')}
-            >
-              <MenuIcon />
-            </MainButton>
+            {/* On the home screen the menu button sits in the header instead. */}
+            {phase !== 'ready' ? (
+              <MainButton
+                tone="quiet"
+                size="small"
+                onPress={() => {
+                  setMenuInitialView('menu');
+                  openMenu();
+                }}
+                accessibilityLabel={gt('Menu')}
+              >
+                <MenuIcon />
+              </MainButton>
+            ) : null}
             {phase === 'ready' ? (
               <MainButton
                 tone="white"
