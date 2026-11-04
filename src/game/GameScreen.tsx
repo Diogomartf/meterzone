@@ -16,16 +16,11 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  getLocaleProperties,
-  msg,
-  useGT,
-  useLocale,
-  useMessages,
-} from 'gt-react-native';
+import { msg, useGT, useMessages } from 'gt-react-native';
 
 import { styles } from '@/game/gameScreenStyles';
 import { CountdownBurst } from '@/game/CountdownBurst';
+import { DailyCard } from '@/game/DailyCard';
 import { Hearts } from '@/game/Hearts';
 import { MenuSheet } from '@/game/MenuSheet';
 import { MissBreak } from '@/game/MissBreak';
@@ -99,12 +94,12 @@ import { useDailyReward } from '@/game/useDailyReward';
 import { usePersistState } from '@/game/usePersistState';
 import { useSounds } from '@/game/useSounds';
 import { useTapCoach } from '@/game/useTapCoach';
-const GAME_BG = require('../../assets/images/game-bg.webp');
 import { resetScreenshotAutoplay, useMeterTap } from '@/game/useMeterTap';
 
 const LOGO = require('../../assets/images/zone-meter-logo.webp');
 const FEEDBACK_EMAIL = 'hello@meterzone.net';
 
+const GAME_BG = require('../../assets/images/game-bg.webp');
 /** Yellow pad surface in game-bg.png (fraction of image height from top). */
 const PAD_SURFACE_Y = 0.905;
 /** Extra lift so the meter sits above the pad. */
@@ -210,9 +205,7 @@ function syncZoneMotion(zone: ZoneMotion, config: RoundConfig) {
 export function GameScreen() {
   const gt = useGT();
   const m = useMessages();
-  const locale = useLocale();
   /** Flag of the language in play — the home-screen shortcut into the picker. */
-  const localeFlag = useMemo(() => getLocaleProperties(locale).emoji, [locale]);
   const insets = useSafeAreaInsets();
   const { height: windowH, width: windowW } = useWindowDimensions();
   const { persist, persistRef, applyPersist } = usePersistState();
@@ -1339,11 +1332,16 @@ export function GameScreen() {
             )}
           </View>
           {phase === 'ready' ? (
-            <ScoreModule
-              best={persist?.highScore ?? 0}
-              bestLevel={persist?.bestLevel ?? 0}
-              onOpen={openScores}
-            />
+            <>
+              <ScoreModule
+                best={persist?.highScore ?? 0}
+                bestLevel={persist?.bestLevel ?? 0}
+                onOpen={openScores}
+              />
+              <View style={styles.homeDaily}>
+                <DailyCard onPress={() => startRun(true)} />
+              </View>
+            </>
           ) : null}
         </View>
 
@@ -1462,7 +1460,6 @@ export function GameScreen() {
                 size="large"
                 style={styles.mainCta}
                 label={gt('PLAY')}
-                subtitle={gt('TAP THE ZONE')}
                 // Silent: it drops straight into the game and its countdown.
                 clickSound={false}
                 onPress={() => startRun(false)}
@@ -1479,44 +1476,20 @@ export function GameScreen() {
           ]}
           pointerEvents={capturingShare ? 'none' : 'box-none'}
         >
-          <View style={styles.bottomBarLeft} pointerEvents="box-none">
-            {/* On the home screen the menu button sits in the header instead. */}
-            {phase !== 'ready' ? (
-              <MainButton
-                tone="quiet"
-                size="small"
-                onPress={() => {
-                  setMenuInitialView('menu');
-                  openMenu();
-                }}
-                accessibilityLabel={gt('Menu')}
-              >
-                <MenuIcon />
-              </MainButton>
-            ) : null}
-            {phase === 'ready' ? (
-              <MainButton
-                tone="white"
-                size="small"
-                onPress={() => {
-                  void gameHaptics.next();
-                  setMenuInitialView('language');
-                  openMenu();
-                }}
-                accessibilityLabel={gt('Change language')}
-              >
-                <Text style={styles.langBtnFlag}>{localeFlag}</Text>
-              </MainButton>
-            ) : null}
-          </View>
-          {phase === 'ready' ? (
+          {/* On the home screen the menu button and Daily sit up top instead. */}
+          {phase === 'ready' ? null : (
             <MainButton
-              tone="green"
+              tone="quiet"
               size="small"
-              label={gt('Daily challenge')}
-              onPress={() => startRun(true)}
-            />
-          ) : null}
+              onPress={() => {
+                setMenuInitialView('menu');
+                openMenu();
+              }}
+              accessibilityLabel={gt('Menu')}
+            >
+              <MenuIcon />
+            </MainButton>
+          )}
         </View>
       </View>
 

@@ -63,18 +63,6 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 10,
   },
-  /** Keeps the round icon buttons paired on the left of the space-between bar. */
-  bottomBarLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  /** Same round chrome as the menu button, so the two read as one set. */
-  langBtnFlag: {
-    fontSize: 24,
-    // Emoji sit on their own baseline; a matched line height centres the glyph.
-    lineHeight: 30,
-  },
   bestPill: {
     paddingHorizontal: 12,
     paddingVertical: 5,
@@ -169,6 +157,10 @@ export const styles = StyleSheet.create({
     lineHeight: 26,
     color: '#1A2F6B',
     fontVariant: ['tabular-nums'],
+  },
+  /** Extra room between the best card and the Daily card under it. */
+  homeDaily: {
+    marginTop: 8,
   },
   topRight: {
     flexDirection: 'row',
