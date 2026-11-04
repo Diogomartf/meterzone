@@ -7,6 +7,8 @@ export const MAX_COMBO_MULT = 5;
 export const NEAR_MISS_SLACK = 0;
 /** Depth scaling on base points — a bit more reward for going further */
 export const LEVEL_BONUS_PER_LEVEL = 0.055;
+/** Most extra coins a Perfect streak adds, so long runs don't snowball */
+export const MAX_STREAK_COIN_BONUS = 3;
 
 export function comboMultiplier(combo: number) {
   return Math.min(MAX_COMBO_MULT, 1 + Math.max(0, combo) * 0.25);
@@ -45,7 +47,7 @@ export function scoreFill(
       distance,
       combo: comboActive ? streak + 1 : 0,
       multiplier: mult,
-      coins: 5 + Math.floor(streak / 2),
+      coins: 5 + Math.min(MAX_STREAK_COIN_BONUS, Math.floor(streak / 2)),
       costsLife: false,
     };
   }

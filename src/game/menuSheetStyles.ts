@@ -316,18 +316,18 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   hsSide: {
-    width: 136,
+    width: 96,
+    marginLeft: 8,
     alignItems: 'flex-end',
   },
   hsSharePlaceholder: {
     height: 36,
   },
-  // Leans left, into the gap beside the score.
+  // Stays inside its column so it never covers the score.
   hsArt: {
-    width: 160,
-    height: 160,
-    marginTop: -10,
-    transform: [{ translateX: -16 }],
+    width: 96,
+    height: 96,
+    marginTop: 4,
   },
   hsTitle: {
     alignSelf: 'stretch',
