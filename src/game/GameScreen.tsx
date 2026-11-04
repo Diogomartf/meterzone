@@ -36,7 +36,14 @@ import { ReviewPromptModal } from '@/game/ReviewPromptModal';
 import { CoinBadge, ScoreModule } from '@/game/ScoreModule';
 import { TapHint, TAP_BALL_GAP } from '@/game/TapHint';
 import { TapHowToLine } from '@/game/TapHowToLine';
-import { VerticalMeter } from '@/game/VerticalMeter';
+import {
+  METER_BASE_H,
+  METER_BASE_W,
+  METER_WRAP_EXTRA,
+  meterFloor,
+  meterInnerHeight,
+  VerticalMeter,
+} from '@/game/VerticalMeter';
 import { formatScore } from '@/game/format';
 import { gameHaptics, setGameHapticsEnabled } from '@/game/haptics';
 import { createRng, makeRound } from '@/game/levels';
@@ -92,23 +99,16 @@ import { useDailyReward } from '@/game/useDailyReward';
 import { usePersistState } from '@/game/usePersistState';
 import { useSounds } from '@/game/useSounds';
 import { useTapCoach } from '@/game/useTapCoach';
+const GAME_BG = require('../../assets/images/game-bg.webp');
 import { resetScreenshotAutoplay, useMeterTap } from '@/game/useMeterTap';
 
 const LOGO = require('../../assets/images/zone-meter-logo.webp');
-const GAME_BG = require('../../assets/images/game-bg.webp');
 const FEEDBACK_EMAIL = 'hello@meterzone.net';
 
 /** Yellow pad surface in game-bg.png (fraction of image height from top). */
 const PAD_SURFACE_Y = 0.905;
 /** Extra lift so the meter sits above the pad. */
 const METER_LIFT = 16;
-const METER_BASE_H = 340;
-const METER_BASE_W = 100;
-const METER_WRAP_EXTRA = 28;
-/** Inner tube is 20px shorter than the shell (VerticalMeter innerH). */
-const METER_INNER_INSET = 20;
-/** Shell padding + glass border under the fill, from the wrap bottom. */
-const METER_GLASS_BOTTOM = (scale: number) => 10 + 9 * scale + 3;
 
 /**
  * Run pacing, in ms. These are the knobs that decide how the game *feels*
@@ -1217,15 +1217,14 @@ export function GameScreen() {
   const meterScale = round.meterScale;
   const meterWrapH = METER_BASE_H * meterScale + METER_WRAP_EXTRA;
   const meterW = METER_BASE_W * meterScale;
-  const meterH = METER_BASE_H * meterScale;
-  const innerH = meterH - METER_INNER_INSET;
+  const innerH = meterInnerHeight(meterScale);
   // Pin meter base to the yellow pad in the background art
   const meterBottom =
     Math.max(insets.bottom + 4, windowH * (1 - PAD_SURFACE_Y)) + METER_LIFT;
   const menuBottom = meterBottom + meterWrapH * 0.42;
   const tapBallX = windowW / 2 + meterW / 2 + TAP_BALL_GAP;
   const tapBallBottom =
-    meterBottom + METER_GLASS_BOTTOM(meterScale) + round.target * innerH;
+    meterBottom + meterFloor(meterScale) + round.target * innerH;
   return (
     <View ref={shareRef} style={styles.root} collapsable={false}>
       <View style={styles.backdrop} pointerEvents="none">
@@ -1256,12 +1255,8 @@ export function GameScreen() {
             fill={fill}
             zoneTarget={zoneTarget}
             zoneHalf={zoneHalf}
-            perfectRatio={
-              round.zoneHalf > 0 ? round.perfectHalf / round.zoneHalf : 0.18
-            }
-            greatRatio={
-              round.zoneHalf > 0 ? round.greatHalf / round.zoneHalf : 0.48
-            }
+            perfectHalf={round.perfectHalf}
+            greatHalf={round.greatHalf}
             skin={skin}
             scale={meterScale}
             active={phase === 'filling'}
