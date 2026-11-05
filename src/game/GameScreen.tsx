@@ -56,7 +56,7 @@ import {
   type FeedbackSlot,
 } from '@/game/runState';
 import { captureAndShare, shareScoreCaption } from '@/game/share';
-import { DEFAULT_SKIN, SKINS } from '@/game/skins';
+import { DEFAULT_SKIN, SKIN_IDS, SKINS } from '@/game/skins';
 import {
   clearPersist,
   commitRunResult,
@@ -258,6 +258,8 @@ export function GameScreen() {
     'menu' | 'highscores' | 'language' | 'skins' | 'ranking'
   >('menu');
   const [capturingShare, setCapturingShare] = useState(false);
+  /** Dev-menu skin preview: shows a look on the meter without unlocking it. */
+  const [devSkin, setDevSkin] = useState<SkinId | null>(null);
   // Where the home cards end and how tall PLAY is, so PLAY never sits on them.
   const [homeCardsBottom, setHomeCardsBottom] = useState(0);
   const [playH, setPlayH] = useState(0);
@@ -329,7 +331,7 @@ export function GameScreen() {
   /** GO already played the start sting — the fill that follows must not replay it. */
   const fillAfterGoRef = useRef(false);
 
-  const skin = SKINS[persist?.equippedSkin ?? DEFAULT_SKIN];
+  const skin = SKINS[devSkin ?? persist?.equippedSkin ?? DEFAULT_SKIN];
 
   useEffect(() => {
     syncZoneMotion(zone, round);
@@ -968,6 +970,17 @@ export function GameScreen() {
       {
         name: 'Ranking · 30 players, you #23',
         callback: () => openSampleRanking(30, 23),
+        shouldCollapse: true,
+      },
+      // Try every meter look without coins; nothing is saved.
+      ...SKIN_IDS.map((id) => ({
+        name: `Skin · ${SKINS[id].name}`,
+        callback: () => setDevSkin(id),
+        shouldCollapse: true,
+      })),
+      {
+        name: 'Skin · equipped',
+        callback: () => setDevSkin(null),
         shouldCollapse: true,
       },
     ]);

@@ -59,6 +59,42 @@ const MIN_LIQUID_PX = 14;
 const MIN_PERFECT_PX = 2;
 
 /** Target bands: Nice purple, Great orange, Perfect yellow. */
+const LIQUID_SHADE = [
+  'rgba(255,255,255,0.07)',
+  'rgba(255,255,255,0)',
+  'rgba(0,0,0,0)',
+  'rgba(0,0,0,0.2)',
+] as const;
+const LIQUID_SHADE_AT = [0, 0.3, 0.6, 1] as const;
+const METAL_SHADE = [
+  'rgba(120,60,0,0.35)',
+  'rgba(255,255,255,0.75)',
+  'rgba(255,255,255,0.15)',
+  'rgba(255,255,255,0)',
+  'rgba(255,255,255,0.3)',
+  'rgba(120,60,0,0.45)',
+] as const;
+const METAL_SHADE_AT = [0, 0.22, 0.34, 0.55, 0.78, 1] as const;
+
+/** Milky frost thick at both walls, clear in the middle. */
+const FROST_EDGE = [
+  'rgba(255,255,255,0.7)',
+  'rgba(235,248,255,0.25)',
+  'rgba(235,248,255,0)',
+  'rgba(235,248,255,0.25)',
+  'rgba(255,255,255,0.65)',
+] as const;
+const FROST_EDGE_AT = [0, 0.18, 0.5, 0.82, 1] as const;
+/** Ice glints, as fractions of the liquid's width and height. */
+const FROST_GLINTS = [
+  { x: 0.28, y: 0.12, r: 2.5 },
+  { x: 0.62, y: 0.27, r: 1.5 },
+  { x: 0.4, y: 0.44, r: 2 },
+  { x: 0.7, y: 0.58, r: 2.5 },
+  { x: 0.25, y: 0.71, r: 1.5 },
+  { x: 0.55, y: 0.86, r: 2 },
+] as const;
+
 const EYE = {
   nice: ['#5B1E8C', '#7A32B0', '#5B1E8C'],
   great: ['#E8551F', '#FF7A3D', '#E8551F'],
@@ -269,20 +305,44 @@ function VerticalMeterComponent({
               locations={[0, 0.18, 0.42, 0.7, 1]}
               style={StyleSheet.absoluteFill}
             />
-            {/* Bright left, rich centre, slightly darker right */}
+            {/* Bright left, rich centre, slightly darker right. Metal skins
+                get a hard white band and dark edges, like a polished tube. */}
             <LinearGradient
-              colors={[
-                'rgba(255,255,255,0.3)',
-                'rgba(255,255,255,0.06)',
-                'rgba(0,0,0,0)',
-                'rgba(0,0,0,0.2)',
-              ]}
-              locations={[0, 0.3, 0.6, 1]}
+              colors={skin.metallic ? METAL_SHADE : LIQUID_SHADE}
+              locations={skin.metallic ? METAL_SHADE_AT : LIQUID_SHADE_AT}
               start={{ x: 0, y: 0.5 }}
               end={{ x: 1, y: 0.5 }}
               style={StyleSheet.absoluteFill}
               pointerEvents="none"
             />
+            {skin.frosty ? (
+              <>
+                <LinearGradient
+                  colors={FROST_EDGE}
+                  locations={FROST_EDGE_AT}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0.5 }}
+                  style={StyleSheet.absoluteFill}
+                  pointerEvents="none"
+                />
+                {FROST_GLINTS.map(({ x, y, r }) => (
+                  <View
+                    key={`${x}-${y}`}
+                    style={[
+                      styles.glint,
+                      {
+                        left: `${x * 100}%`,
+                        top: y * innerH,
+                        width: r * 2 * scale,
+                        height: r * 2 * scale,
+                        borderRadius: r * scale,
+                      },
+                    ]}
+                    pointerEvents="none"
+                  />
+                ))}
+              </>
+            ) : null}
             {/* Shallow meniscus with a thin bright rim */}
             <Animated.View
               style={[styles.meniscus, rippleStyle]}
@@ -344,8 +404,8 @@ function VerticalMeterComponent({
           <LinearGradient
             colors={[
               'rgba(255,255,255,0)',
-              'rgba(255,255,255,0.25)',
-              'rgba(255,255,255,0.25)',
+              'rgba(255,255,255,0.14)',
+              'rgba(255,255,255,0.14)',
               'rgba(255,255,255,0)',
             ]}
             locations={[0, 0.2, 0.75, 1]}
@@ -424,10 +484,10 @@ const styles = StyleSheet.create({
     right: 0,
   },
   overlayNice: {
-    backgroundColor: 'rgba(160,90,230,0.3)',
+    backgroundColor: 'rgba(160,90,230,0.1)',
   },
   overlayGreat: {
-    backgroundColor: 'rgba(255,122,61,0.4)',
+    backgroundColor: 'rgba(255,122,61,0.18)',
   },
   perfect: {
     backgroundColor: EYE.perfect,
@@ -461,6 +521,14 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 999,
     borderBottomRightRadius: 999,
     overflow: 'hidden',
+  },
+  glint: {
+    position: 'absolute',
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    shadowColor: '#FFFFFF',
+    shadowOpacity: 0.9,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 0 },
   },
   meniscusRim: {
     position: 'absolute',
