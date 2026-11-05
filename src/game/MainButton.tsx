@@ -67,20 +67,7 @@ const TONES = {
     shadow: GameColors.ink,
     shadowOpacity: 0.3,
   },
-  /**
-   * Muted blue for utility tiles like the menu button: it sits back against
-   * the sky so RETRY and PLAY stay the brightest thing on screen.
-   */
-  quiet: {
-    outline: '#1B3C86',
-    face: ['#72A8EA', '#72A8EA', '#5592E0', '#4D8BDC', '#4786D9'],
-    lip: '#2A5AAE',
-    text: GameColors.white,
-    textShadow: 'rgba(10,30,90,0.4)',
-    shadow: GameColors.ink,
-    shadowOpacity: 0.3,
-  },
-  /** Pale cyan for the home header's menu tile, with a dark glyph. */
+  /** Pale cyan for the menu tile (home, game and game over), with a navy glyph. */
   cyan: {
     outline: '#1B5C9E',
     face: ['#D6F6FF', '#D6F6FF', '#A8EBFF', '#8FE2FB', '#7FDAF6'],

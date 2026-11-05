@@ -142,7 +142,7 @@ export function ResultScreen({
         />
         {!capturing ? (
           <MainButton
-            tone="quiet"
+            tone="cyan"
             size="small"
             onPress={onMenu}
             accessibilityLabel={gt('Menu')}

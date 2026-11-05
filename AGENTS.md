@@ -6,7 +6,7 @@ Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before 
 
 Use only the two button components, never a one-off `Pressable` styled as a button:
 
-- `MainButton` (`src/game/MainButton.tsx`): the 3D pill that drops onto its lip when pressed, for the main action of a screen or card (PLAY, RETRY, Collect, PLAY DAILY). Tones `blue` / `green` / `gold` / `quiet` / `white`, sizes `small` / `regular` / `large`. Without `label` it's a square 3D icon tile (the home menu button: `quiet` with `MenuIcon` as children; the language flag: `white`; both with `accessibilityLabel`). Add a tone to `TONES` rather than overriding colours.
+- `MainButton` (`src/game/MainButton.tsx`): the 3D pill that drops onto its lip when pressed, for the main action of a screen or card (PLAY, RETRY, Collect, PLAY DAILY). Tones `blue` / `green` / `gold` / `cyan` / `white`, sizes `small` / `regular` / `large`. Without `label` it's a square 3D icon tile (the menu button on home, in game and on game over: always `cyan` with `MenuIcon` as children; the language flag: `white`; both with `accessibilityLabel`). Add a tone to `TONES` rather than overriding colours.
 - `FlatButton` (`src/game/FlatButton.tsx`): flat and outlined, for everything else. With `label` it's a text button (Not now, Share score); without, a square icon button (back, home, close, share). Tones `white` / `blue` / `glass` (on coloured cards) / `sky` (over the game art) / `soft` (sheet headers).
 
 Rows, tabs, cards and swatches that happen to be tappable aren't buttons and keep their own styles. Neither are value badges, like the coin balance in the menu header: they show a number first and only open something second.

@@ -99,8 +99,14 @@ import { resetScreenshotAutoplay, useMeterTap } from '@/game/useMeterTap';
 const LOGO = require('../../assets/images/zone-meter-logo.webp');
 const FEEDBACK_EMAIL = 'hello@meterzone.net';
 
-const GAME_BG = require('../../assets/images/game-bg.webp');
-/** Yellow pad surface in game-bg.png (fraction of image height from top). */
+/** Each skin's backdrop; every one keeps the pad at the same height. */
+const SKIN_BG: Record<SkinId, number> = {
+  toxic: require('../../assets/images/game-bg.webp'),
+  lava: require('../../assets/images/game-bg-lava.webp'),
+  ice: require('../../assets/images/game-bg-ice.webp'),
+  gold: require('../../assets/images/game-bg-gold.webp'),
+};
+/** Pad surface in the backdrops (fraction of image height from top). */
 const PAD_SURFACE_Y = 0.905;
 /** Extra lift so the meter sits above the pad. */
 const METER_LIFT = 16;
@@ -1257,13 +1263,13 @@ export function GameScreen() {
     <View ref={shareRef} style={styles.root} collapsable={false}>
       <View style={styles.backdrop} pointerEvents="none">
         <Image
-          source={GAME_BG}
+          source={SKIN_BG[skin.id]}
           style={styles.backdropImage}
           contentFit="cover"
           contentPosition="center"
           priority="high"
           cachePolicy="memory-disk"
-          recyclingKey="game-bg-v3"
+          recyclingKey={`game-bg-v3-${skin.id}`}
         />
       </View>
 
@@ -1335,7 +1341,7 @@ export function GameScreen() {
                   }}
                   accessibilityLabel={gt('Menu')}
                 >
-                  <MenuIcon dark />
+                  <MenuIcon />
                 </MainButton>
               </View>
             ) : phase === 'gameover' ? null : (
@@ -1522,7 +1528,7 @@ export function GameScreen() {
           {/* On the home screen the menu button and Daily sit up top instead. */}
           {phase === 'ready' ? null : (
             <MainButton
-              tone="quiet"
+              tone="cyan"
               size="small"
               onPress={() => {
                 setMenuInitialView('menu');
