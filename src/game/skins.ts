@@ -11,6 +11,8 @@ export type SkinDef = {
   metallic?: boolean;
   /** Frozen: milky frost along the edges and a few glints in the liquid. */
   frosty?: boolean;
+  /** Molten: flames flicker on the liquid's surface. */
+  burning?: boolean;
 };
 
 export const SKINS: Record<SkinId, SkinDef> = {
@@ -34,6 +36,7 @@ export const SKINS: Record<SkinId, SkinDef> = {
     liquid: ['#FFD08A', '#FFA010', '#FF5A1F', '#E11D48', '#7F1D1D'],
     shell: '#F97316',
     shellDark: '#C2410C',
+    burning: true,
   },
   ice: {
     id: 'ice',

@@ -12,6 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { GameColors } from '@/constants/gameTheme';
+import { LavaFlames } from '@/game/LavaFlames';
 import { liquidSurface, type SkinDef } from '@/game/skins';
 
 type Props = {
@@ -356,6 +357,8 @@ function VerticalMeterComponent({
               />
               <View style={styles.meniscusRim} />
             </Animated.View>
+            {/* Over the meniscus, or its foam would hide the flames */}
+            {skin.burning ? <LavaFlames scale={scale} active={active} /> : null}
           </Animated.View>
 
           {/* Target again, see-through above the liquid so it never hides */}
