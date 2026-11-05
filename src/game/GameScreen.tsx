@@ -104,6 +104,8 @@ const GAME_BG = require('../../assets/images/game-bg.webp');
 const PAD_SURFACE_Y = 0.905;
 /** Extra lift so the meter sits above the pad. */
 const METER_LIFT = 16;
+/** Least space between the home cards and PLAY. */
+const HOME_PLAY_GAP = 16;
 
 /**
  * Run pacing, in ms. These are the knobs that decide how the game *feels*
@@ -256,6 +258,9 @@ export function GameScreen() {
     'menu' | 'highscores' | 'language' | 'skins' | 'ranking'
   >('menu');
   const [capturingShare, setCapturingShare] = useState(false);
+  // Where the home cards end and how tall PLAY is, so PLAY never sits on them.
+  const [homeCardsBottom, setHomeCardsBottom] = useState(0);
+  const [playH, setPlayH] = useState(0);
   /** Dev-menu preview of the result screen, with sample numbers. */
   const [resultPreview, setResultPreview] = useState<RunResult | null>(null);
   const [reviewPromptVisible, setReviewPromptVisible] = useState(false);
@@ -1223,7 +1228,15 @@ export function GameScreen() {
   // Pin meter base to the yellow pad in the background art
   const meterBottom =
     Math.max(insets.bottom + 4, windowH * (1 - PAD_SURFACE_Y)) + METER_LIFT;
-  const menuBottom = meterBottom + meterWrapH * 0.42;
+  // PLAY sits over the meter's middle, but on short screens it moves down
+  // until it clears the best and Daily cards.
+  const menuBottom = Math.max(
+    insets.bottom + 16,
+    Math.min(
+      meterBottom + meterWrapH * 0.42,
+      windowH - homeCardsBottom - HOME_PLAY_GAP - playH,
+    ),
+  );
   const tapBallX = windowW / 2 + meterW / 2 + TAP_BALL_GAP;
   const tapBallBottom =
     meterBottom + meterFloor(meterScale) + round.target * innerH;
@@ -1280,7 +1293,14 @@ export function GameScreen() {
         pointerEvents="box-none"
         collapsable={false}
       >
-        <View style={styles.topBlock} pointerEvents="box-none">
+        <View
+          style={styles.topBlock}
+          pointerEvents="box-none"
+          onLayout={(e) => {
+            const { y, height } = e.nativeEvent.layout;
+            setHomeCardsBottom(y + height);
+          }}
+        >
           <View style={styles.topRow} pointerEvents="box-none">
             <View style={styles.topLeft} pointerEvents="none">
               <Image
@@ -1463,6 +1483,7 @@ export function GameScreen() {
             <View
               style={[styles.menuCol, { bottom: menuBottom }]}
               pointerEvents="box-none"
+              onLayout={(e) => setPlayH(e.nativeEvent.layout.height)}
             >
               <MainButton
                 tone="gold"
