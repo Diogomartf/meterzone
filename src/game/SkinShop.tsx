@@ -222,12 +222,7 @@ export function CoinBank({ coins }: { coins: number }) {
   const gt = useGT();
   return (
     <LinearGradient colors={Gradients.coinGold} style={styles.skinBank}>
-      <View style={styles.skinBankText}>
-        <Text style={styles.skinBankLabel}>{gt('YOUR COINS')}</Text>
-        <Text style={styles.skinBankHint}>
-          {gt('Perfect, Great, and Nice hits pay coins.')}
-        </Text>
-      </View>
+      <Text style={styles.skinBankLabel}>{gt('YOUR COINS')}</Text>
       <View style={styles.skinBankValueRow}>
         <Image source={COIN} style={styles.skinBankCoin} contentFit="contain" />
         <Text

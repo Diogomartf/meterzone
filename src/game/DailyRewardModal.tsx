@@ -1,29 +1,10 @@
 import { Image } from 'expo-image';
-import {
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
-import { useEffect, useState } from 'react';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withDelay,
-  withSequence,
-  withSpring,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useGT } from 'gt-react-native';
 
 import { GameColors, GameFonts } from '@/constants/gameTheme';
 import { formatScore } from '@/game/format';
+import { CoinCountUp, FloatingSparkle } from '@/game/CoinCountUp';
 import { MainButton } from '@/game/MainButton';
 import type { DailyFinish } from '@/game/ranking';
 
@@ -38,129 +19,6 @@ const PODIUM_MEDALS = [
   require('../../assets/images/medal-bronze.webp'),
 ];
 const TOP_TEN_MEDAL = require('../../assets/images/medal-brass.webp');
-const SPARKLE = require('../../assets/images/sparkle.webp');
-
-/**
- * A sparkle bobbing gently up and down with a slight twinkle. Each one gets
- * its own delay so the pair drifts out of step. Still under Reduce Motion.
- */
-function FloatingSparkle({
-  delay,
-  style: placement,
-}: {
-  delay: number;
-  /** Size and position, when not the default spot beside the medal. */
-  style?: StyleProp<ViewStyle>;
-}) {
-  const reduceMotion = useReducedMotion();
-  const t = useSharedValue(0);
-
-  useEffect(() => {
-    if (reduceMotion) return;
-    t.set(
-      withDelay(
-        delay,
-        withRepeat(
-          withTiming(1, { duration: 1400, easing: Easing.inOut(Easing.sin) }),
-          -1,
-          true,
-        ),
-      ),
-    );
-  }, [delay, reduceMotion, t]);
-
-  const style = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: -5 * t.value },
-      { scale: 1 + 0.08 * t.value },
-      { rotate: `${8 * t.value}deg` },
-    ],
-  }));
-
-  return (
-    <Animated.View style={[styles.sparkle, placement, style]}>
-      <Image
-        source={SPARKLE}
-        style={styles.sparkleImage}
-        contentFit="contain"
-      />
-    </Animated.View>
-  );
-}
-
-/** How long the count-up runs, after a beat for the card to fade in. */
-const COUNT_DELAY = 250;
-const COUNT_DURATION = 1400;
-
-/** Ease-in-out sine: eases off the start and into the total, no jumps. */
-const easeInOut = (p: number) => -(Math.cos(Math.PI * p) - 1) / 2;
-
-/**
- * The prize rolling up from 1 to its value while the number slowly swells,
- * then a springy pop as it lands. Mounts with the card, so it plays each
- * time the card opens. Reduce Motion shows the total straight away.
- */
-function CountUp({ value }: { value: number }) {
-  const reduceMotion = useReducedMotion();
-  const [shown, setShown] = useState(reduceMotion ? value : 1);
-  const scale = useSharedValue(1);
-
-  useEffect(() => {
-    if (reduceMotion) return;
-    // The swell runs on the UI thread alongside the count, so the size
-    // change stays smooth even when a re-render lands late.
-    scale.set(
-      withSequence(
-        withDelay(
-          COUNT_DELAY,
-          withTiming(1.1, {
-            duration: COUNT_DURATION,
-            easing: Easing.inOut(Easing.sin),
-          }),
-        ),
-        withTiming(1.2, { duration: 90, easing: Easing.out(Easing.quad) }),
-        withSpring(1, { damping: 8, stiffness: 220 }),
-      ),
-    );
-
-    let frame = 0;
-    let start: number | null = null;
-    let last = 1;
-    const tick = (now: number) => {
-      // Plain `if`: React Compiler can't lower `??=` and would skip this file.
-      if (start === null) start = now + COUNT_DELAY;
-      const p = Math.min(1, Math.max(0, (now - start) / COUNT_DURATION));
-      const next = Math.max(1, Math.round(1 + (value - 1) * easeInOut(p)));
-      // Only re-render when the digits actually change.
-      if (next !== last) {
-        last = next;
-        setShown(next);
-      }
-      if (p < 1) frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [value, reduceMotion, scale]);
-
-  const popStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  return (
-    <View>
-      {/* Holds the final width, so the panel doesn't reflow as digits grow. */}
-      <Text style={[styles.prizeText, styles.prizeGhost]} numberOfLines={1}>
-        +{formatScore(value)}
-      </Text>
-      <Animated.Text
-        style={[styles.prizeText, styles.prizeLive, popStyle]}
-        numberOfLines={1}
-      >
-        +{formatScore(shown)}
-      </Animated.Text>
-    </View>
-  );
-}
 
 type DailyRewardModalProps = {
   /** The paid finish to celebrate — the coins are already in the bank. */
@@ -210,7 +68,7 @@ export function DailyRewardModal({ reward, onClose }: DailyRewardModalProps) {
               </Text>
 
               <View style={styles.medalRow} accessibilityElementsHidden>
-                <FloatingSparkle delay={0} />
+                <FloatingSparkle delay={0} style={styles.sparkle} />
                 <Image
                   source={PODIUM_MEDALS[reward.rank - 1] ?? TOP_TEN_MEDAL}
                   style={[
@@ -220,7 +78,7 @@ export function DailyRewardModal({ reward, onClose }: DailyRewardModalProps) {
                   ]}
                   contentFit="contain"
                 />
-                <FloatingSparkle delay={700} />
+                <FloatingSparkle delay={700} style={styles.sparkle} />
               </View>
 
               <Text
@@ -257,7 +115,7 @@ export function DailyRewardModal({ reward, onClose }: DailyRewardModalProps) {
                   />
                 </View>
                 <View style={styles.prizeAmount}>
-                  <CountUp value={reward.coins} />
+                  <CoinCountUp value={reward.coins} style={styles.prizeText} />
                   <Text style={styles.prizeUnit}>
                     {gt('{count, plural, one {coin} other {coins}}', {
                       count: reward.coins,
@@ -336,13 +194,7 @@ const styles = StyleSheet.create({
   },
   // 110×120 source.
   sparkle: {
-    width: 26,
-    height: 28,
     marginTop: 18,
-  },
-  sparkleImage: {
-    width: '100%',
-    height: '100%',
   },
   title: {
     alignSelf: 'stretch',
@@ -403,15 +255,6 @@ const styles = StyleSheet.create({
     lineHeight: 66,
     color: GameColors.ink,
     fontVariant: ['tabular-nums'],
-  },
-  prizeGhost: {
-    opacity: 0,
-  },
-  prizeLive: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    textAlign: 'center',
   },
   prizeUnit: {
     marginTop: -8,

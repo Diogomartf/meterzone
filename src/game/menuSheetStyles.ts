@@ -316,17 +316,19 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   hsSide: {
-    width: 96,
+    width: 106,
     marginLeft: 8,
     alignItems: 'flex-end',
   },
+  // Same height as the share button, so hiding it for a capture doesn't
+  // move the card.
   hsSharePlaceholder: {
-    height: 36,
+    height: 44,
   },
   // Stays inside its column so it never covers the score.
   hsArt: {
-    width: 96,
-    height: 96,
+    width: 106,
+    height: 106,
     marginTop: 4,
   },
   hsTitle: {
@@ -395,41 +397,42 @@ export const styles = StyleSheet.create({
     fontFamily: GameFonts.display,
     fontSize: 18,
   },
+  // Today's daily: calendar, TODAY over the score, level on the right.
   hsToday: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    minHeight: 60,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.4)',
-    paddingHorizontal: 12,
+    gap: 12,
+    minHeight: 68,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.7)',
+    backgroundColor: 'rgba(255,255,255,0.45)',
+    paddingLeft: 10,
+    paddingRight: 12,
     paddingVertical: 10,
+  },
+  hsTodayIcon: {
+    width: 42,
+    height: 42,
+  },
+  hsTodayBody: {
+    flex: 1,
+    gap: 1,
   },
   hsTodayLabel: {
     fontFamily: GameFonts.display,
-    fontSize: 14,
-    lineHeight: 18,
-    letterSpacing: 0.6,
-    color: GameColors.ink,
-  },
-  hsTodayRule: {
-    alignSelf: 'stretch',
-    width: 2,
-    borderRadius: 1,
-    backgroundColor: 'rgba(26,28,44,0.2)',
+    fontSize: 12,
+    lineHeight: 15,
+    letterSpacing: 1,
+    color: 'rgba(26,28,44,0.6)',
   },
   hsTodayScore: {
-    flexShrink: 1,
     fontFamily: GameFonts.display,
-    fontSize: 30,
-    lineHeight: 36,
+    fontSize: 28,
+    lineHeight: 32,
     color: GameColors.ink,
   },
-  hsTodayShare: {
-    marginLeft: 'auto',
-  },
   hsTodayHint: {
-    flex: 1,
     fontFamily: GameFonts.soft,
     fontSize: 15,
     lineHeight: 20,
@@ -1201,21 +1204,12 @@ export const styles = StyleSheet.create({
     paddingVertical: 12,
     marginBottom: 12,
   },
-  skinBankText: {
-    flex: 1,
-    gap: 2,
-  },
   skinBankLabel: {
+    flex: 1,
     fontFamily: GameFonts.display,
     fontSize: 19,
     lineHeight: 24,
     letterSpacing: 0.5,
-    color: GameColors.ink,
-  },
-  skinBankHint: {
-    fontFamily: GameFonts.soft,
-    fontSize: 13,
-    lineHeight: 17,
     color: GameColors.ink,
   },
   skinBankValueRow: {

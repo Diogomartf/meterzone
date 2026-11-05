@@ -1,8 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 
-import { GameColors } from '@/constants/gameTheme';
-
-/** Three chunky rounded bars: the menu glyph inside the home menu tile. */
+/** Three chunky rounded navy bars: the glyph inside the cyan menu tile. */
 export function MenuIcon() {
   return (
     <View style={styles.icon}>
@@ -21,11 +19,6 @@ const styles = StyleSheet.create({
     width: 22,
     height: 5,
     borderRadius: 2.5,
-    backgroundColor: GameColors.white,
-    // A faint drop so the white reads on the bright face.
-    shadowColor: '#0A2A70',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.35,
-    shadowRadius: 0,
+    backgroundColor: '#1A2F6B',
   },
 });

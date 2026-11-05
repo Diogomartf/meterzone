@@ -12,16 +12,17 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { GameColors } from '@/constants/gameTheme';
+import { LavaFlames } from '@/game/LavaFlames';
 import { liquidSurface, type SkinDef } from '@/game/skins';
 
 type Props = {
   fill: SharedValue<number>;
   zoneTarget: SharedValue<number>;
   zoneHalf: SharedValue<number>;
-  /** Perfect band as fraction of zoneHalf (0–1) */
-  perfectRatio: number;
-  /** Great band outer edge as fraction of zoneHalf (0–1) */
-  greatRatio: number;
+  /** Perfect half-band, as a fraction of the tube (same units as fill) */
+  perfectHalf: number;
+  /** Great half-band, as a fraction of the tube (same units as fill) */
+  greatHalf: number;
   skin: SkinDef;
   /** Visual scale of the meter tube */
   scale?: number;
@@ -29,89 +30,106 @@ type Props = {
   active?: boolean;
 };
 
-const BASE_H = 340;
-const BASE_W = 100;
-const TICK_COUNT = 7;
-const MIN_LIQUID_PX = 14;
-const MIN_ZONE_PX = 12;
+// One geometry for the shell, the glass and everything inside it, so the
+// liquid, the zone and the ticks all measure the same play area.
+export const METER_BASE_H = 340;
+export const METER_BASE_W = 100;
+/** Space the cap and base add around the shell, top and bottom together. */
+export const METER_WRAP_EXTRA = 28;
+const SHELL_BORDER = 4;
+const SHELL_PAD = 9;
+const GLASS_BORDER = 3;
+/** How far the shell's bottom sits above the wrap's: the base overlaps it. */
+const BASE_VISIBLE = 10;
 
-/** Glossy toy bullseye — Nice, red Great, yellow Perfect line */
+/** Height of the play area inside the glass, where fill 0–1 is drawn. */
+export function meterInnerHeight(scale: number) {
+  return (
+    METER_BASE_H * scale - 2 * (SHELL_BORDER + SHELL_PAD * scale + GLASS_BORDER)
+  );
+}
+
+/** Distance from the wrap's bottom to fill 0, the floor of the play area. */
+export function meterFloor(scale: number) {
+  return BASE_VISIBLE + SHELL_BORDER + SHELL_PAD * scale + GLASS_BORDER;
+}
+
+const TICK_COUNT = 9;
+const MIN_LIQUID_PX = 14;
+/** The Perfect band never draws thinner than this, so it stays visible. */
+const MIN_PERFECT_PX = 2;
+
+/** Target bands: Nice purple, Great orange, Perfect yellow. */
+const LIQUID_SHADE = [
+  'rgba(255,255,255,0.07)',
+  'rgba(255,255,255,0)',
+  'rgba(0,0,0,0)',
+  'rgba(0,0,0,0.2)',
+] as const;
+const LIQUID_SHADE_AT = [0, 0.3, 0.6, 1] as const;
+const METAL_SHADE = [
+  'rgba(120,60,0,0.35)',
+  'rgba(255,255,255,0.75)',
+  'rgba(255,255,255,0.15)',
+  'rgba(255,255,255,0)',
+  'rgba(255,255,255,0.3)',
+  'rgba(120,60,0,0.45)',
+] as const;
+const METAL_SHADE_AT = [0, 0.22, 0.34, 0.55, 0.78, 1] as const;
+
+/** Milky frost thick at both walls, clear in the middle. */
+const FROST_EDGE = [
+  'rgba(255,255,255,0.7)',
+  'rgba(235,248,255,0.25)',
+  'rgba(235,248,255,0)',
+  'rgba(235,248,255,0.25)',
+  'rgba(255,255,255,0.65)',
+] as const;
+const FROST_EDGE_AT = [0, 0.18, 0.5, 0.82, 1] as const;
+/** Ice glints, as fractions of the liquid's width and height. */
+const FROST_GLINTS = [
+  { x: 0.28, y: 0.12, r: 2.5 },
+  { x: 0.62, y: 0.27, r: 1.5 },
+  { x: 0.4, y: 0.44, r: 2 },
+  { x: 0.7, y: 0.58, r: 2.5 },
+  { x: 0.25, y: 0.71, r: 1.5 },
+  { x: 0.55, y: 0.86, r: 2 },
+] as const;
+
 const EYE = {
-  nice: '#6a219bc9',
-  great: '#f15c2e',
-  /** Soft mid-tone for Great → Nice falloff */
-  greatFade: '#c44a5a',
-  niceFade: '#6a3a8a',
+  nice: ['#5B1E8C', '#7A32B0', '#5B1E8C'],
+  great: ['#E8551F', '#FF7A3D', '#E8551F'],
   perfect: '#FFE44A',
+  glow: 'rgba(255,190,90,0.22)',
 } as const;
+
+/** Light from the upper left: bright left edge, darker right edge. */
+const FRAME_LIGHT = [
+  'rgba(255,255,255,0.38)',
+  'rgba(255,255,255,0.08)',
+  'rgba(0,0,0,0)',
+  'rgba(0,0,0,0.23)',
+] as const;
+const FRAME_LIGHT_STOPS = [0, 0.28, 0.62, 1] as const;
 
 function VerticalMeterComponent({
   fill,
   zoneTarget,
   zoneHalf,
-  perfectRatio,
-  greatRatio,
+  perfectHalf,
+  greatHalf,
   skin,
   scale = 1,
   active = false,
 }: Props) {
-  const meterH = BASE_H * scale;
-  const meterW = BASE_W * scale;
-  const innerH = meterH - 20;
+  const meterH = METER_BASE_H * scale;
+  const meterW = METER_BASE_W * scale;
+  const innerH = meterInnerHeight(scale);
   const wobble = useSharedValue(0.5);
-
-  const pRatio = Math.min(Math.max(perfectRatio, 0.06), 0.28);
-  const gRatio = Math.min(Math.max(greatRatio, pRatio * 1.8), 0.58);
   const surface = useMemo(() => liquidSurface(skin), [skin]);
 
-  // Symmetric Nice / Great / Nice — Perfect is the yellow strike line at center
-  const eyeGradient = useMemo(() => {
-    const greatTop = 0.5 - gRatio / 2;
-    const feather = Math.min(
-      0.11,
-      Math.max(0.04, (gRatio / 2) * 0.9, greatTop * 0.65),
-    );
-
-    // Top half only — bottom is the exact mirror
-    const topHalf = [
-      0,
-      greatTop - feather,
-      greatTop - feather * 0.55,
-      greatTop - feather * 0.2,
-      greatTop + feather * 0.15,
-      greatTop + feather * 0.45,
-      0.5,
-    ];
-    const topColors = [
-      EYE.nice,
-      EYE.nice,
-      EYE.niceFade,
-      EYE.greatFade,
-      EYE.great,
-      EYE.great,
-      EYE.great,
-    ] as const;
-
-    const raw = [
-      ...topHalf,
-      ...topHalf
-        .slice(0, -1)
-        .reverse()
-        .map((v) => 1 - v),
-    ];
-    const colors = [...topColors, ...topColors.slice(0, -1).reverse()] as const;
-
-    let prev = 0;
-    const locations = raw.map((v, i) => {
-      if (i === 0) return 0;
-      if (i === raw.length - 1) return 1;
-      const next = Math.max(prev + 0.001, Math.min(0.999, v));
-      prev = next;
-      return next;
-    }) as [number, number, ...number[]];
-
-    return { colors, locations };
-  }, [gRatio]);
+  const greatPx = 2 * greatHalf * innerH;
+  const perfectPx = Math.max(MIN_PERFECT_PX, 2 * perfectHalf * innerH);
 
   useEffect(() => {
     if (active) {
@@ -128,7 +146,10 @@ function VerticalMeterComponent({
 
   const ticks = useMemo(
     () =>
-      Array.from({ length: TICK_COUNT }, (_, i) => (i + 1) / (TICK_COUNT + 1)),
+      Array.from({ length: TICK_COUNT }, (_, i) => ({
+        at: (i + 1) / (TICK_COUNT + 1),
+        long: i % 2 === 1,
+      })),
     [],
   );
 
@@ -140,29 +161,41 @@ function VerticalMeterComponent({
     };
   });
 
-  const surfaceStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: (wobble.value - 0.5) * 2.5 }],
+  // Decorative only: the liquid's top edge stays exactly at the fill.
+  const rippleStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: (wobble.value - 0.5) * 2 }],
   }));
 
-  // Full-height zone band scaled + translated — no bottom/height layout updates.
-  const zoneStyle = useAnimatedStyle(() => {
-    const band = Math.max(MIN_ZONE_PX / innerH, zoneHalf.value * 2);
-    // Applied right-to-left: scale around center, then translate into place.
-    return {
-      transform: [
-        { translateY: (0.5 - zoneTarget.value) * innerH },
-        { scaleY: band },
-      ],
-    };
-  });
-
-  const strikeStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: 5 - zoneTarget.value * innerH }],
-    opacity: 0.95,
+  // Each zone layer is a full-height box centred on the target.
+  const zoneUnderStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: (0.5 - zoneTarget.value) * innerH }],
   }));
+  const zoneOverStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: (0.5 - zoneTarget.value) * innerH }],
+  }));
+  // Nice tracks zoneHalf live, since a shrinking zone narrows it mid-fill.
+  const niceUnderStyle = useAnimatedStyle(() => ({
+    transform: [{ scaleY: Math.max(0, zoneHalf.value * 2) }],
+  }));
+  const niceOverStyle = useAnimatedStyle(() => ({
+    transform: [{ scaleY: Math.max(0, zoneHalf.value * 2) }],
+  }));
+  // The glow sits just outside the Nice band, never inside the hit area.
+  const glowStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scaleY: Math.max(0, zoneHalf.value * 2) + (14 * scale) / innerH },
+    ],
+  }));
+
+  const centred = (h: number) => ({ top: (innerH - h) / 2, height: h });
 
   return (
-    <View style={[styles.wrap, { width: meterW + 24, height: meterH + 28 }]}>
+    <View
+      style={[
+        styles.wrap,
+        { width: meterW + 24, height: meterH + METER_WRAP_EXTRA },
+      ]}
+    >
       <View
         style={[
           styles.pipeCap,
@@ -172,7 +205,17 @@ function VerticalMeterComponent({
             borderRadius: 12 * scale,
           },
         ]}
-      />
+      >
+        <LinearGradient
+          colors={FRAME_LIGHT}
+          locations={FRAME_LIGHT_STOPS}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0.4 }}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
+        <View style={styles.pipeGloss} pointerEvents="none" />
+      </View>
       <View
         style={[
           styles.shell,
@@ -181,53 +224,71 @@ function VerticalMeterComponent({
             height: meterH,
             borderRadius: 24 * scale,
             backgroundColor: skin.shell,
-            padding: 9 * scale,
+            padding: SHELL_PAD * scale,
           },
         ]}
       >
-        {/* Glossy cylinder shading — light hitting the right side */}
         <LinearGradient
-          colors={[
-            'rgba(0,0,0,0.06)',
-            'rgba(0,0,0,0)',
-            'rgba(255,255,255,0)',
-            'rgba(255,255,255,0.22)',
-          ]}
-          locations={[0, 0.5, 0.86, 1]}
+          colors={FRAME_LIGHT}
+          locations={FRAME_LIGHT_STOPS}
           start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={[StyleSheet.absoluteFill, { borderRadius: 20 * scale }]}
+          end={{ x: 1, y: 0.15 }}
+          style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
-        <View style={styles.shellLip} />
+        {/* Glossy specular streak down the frame's lit left side */}
+        <LinearGradient
+          colors={[
+            'rgba(255,255,255,0.5)',
+            'rgba(255,255,255,0.22)',
+            'rgba(255,255,255,0.05)',
+          ]}
+          locations={[0, 0.4, 1]}
+          style={[
+            styles.shellGloss,
+            {
+              left: 2 * scale,
+              width: 4.5 * scale,
+              top: 16 * scale,
+              bottom: 22 * scale,
+            },
+          ]}
+          pointerEvents="none"
+        />
         <View style={[styles.glass, { borderRadius: 18 * scale }]}>
-          {/* Glossy toy bullseye — single gradient (depth/sheen baked into colors) */}
-          <Animated.View
-            style={[styles.zoneWrap, { height: innerH }, zoneStyle]}
-          >
-            <LinearGradient
-              colors={eyeGradient.colors}
-              locations={eyeGradient.locations}
-              style={StyleSheet.absoluteFill}
-            />
-            <View style={styles.zoneSheen} pointerEvents="none" />
-          </Animated.View>
+          {/* Navy interior, darker toward the edges for depth */}
+          <LinearGradient
+            colors={['#020816', '#0B1D42', '#0B1D42', '#020816']}
+            locations={[0, 0.35, 0.65, 1]}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={StyleSheet.absoluteFill}
+          />
 
-          {/* Perfect = soft yellow center line */}
+          {/* Target, under the liquid */}
           <Animated.View
-            style={[styles.strikeLine, strikeStyle]}
+            style={[styles.zone, { height: innerH }, zoneUnderStyle]}
             pointerEvents="none"
           >
+            <Animated.View style={[styles.zoneFull, glowStyle]}>
+              <LinearGradient
+                colors={['rgba(255,190,90,0)', EYE.glow, 'rgba(255,190,90,0)']}
+                style={StyleSheet.absoluteFill}
+              />
+            </Animated.View>
+            <Animated.View style={[styles.zoneFull, niceUnderStyle]}>
+              <LinearGradient
+                colors={EYE.nice}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={StyleSheet.absoluteFill}
+              />
+            </Animated.View>
             <LinearGradient
-              colors={[
-                'rgba(255,228,74,0)',
-                'rgba(255,228,74,0.55)',
-                EYE.perfect,
-                'rgba(255,228,74,0.55)',
-                'rgba(255,228,74,0)',
-              ]}
-              locations={[0, 0.28, 0.5, 0.72, 1]}
-              style={StyleSheet.absoluteFill}
+              colors={EYE.great}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={[styles.band, centred(greatPx)]}
             />
           </Animated.View>
 
@@ -240,21 +301,53 @@ function VerticalMeterComponent({
               style={styles.surfaceGlow}
               pointerEvents="none"
             />
-
             <LinearGradient
               colors={[...skin.liquid]}
               locations={[0, 0.18, 0.42, 0.7, 1]}
-              style={styles.fill}
+              style={StyleSheet.absoluteFill}
             />
-
-            <View style={styles.liquidSheen} pointerEvents="none" />
-
+            {/* Bright left, rich centre, slightly darker right. Metal skins
+                get a hard white band and dark edges, like a polished tube. */}
+            <LinearGradient
+              colors={skin.metallic ? METAL_SHADE : LIQUID_SHADE}
+              locations={skin.metallic ? METAL_SHADE_AT : LIQUID_SHADE_AT}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+            {skin.frosty ? (
+              <>
+                <LinearGradient
+                  colors={FROST_EDGE}
+                  locations={FROST_EDGE_AT}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0.5 }}
+                  style={StyleSheet.absoluteFill}
+                  pointerEvents="none"
+                />
+                {FROST_GLINTS.map(({ x, y, r }) => (
+                  <View
+                    key={`${x}-${y}`}
+                    style={[
+                      styles.glint,
+                      {
+                        left: `${x * 100}%`,
+                        top: y * innerH,
+                        width: r * 2 * scale,
+                        height: r * 2 * scale,
+                        borderRadius: r * scale,
+                      },
+                    ]}
+                    pointerEvents="none"
+                  />
+                ))}
+              </>
+            ) : null}
+            {/* Shallow meniscus with a thin bright rim */}
             <Animated.View
-              style={[
-                styles.surface,
-                surfaceStyle,
-                { shadowColor: surface.shadow },
-              ]}
+              style={[styles.meniscus, rippleStyle]}
+              pointerEvents="none"
             >
               <LinearGradient
                 colors={[...surface.foam]}
@@ -262,26 +355,66 @@ function VerticalMeterComponent({
                 end={{ x: 1, y: 0.5 }}
                 style={StyleSheet.absoluteFill}
               />
+              <View style={styles.meniscusRim} />
             </Animated.View>
+            {/* Over the meniscus, or its foam would hide the flames */}
+            {skin.burning ? <LavaFlames scale={scale} active={active} /> : null}
+          </Animated.View>
+
+          {/* Target again, see-through above the liquid so it never hides */}
+          <Animated.View
+            style={[
+              styles.zone,
+              styles.zoneOver,
+              { height: innerH },
+              zoneOverStyle,
+            ]}
+            pointerEvents="none"
+          >
+            <Animated.View
+              style={[styles.zoneFull, styles.overlayNice, niceOverStyle]}
+            />
+            <View
+              style={[styles.band, styles.overlayGreat, centred(greatPx)]}
+            />
+            <View
+              style={[
+                styles.band,
+                styles.perfect,
+                centred(perfectPx),
+                { shadowRadius: 5 * scale },
+              ]}
+            />
           </Animated.View>
 
           <View style={styles.ticks} pointerEvents="none">
-            {ticks.map((t) => (
+            {ticks.map(({ at, long }) => (
               <View
-                key={t}
+                key={at}
                 style={[
                   styles.tick,
                   {
-                    bottom: t * innerH,
-                    width: 10 * scale,
-                    height: Math.max(2, 2.5 * scale),
+                    bottom: at * innerH,
+                    width: (long ? 10 : 6) * scale,
+                    height: Math.max(1, 1.5 * scale),
                   },
                 ]}
               />
             ))}
           </View>
 
-          <View style={styles.glassShine} pointerEvents="none" />
+          {/* Glass: a soft vertical streak */}
+          <LinearGradient
+            colors={[
+              'rgba(255,255,255,0)',
+              'rgba(255,255,255,0.14)',
+              'rgba(255,255,255,0.14)',
+              'rgba(255,255,255,0)',
+            ]}
+            locations={[0, 0.2, 0.75, 1]}
+            style={[styles.glassStreak, { width: 5 * scale }]}
+            pointerEvents="none"
+          />
         </View>
       </View>
       <View
@@ -293,7 +426,17 @@ function VerticalMeterComponent({
             borderRadius: 10 * scale,
           },
         ]}
-      />
+      >
+        <LinearGradient
+          colors={FRAME_LIGHT}
+          locations={FRAME_LIGHT_STOPS}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0.4 }}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
+        <View style={styles.pipeGloss} pointerEvents="none" />
+      </View>
     </View>
   );
 }
@@ -311,58 +454,48 @@ const styles = StyleSheet.create({
     borderColor: GameColors.ink,
     marginBottom: -8,
     zIndex: 2,
-  },
-  shell: {
-    borderWidth: 4,
-    borderColor: GameColors.ink,
     overflow: 'hidden',
   },
-  shellLip: {
-    position: 'absolute',
-    left: 10,
-    top: 16,
-    bottom: 16,
-    width: 12,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.14)',
-    zIndex: 1,
+  shell: {
+    borderWidth: SHELL_BORDER,
+    borderColor: GameColors.ink,
+    overflow: 'hidden',
   },
   glass: {
     flex: 1,
     overflow: 'hidden',
     backgroundColor: GameColors.meterInner,
-    borderWidth: 3,
+    borderWidth: GLASS_BORDER,
     borderColor: GameColors.ink,
   },
-  zoneWrap: {
+  zone: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
     zIndex: 1,
-    overflow: 'hidden',
-    borderRadius: 2,
   },
-  /** Flat specular strip — cheaper than a LinearGradient layer */
-  zoneSheen: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: '48%',
-    backgroundColor: 'rgba(255,255,255,0.22)',
+  zoneOver: {
+    zIndex: 4,
   },
-  strikeLine: {
+  zoneFull: {
+    ...StyleSheet.absoluteFill,
+  },
+  band: {
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 0,
-    height: 10,
-    zIndex: 5,
-    overflow: 'hidden',
+  },
+  overlayNice: {
+    backgroundColor: 'rgba(160,90,230,0.1)',
+  },
+  overlayGreat: {
+    backgroundColor: 'rgba(255,122,61,0.18)',
+  },
+  perfect: {
+    backgroundColor: EYE.perfect,
     shadowColor: EYE.perfect,
-    shadowOpacity: 0.7,
-    shadowRadius: 6,
+    shadowOpacity: 0.8,
     shadowOffset: { width: 0, height: 0 },
     elevation: 4,
   },
@@ -374,21 +507,6 @@ const styles = StyleSheet.create({
     overflow: 'visible',
     zIndex: 3,
   },
-  fill: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-  },
-  liquidSheen: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: '42%',
-    backgroundColor: 'rgba(255,255,255,0.16)',
-  },
   surfaceGlow: {
     position: 'absolute',
     left: -2,
@@ -396,49 +514,71 @@ const styles = StyleSheet.create({
     top: -14,
     height: 26,
   },
-  surface: {
+  meniscus: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    top: -1,
-    height: 5,
-    borderRadius: 2,
+    left: -6,
+    right: -6,
+    top: -2,
+    height: 8,
+    // A wide, flat ellipse: the edges dip, so the surface reads curved.
+    borderBottomLeftRadius: 999,
+    borderBottomRightRadius: 999,
     overflow: 'hidden',
-    shadowColor: '#FFB020',
-    shadowOpacity: 0.45,
-    shadowRadius: 4,
+  },
+  glint: {
+    position: 'absolute',
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    shadowColor: '#FFFFFF',
+    shadowOpacity: 0.9,
+    shadowRadius: 3,
     shadowOffset: { width: 0, height: 0 },
-    elevation: 3,
+  },
+  meniscusRim: {
+    position: 'absolute',
+    left: 6,
+    right: 6,
+    top: 0,
+    height: 1.5,
+    backgroundColor: 'rgba(255,255,255,0.85)',
   },
   ticks: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    zIndex: 3,
+    ...StyleSheet.absoluteFill,
+    zIndex: 5,
   },
   tick: {
     position: 'absolute',
     right: 5,
-    marginBottom: -1,
     borderRadius: 1,
+    backgroundColor: 'rgba(255,255,255,0.28)',
+  },
+  glassStreak: {
+    position: 'absolute',
+    left: 6,
+    top: 14,
+    bottom: 14,
+    borderRadius: 999,
+    zIndex: 6,
+  },
+  /** White highlight along the top of the cap and base, for gloss. */
+  pipeGloss: {
+    position: 'absolute',
+    top: 1.5,
+    left: 8,
+    right: 8,
+    height: 3,
+    borderRadius: 2,
     backgroundColor: 'rgba(255,255,255,0.4)',
   },
-  glassShine: {
+  shellGloss: {
     position: 'absolute',
-    left: 5,
-    top: 10,
-    bottom: 10,
-    width: 9,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.14)',
-    zIndex: 4,
+    zIndex: 1,
   },
   pipeBase: {
     height: 16,
     marginTop: -6,
     borderWidth: 4,
     borderColor: GameColors.ink,
+    overflow: 'hidden',
   },
 });

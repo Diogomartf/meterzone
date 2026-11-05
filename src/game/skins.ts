@@ -7,6 +7,12 @@ export type SkinDef = {
   liquid: readonly [string, string, string, string, string];
   shell: string;
   shellDark: string;
+  /** Polished metal: a bright band across the liquid and dark edges. */
+  metallic?: boolean;
+  /** Frozen: milky frost along the edges and a few glints in the liquid. */
+  frosty?: boolean;
+  /** Molten: flames flicker on the liquid's surface. */
+  burning?: boolean;
 };
 
 export const SKINS: Record<SkinId, SkinDef> = {
@@ -14,10 +20,11 @@ export const SKINS: Record<SkinId, SkinDef> = {
     id: 'toxic',
     name: 'Toxic',
     cost: 0,
-    // Top → bottom: hot yellow surface → lime → cyan base (matches art)
-    liquid: ['#FFE94A', '#B8FF2A', '#2DFF6A', '#00E0D0', '#00A8FF'],
-    shell: '#73BF2E',
-    shellDark: '#4E9A16',
+    // Top → bottom: sunny yellow → lime → bright green → cyan → sky blue,
+    // vivid and solid like the store art, in a lime frame
+    liquid: ['#FFE21F', '#C6EE22', '#3EDD3A', '#22CFD0', '#2B9BF0'],
+    shell: '#8ED91E',
+    shellDark: '#4E9A0E',
   },
   lava: {
     id: 'lava',
@@ -26,27 +33,32 @@ export const SKINS: Record<SkinId, SkinDef> = {
     // (~50 coins a game), so it is banked across sessions, not won in one run.
     // Each look after it costs 3x the one before.
     cost: 5000,
-    liquid: ['#FFE8C8', '#FFB020', '#FF5A1F', '#E11D48', '#7F1D1D'],
+    liquid: ['#FFD08A', '#FFA010', '#FF5A1F', '#E11D48', '#7F1D1D'],
     shell: '#F97316',
     shellDark: '#C2410C',
+    burning: true,
   },
   ice: {
     id: 'ice',
     name: 'Ice',
     // 3x Lava: about 280 average games.
     cost: 15000,
-    liquid: ['#F0F9FF', '#BAE6FD', '#38BDF8', '#2563EB', '#1E3A8A'],
-    shell: '#38BDF8',
-    shellDark: '#0284C7',
+    // Snow-white surface through pale glacier blue to a deep cold base.
+    liquid: ['#F7FCFF', '#D4F0FF', '#8FD3F7', '#4A9EE6', '#2457B8'],
+    shell: '#7DD3FC',
+    shellDark: '#2B8FD0',
+    frosty: true,
   },
   gold: {
     id: 'gold',
     name: 'Gold',
     // The end of the road, 3x Ice: about 850 average games.
     cost: 45000,
-    liquid: ['#FFFBEB', '#FDE68A', '#FBBF24', '#D97706', '#92400E'],
-    shell: '#EAB308',
-    shellDark: '#A16207',
+    // Bright and dark stops alternate down the tube, like light on metal.
+    liquid: ['#FFF8D6', '#FFD93D', '#FFF0A0', '#F5A800', '#9A5B00'],
+    shell: '#FACC15',
+    shellDark: '#B7791F',
+    metallic: true,
   },
 };
 

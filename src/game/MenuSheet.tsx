@@ -50,7 +50,6 @@ import { CoinBank, SkinShop } from '@/game/SkinShop';
 import { captureAndShare, shareScoreCaption } from '@/game/share';
 import { formatScore } from '@/game/format';
 import type { AvatarPackId, PlayerAvatar, SkinId } from '@/game/types';
-import { todayKey } from '@/game/storage';
 import { useSheetBottomPad } from '@/game/useSheetBottomPad';
 import gtConfig from '../../gt.config.json';
 
@@ -231,7 +230,7 @@ export function MenuSheet({
   const [sharingKind, setSharingKind] = useState<HighscoreKind | null>(null);
   const normalShareRef = useRef<View>(null);
   const dailyShareRef = useRef<View>(null);
-  const sharingDaily = sharingKind === 'today' || sharingKind === 'record';
+  const sharingDaily = sharingKind === 'record';
   const version =
     Constants.expoConfig?.version ?? Constants.nativeAppVersion ?? '1.0.0';
 
@@ -363,9 +362,8 @@ export function MenuSheet({
     const target =
       kind === 'normal' ? normalShareRef.current : dailyShareRef.current;
 
-    // Re-renders the card with its logo and without the share button (and,
-    // for today, with today's score in the record's place), so the capture
-    // below picks up the shareable framing.
+    // Re-renders the card with its logo and without the share button, so the
+    // capture below picks up the shareable framing.
     setSharingKind(kind);
     // `finally` would read better, but React Compiler cannot lower a try block
     // with a finalizer and would skip optimizing this whole file.
@@ -683,44 +681,27 @@ export function MenuSheet({
                           contentFit="contain"
                         />
                       ) : null}
-                      {sharingKind === 'today' ? (
-                        // The shared image is today's score alone, laid out
-                        // like the record so it reads as the same card.
-                        <RecordCard
-                          title={gt('Daily challenge')}
-                          art={MEDAL}
-                          accent={GameColors.playBlue}
-                          accentDeep={GameColors.playBlueDark}
-                          score={dailyTodayScore}
-                          level={dailyTodayLevel}
-                          meta={formatDay(todayKey())}
-                          emptyHint=""
-                          hideShare
-                        />
-                      ) : (
-                        <RecordCard
-                          title={gt('Daily challenge')}
-                          art={MEDAL}
-                          accent={GameColors.playBlue}
-                          accentDeep={GameColors.playBlueDark}
-                          score={dailyRecordScore}
-                          level={dailyRecordLevel}
-                          meta={recordMeta}
-                          emptyHint={gt('Same challenge for everyone. Go!')}
-                          hideShare={sharingKind === 'record'}
-                          onShare={() => void shareHighscore('record')}
-                        >
-                          {dailyRecordScore > 0 && sharingKind !== 'record' ? (
-                            <TodayStrip
-                              played={dailyPlayedToday}
-                              score={dailyTodayScore}
-                              level={dailyTodayLevel}
-                              emptyHint={gt('Not played yet')}
-                              onShare={() => void shareHighscore('today')}
-                            />
-                          ) : null}
-                        </RecordCard>
-                      )}
+                      <RecordCard
+                        title={gt('Daily challenge')}
+                        art={MEDAL}
+                        accent={GameColors.playBlue}
+                        accentDeep={GameColors.playBlueDark}
+                        score={dailyRecordScore}
+                        level={dailyRecordLevel}
+                        meta={recordMeta}
+                        emptyHint={gt('Same challenge for everyone. Go!')}
+                        hideShare={sharingKind === 'record'}
+                        onShare={() => void shareHighscore('record')}
+                      >
+                        {dailyRecordScore > 0 && sharingKind !== 'record' ? (
+                          <TodayStrip
+                            played={dailyPlayedToday}
+                            score={dailyTodayScore}
+                            level={dailyTodayLevel}
+                            emptyHint={gt('Not played yet')}
+                          />
+                        ) : null}
+                      </RecordCard>
                     </View>
                   </ScrollView>
                 ) : null}

@@ -16,16 +16,11 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  getLocaleProperties,
-  msg,
-  useGT,
-  useLocale,
-  useMessages,
-} from 'gt-react-native';
+import { msg, useGT, useMessages } from 'gt-react-native';
 
 import { styles } from '@/game/gameScreenStyles';
 import { CountdownBurst } from '@/game/CountdownBurst';
+import { DailyCard } from '@/game/DailyCard';
 import { Hearts } from '@/game/Hearts';
 import { MenuSheet } from '@/game/MenuSheet';
 import { MissBreak } from '@/game/MissBreak';
@@ -33,10 +28,17 @@ import { PerfectSwoosh } from '@/game/PerfectSwoosh';
 import { DailyRewardModal } from '@/game/DailyRewardModal';
 import { previewSampleRanking } from '@/game/RankingScreen';
 import { ReviewPromptModal } from '@/game/ReviewPromptModal';
-import { ScoreModule } from '@/game/ScoreModule';
+import { CoinBadge, ScoreModule } from '@/game/ScoreModule';
 import { TapHint, TAP_BALL_GAP } from '@/game/TapHint';
 import { TapHowToLine } from '@/game/TapHowToLine';
-import { VerticalMeter } from '@/game/VerticalMeter';
+import {
+  METER_BASE_H,
+  METER_BASE_W,
+  METER_WRAP_EXTRA,
+  meterFloor,
+  meterInnerHeight,
+  VerticalMeter,
+} from '@/game/VerticalMeter';
 import { formatScore } from '@/game/format';
 import { gameHaptics, setGameHapticsEnabled } from '@/game/haptics';
 import { createRng, makeRound } from '@/game/levels';
@@ -54,7 +56,7 @@ import {
   type FeedbackSlot,
 } from '@/game/runState';
 import { captureAndShare, shareScoreCaption } from '@/game/share';
-import { DEFAULT_SKIN, SKINS } from '@/game/skins';
+import { DEFAULT_SKIN, SKIN_IDS, SKINS } from '@/game/skins';
 import {
   clearPersist,
   commitRunResult,
@@ -81,13 +83,21 @@ import type {
 } from '@/game/types';
 import {
   dailyRewardCoins,
+  isSignedInToRanking,
+  loadRanking,
+  pointsToPass,
+  rankingAvailable,
   signInToRanking,
   submitRunToRanking,
 } from '@/game/ranking';
 import { useRunState } from '@/game/useRunState';
 import { MainButton } from '@/game/MainButton';
 import { MenuIcon } from '@/game/MenuIcon';
-import { ResultScreen, type RunResult } from '@/game/ResultScreen';
+import {
+  ResultScreen,
+  type DailyRank,
+  type RunResult,
+} from '@/game/ResultScreen';
 import { useDailyReward } from '@/game/useDailyReward';
 import { usePersistState } from '@/game/usePersistState';
 import { useSounds } from '@/game/useSounds';
@@ -95,20 +105,22 @@ import { useTapCoach } from '@/game/useTapCoach';
 import { resetScreenshotAutoplay, useMeterTap } from '@/game/useMeterTap';
 
 const LOGO = require('../../assets/images/zone-meter-logo.webp');
-const GAME_BG = require('../../assets/images/game-bg.webp');
 const FEEDBACK_EMAIL = 'hello@meterzone.net';
 
-/** Yellow pad surface in game-bg.png (fraction of image height from top). */
+const DAILY_ICON = require('../../assets/images/daily-card-calendar.webp');
+/** Each skin's backdrop; every one keeps the pad at the same height. */
+const SKIN_BG: Record<SkinId, number> = {
+  toxic: require('../../assets/images/game-bg.webp'),
+  lava: require('../../assets/images/game-bg-lava.webp'),
+  ice: require('../../assets/images/game-bg-ice.webp'),
+  gold: require('../../assets/images/game-bg-gold.webp'),
+};
+/** Pad surface in the backdrops (fraction of image height from top). */
 const PAD_SURFACE_Y = 0.905;
 /** Extra lift so the meter sits above the pad. */
 const METER_LIFT = 16;
-const METER_BASE_H = 340;
-const METER_BASE_W = 100;
-const METER_WRAP_EXTRA = 28;
-/** Inner tube is 20px shorter than the shell (VerticalMeter innerH). */
-const METER_INNER_INSET = 20;
-/** Shell padding + glass border under the fill, from the wrap bottom. */
-const METER_GLASS_BOTTOM = (scale: number) => 10 + 9 * scale + 3;
+/** Least space between the home cards and PLAY. */
+const HOME_PLAY_GAP = 16;
 
 /**
  * Run pacing, in ms. These are the knobs that decide how the game *feels*
@@ -210,9 +222,7 @@ function syncZoneMotion(zone: ZoneMotion, config: RoundConfig) {
 export function GameScreen() {
   const gt = useGT();
   const m = useMessages();
-  const locale = useLocale();
   /** Flag of the language in play — the home-screen shortcut into the picker. */
-  const localeFlag = useMemo(() => getLocaleProperties(locale).emoji, [locale]);
   const insets = useSafeAreaInsets();
   const { height: windowH, width: windowW } = useWindowDimensions();
   const { persist, persistRef, applyPersist } = usePersistState();
@@ -263,8 +273,17 @@ export function GameScreen() {
     'menu' | 'highscores' | 'language' | 'skins' | 'ranking'
   >('menu');
   const [capturingShare, setCapturingShare] = useState(false);
+  /** Where today's daily run landed on the board, for the game-over line. */
+  const [dailyRank, setDailyRank] = useState<DailyRank | null>(null);
+  /** Dev-menu skin preview: shows a look on the meter without unlocking it. */
+  const [devSkin, setDevSkin] = useState<SkinId | null>(null);
+  // Where the home cards end and how tall PLAY is, so PLAY never sits on them.
+  const [homeCardsBottom, setHomeCardsBottom] = useState(0);
+  const [playH, setPlayH] = useState(0);
   /** Dev-menu preview of the result screen, with sample numbers. */
   const [resultPreview, setResultPreview] = useState<RunResult | null>(null);
+  /** The daily rank line a dev-menu preview shows, since previews never load one. */
+  const [previewRank, setPreviewRank] = useState<DailyRank | null>(null);
   const [reviewPromptVisible, setReviewPromptVisible] = useState(false);
   const reviewPromptTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -279,6 +298,10 @@ export function GameScreen() {
   const halfTo = useSharedValue(round.zoneHalf);
   const zoneShrinks = useSharedValue(0);
   const meterX = useSharedValue(0);
+  // Bumped whenever a run is halted. Meter-slide callbacks carry the value
+  // from when they started and do nothing if it has changed since, so a slide
+  // that finishes just after the player leaves can't spawn a round on home.
+  const runTokenRef = useRef(0);
   const feedbackOpacity = useSharedValue(0);
   const feedbackScale = useSharedValue(0.7);
   const comboPulse = useSharedValue(1);
@@ -327,7 +350,7 @@ export function GameScreen() {
   /** GO already played the start sting — the fill that follows must not replay it. */
   const fillAfterGoRef = useRef(false);
 
-  const skin = SKINS[persist?.equippedSkin ?? DEFAULT_SKIN];
+  const skin = SKINS[devSkin ?? persist?.equippedSkin ?? DEFAULT_SKIN];
 
   useEffect(() => {
     syncZoneMotion(zone, round);
@@ -434,6 +457,39 @@ export function GameScreen() {
     void gameHaptics.result('Great');
   };
 
+  /**
+   * After a daily run of today's sequence, looks up the player's place on the
+   * daily board for the game-over line. Signed-out players get an invite
+   * instead; offline or unranked shows nothing. Ignored once they've left.
+   */
+  const showDailyRank = async (submitted: Promise<void>) => {
+    const isToday =
+      stateRef.current.dailyMode && runDayRef.current === todayKey();
+    if (!rankingAvailable || !isToday) {
+      setDailyRank(null);
+      return;
+    }
+    if (!isSignedInToRanking()) {
+      setDailyRank({ kind: 'signedOut' });
+      return;
+    }
+    const token = runTokenRef.current;
+    setDailyRank({ kind: 'checking' });
+    // Read the board after the score is in, or it may show the old place.
+    await submitted;
+    const board = await loadRanking('daily').catch(() => null);
+    if (token !== runTokenRef.current) return;
+    setDailyRank(
+      board?.you
+        ? {
+            kind: 'placed',
+            rank: board.you.rank,
+            toNext: pointsToPass(board.you, board.above),
+          }
+        : null,
+    );
+  };
+
   const endRun = async (finalScore: number, session: SessionStats) => {
     // Snapshot the pre-run best so the results screen can show the record
     // that was standing (previous score / difference from it).
@@ -448,11 +504,12 @@ export function GameScreen() {
       day: runDayRef.current,
     });
     applyPersist(next);
-    void submitRunToRanking(
+    const submitted = submitRunToRanking(
       finalScore,
       stateRef.current.dailyMode,
       runDayRef.current,
     );
+    void showDailyRank(submitted);
     const beatBest = finalScore > 0 && finalScore >= runBestBaselineRef.current;
     dispatch({ type: 'gameOver', isNewBest: beatBest });
 
@@ -659,7 +716,9 @@ export function GameScreen() {
     }
 
     // Later levels: land the meter, pause so the zone is readable, then fill
-    const startAfterReadPause = () => {
+    const token = runTokenRef.current;
+    const startAfterReadPause = (from: number) => {
+      if (from !== runTokenRef.current) return;
       if (stateRef.current.paused) {
         dispatch({ type: 'park', resume: { kind: 'startFill' } });
         return;
@@ -683,13 +742,13 @@ export function GameScreen() {
           0,
           { duration: TIMING.meterSlideIn, easing: Easing.out(Easing.cubic) },
           (done) => {
-            if (done) runOnJS(startAfterReadPause)();
+            if (done) runOnJS(startAfterReadPause)(token);
           },
         ),
       );
     } else {
       meterX.set(0);
-      startAfterReadPause();
+      startAfterReadPause(token);
     }
   };
 
@@ -702,7 +761,8 @@ export function GameScreen() {
     beginRound(next, true);
   };
 
-  const onMeterSlidOut = () => {
+  const onMeterSlidOut = (from: number) => {
+    if (from !== runTokenRef.current) return;
     if (stateRef.current.paused) {
       dispatch({ type: 'park', resume: { kind: 'advance' } });
       return;
@@ -714,12 +774,13 @@ export function GameScreen() {
     if (autoTimer.current) clearTimeout(autoTimer.current);
     dispatch({ type: 'pendingTimer', pending: null });
     // Slide current meter out, then bring next in
+    const token = runTokenRef.current;
     meterX.set(
       withTiming(
         METER_EXIT_X,
         { duration: TIMING.meterSlideOut, easing: Easing.in(Easing.cubic) },
         (done) => {
-          if (done) runOnJS(onMeterSlidOut)();
+          if (done) runOnJS(onMeterSlidOut)(token);
         },
       ),
     );
@@ -766,6 +827,7 @@ export function GameScreen() {
    * so nothing queued from the previous run can fire into the next one.
    */
   const haltRun = () => {
+    runTokenRef.current += 1;
     haltCoach();
     if (countTimer.current) clearTimeout(countTimer.current);
     if (autoTimer.current) clearTimeout(autoTimer.current);
@@ -883,6 +945,10 @@ export function GameScreen() {
     setMenuInitialView('ranking');
     openMenu();
   });
+  const openBestScores = useEffectEvent(() => {
+    setMenuInitialView('highscores');
+    openMenu();
+  });
   useEffect(() => {
     if (!__DEV__) return;
     const reward = (rank: number) => ({
@@ -898,9 +964,11 @@ export function GameScreen() {
     const preview = (
       name: string,
       run: Pick<RunResult, 'daily' | 'isNewBest' | 'score' | 'best'>,
+      rank: DailyRank | null = null,
     ) => ({
       name,
-      callback: () =>
+      callback: () => {
+        setPreviewRank(rank);
         setResultPreview({
           ...run,
           day: todayKey(),
@@ -908,7 +976,8 @@ export function GameScreen() {
           combo: 5,
           level: 9,
           coinsEarned: 18,
-        }),
+        });
+      },
       shouldCollapse: true,
     });
     // One entry per screen first; their variants after, so the list starts
@@ -943,6 +1012,11 @@ export function GameScreen() {
         callback: () => openSampleRanking(8, 5),
         shouldCollapse: true,
       },
+      {
+        name: 'Best scores',
+        callback: () => openBestScores(),
+        shouldCollapse: true,
+      },
       preview('Game over · daily', {
         daily: true,
         isNewBest: false,
@@ -955,12 +1029,43 @@ export function GameScreen() {
         score: 1840,
         best: 1215,
       }),
+      preview(
+        'Daily rank · #7, 120 to #6',
+        { daily: true, isNewBest: false, score: 1120, best: 1215 },
+        { kind: 'placed', rank: 7, toNext: 120 },
+      ),
+      preview(
+        'Daily rank · #1',
+        { daily: true, isNewBest: true, score: 1840, best: 1215 },
+        { kind: 'placed', rank: 1, toNext: null },
+      ),
+      preview(
+        'Daily rank · checking',
+        { daily: true, isNewBest: false, score: 1120, best: 1215 },
+        { kind: 'checking' },
+      ),
+      preview(
+        'Daily rank · signed out',
+        { daily: true, isNewBest: false, score: 1120, best: 1215 },
+        { kind: 'signedOut' },
+      ),
       reward(2),
       reward(3),
       reward(7),
       {
         name: 'Ranking · 30 players, you #23',
         callback: () => openSampleRanking(30, 23),
+        shouldCollapse: true,
+      },
+      // Try every meter look without coins; nothing is saved.
+      ...SKIN_IDS.map((id) => ({
+        name: `Skin · ${SKINS[id].name}`,
+        callback: () => setDevSkin(id),
+        shouldCollapse: true,
+      })),
+      {
+        name: 'Skin · equipped',
+        callback: () => setDevSkin(null),
         shouldCollapse: true,
       },
     ]);
@@ -1162,8 +1267,6 @@ export function GameScreen() {
       : persistedBest;
 
   const dailyPlayedToday = persist?.dailyBest.date === todayKey();
-  const homeDailyScore = dailyPlayedToday ? (persist?.dailyBest.score ?? 0) : 0;
-  const homeDailyLevel = dailyPlayedToday ? (persist?.dailyBest.level ?? 0) : 0;
   const shareScoreImage = async () => {
     if (capturingShare || !shareRef.current) return;
     // Re-renders without the Share/Retry/settings chrome before the capture.
@@ -1219,26 +1322,33 @@ export function GameScreen() {
   const meterScale = round.meterScale;
   const meterWrapH = METER_BASE_H * meterScale + METER_WRAP_EXTRA;
   const meterW = METER_BASE_W * meterScale;
-  const meterH = METER_BASE_H * meterScale;
-  const innerH = meterH - METER_INNER_INSET;
+  const innerH = meterInnerHeight(meterScale);
   // Pin meter base to the yellow pad in the background art
   const meterBottom =
     Math.max(insets.bottom + 4, windowH * (1 - PAD_SURFACE_Y)) + METER_LIFT;
-  const menuBottom = meterBottom + meterWrapH * 0.42;
+  // PLAY sits over the meter's middle, but on short screens it moves down
+  // until it clears the best and Daily cards.
+  const menuBottom = Math.max(
+    insets.bottom + 16,
+    Math.min(
+      meterBottom + meterWrapH * 0.42,
+      windowH - homeCardsBottom - HOME_PLAY_GAP - playH,
+    ),
+  );
   const tapBallX = windowW / 2 + meterW / 2 + TAP_BALL_GAP;
   const tapBallBottom =
-    meterBottom + METER_GLASS_BOTTOM(meterScale) + round.target * innerH;
+    meterBottom + meterFloor(meterScale) + round.target * innerH;
   return (
     <View ref={shareRef} style={styles.root} collapsable={false}>
       <View style={styles.backdrop} pointerEvents="none">
         <Image
-          source={GAME_BG}
+          source={SKIN_BG[skin.id]}
           style={styles.backdropImage}
           contentFit="cover"
           contentPosition="center"
           priority="high"
           cachePolicy="memory-disk"
-          recyclingKey="game-bg-v3"
+          recyclingKey={`game-bg-v3-${skin.id}`}
         />
       </View>
 
@@ -1258,12 +1368,8 @@ export function GameScreen() {
             fill={fill}
             zoneTarget={zoneTarget}
             zoneHalf={zoneHalf}
-            perfectRatio={
-              round.zoneHalf > 0 ? round.perfectHalf / round.zoneHalf : 0.18
-            }
-            greatRatio={
-              round.zoneHalf > 0 ? round.greatHalf / round.zoneHalf : 0.48
-            }
+            perfectHalf={round.perfectHalf}
+            greatHalf={round.greatHalf}
             skin={skin}
             scale={meterScale}
             active={phase === 'filling'}
@@ -1285,7 +1391,14 @@ export function GameScreen() {
         pointerEvents="box-none"
         collapsable={false}
       >
-        <View style={styles.topBlock} pointerEvents="box-none">
+        <View
+          style={styles.topBlock}
+          pointerEvents="box-none"
+          onLayout={(e) => {
+            const { y, height } = e.nativeEvent.layout;
+            setHomeCardsBottom(y + height);
+          }}
+        >
           <View style={styles.topRow} pointerEvents="box-none">
             <View style={styles.topLeft} pointerEvents="none">
               <Image
@@ -1296,16 +1409,20 @@ export function GameScreen() {
             </View>
 
             {phase === 'ready' ? (
-              <ScoreModule
-                best={persist?.highScore ?? 0}
-                bestLevel={persist?.bestLevel ?? 0}
-                dailyScore={homeDailyScore}
-                dailyLevel={homeDailyLevel}
-                dailyPlayed={Boolean(dailyPlayedToday)}
-                coins={persist?.coins ?? 0}
-                onOpen={openScores}
-                onOpenSkins={openSkins}
-              />
+              <View style={styles.topRight} pointerEvents="box-none">
+                <CoinBadge coins={persist?.coins ?? 0} onPress={openSkins} />
+                <MainButton
+                  tone="cyan"
+                  size="small"
+                  onPress={() => {
+                    setMenuInitialView('menu');
+                    openMenu();
+                  }}
+                  accessibilityLabel={gt('Menu')}
+                >
+                  <MenuIcon />
+                </MainButton>
+              </View>
             ) : phase === 'gameover' ? null : (
               <View
                 style={[styles.bestPill, isNewBest && styles.bestPillHot]}
@@ -1314,11 +1431,8 @@ export function GameScreen() {
                 <Text
                   style={[styles.bestLabel, isNewBest && styles.bestLabelHot]}
                 >
-                  {isNewBest
-                    ? gt('NEW BEST')
-                    : dailyMode
-                      ? gt('DAILY')
-                      : gt('BEST')}
+                  {/* The DAILY badge by the logo already names the mode. */}
+                  {isNewBest ? gt('NEW BEST') : gt('BEST')}
                 </Text>
                 <Text
                   style={[styles.bestValue, isNewBest && styles.bestValueHot]}
@@ -1341,10 +1455,33 @@ export function GameScreen() {
               </View>
             )}
           </View>
+          {phase === 'ready' ? (
+            <>
+              <ScoreModule
+                best={persist?.highScore ?? 0}
+                bestLevel={persist?.bestLevel ?? 0}
+                onOpen={openScores}
+              />
+              <View style={styles.homeDaily}>
+                <DailyCard onPress={() => startRun(true)} />
+              </View>
+            </>
+          ) : null}
         </View>
 
         {phase !== 'ready' && phase !== 'gameover' ? (
           <View style={styles.statsBlock} pointerEvents="none">
+            {/* A daily run says so, centred over the hearts. */}
+            {dailyMode ? (
+              <View style={styles.dailyBadge}>
+                <Image
+                  source={DAILY_ICON}
+                  style={styles.dailyBadgeIcon}
+                  contentFit="contain"
+                />
+                <Text style={styles.dailyBadgeText}>{gt('DAILY')}</Text>
+              </View>
+            ) : null}
             <View style={styles.heartsAboveScore}>
               <Hearts lives={lives} max={STARTING_LIVES} />
             </View>
@@ -1452,13 +1589,13 @@ export function GameScreen() {
             <View
               style={[styles.menuCol, { bottom: menuBottom }]}
               pointerEvents="box-none"
+              onLayout={(e) => setPlayH(e.nativeEvent.layout.height)}
             >
               <MainButton
                 tone="gold"
                 size="large"
                 style={styles.mainCta}
                 label={gt('PLAY')}
-                subtitle={gt('TAP THE ZONE')}
                 // Silent: it drops straight into the game and its countdown.
                 clickSound={false}
                 onPress={() => startRun(false)}
@@ -1475,9 +1612,10 @@ export function GameScreen() {
           ]}
           pointerEvents={capturingShare ? 'none' : 'box-none'}
         >
-          <View style={styles.bottomBarLeft} pointerEvents="box-none">
+          {/* On the home screen the menu button and Daily sit up top instead. */}
+          {phase === 'ready' ? null : (
             <MainButton
-              tone="quiet"
+              tone="cyan"
               size="small"
               onPress={() => {
                 setMenuInitialView('menu');
@@ -1487,35 +1625,19 @@ export function GameScreen() {
             >
               <MenuIcon />
             </MainButton>
-            {phase === 'ready' ? (
-              <MainButton
-                tone="white"
-                size="small"
-                onPress={() => {
-                  void gameHaptics.next();
-                  setMenuInitialView('language');
-                  openMenu();
-                }}
-                accessibilityLabel={gt('Change language')}
-              >
-                <Text style={styles.langBtnFlag}>{localeFlag}</Text>
-              </MainButton>
-            ) : null}
-          </View>
-          {phase === 'ready' ? (
-            <MainButton
-              tone="green"
-              size="small"
-              label={gt('Daily challenge')}
-              onPress={() => startRun(true)}
-            />
-          ) : null}
+          )}
         </View>
       </View>
 
       {runResult ? (
         <ResultScreen
           result={runResult}
+          dailyRank={resultPreview ? previewRank : dailyRank}
+          onOpenRanking={() => {
+            setResultPreview(null);
+            setMenuInitialView('ranking');
+            openMenu();
+          }}
           capturing={capturingShare}
           onRetry={() => {
             if (resultPreview) {

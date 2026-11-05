@@ -1,6 +1,8 @@
 import { Image } from 'expo-image';
 import { useGT, useLocale } from 'gt-react-native';
+import { SymbolView } from 'expo-symbols';
 import {
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -21,6 +23,7 @@ import { formatScore } from '@/game/format';
 import { MainButton } from '@/game/MainButton';
 import { MenuIcon } from '@/game/MenuIcon';
 import { ArchedText } from '@/game/ArchedText';
+import { CoinCountUp, CountUpText } from '@/game/CoinCountUp';
 
 const BG = require('../../assets/images/record-bg.webp');
 const LOGO = require('../../assets/images/zone-meter-logo.webp');
@@ -29,6 +32,9 @@ const CALENDAR = require('../../assets/images/daily-calendar.webp');
 const COINS = require('../../assets/images/coins-stack.webp');
 /** Width over height of the trophy art, confetti included. */
 const TROPHY_ASPECT = 600 / 416;
+
+/** The record ticks up from the old best while the trophy lands. */
+const RECORD_COUNT_DELAY = 300;
 
 /**
  * The trophy settles in: a small, eased-out grow from 88% with a fade, no
@@ -67,8 +73,82 @@ export type RunResult = {
   coinsEarned: number;
 };
 
+/** Today's daily place for the game-over line; null shows no line. */
+export type DailyRank =
+  | { kind: 'checking' }
+  | { kind: 'signedOut' }
+  /** `toNext`: points to pass the player above, null at #1 or unknown. */
+  | { kind: 'placed'; rank: number; toNext: number | null };
+
+const RANK_ICON = {
+  ios: 'trophy.fill',
+  android: 'emoji_events',
+  web: 'emoji_events',
+} as const;
+const CHEVRON_ICON = {
+  ios: 'chevron.right',
+  android: 'chevron_right',
+  web: 'chevron_right',
+} as const;
+
+/**
+ * One tappable line under a daily score: the player's place today and the gap
+ * to the next spot, or an invite to see the board. Opens the ranking.
+ */
+function DailyRankLine({
+  rank,
+  onPress,
+}: {
+  rank: DailyRank;
+  onPress: () => void;
+}) {
+  const gt = useGT();
+  const text =
+    rank.kind === 'checking'
+      ? gt('Checking your rank…')
+      : rank.kind === 'signedOut'
+        ? gt('See where you rank today')
+        : rank.rank === 1
+          ? gt('#1 today! Hold on to it.')
+          : rank.toNext != null
+            ? gt('#{rank} today · {points} points to #{next}', {
+                rank: rank.rank,
+                points: formatScore(rank.toNext),
+                next: rank.rank - 1,
+              })
+            : gt('#{rank} today', { rank: rank.rank });
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.rankLine, pressed && styles.pressed]}
+      accessibilityRole="button"
+      accessibilityLabel={text}
+      accessibilityHint={gt('Opens the ranking')}
+    >
+      <SymbolView
+        name={RANK_ICON}
+        size={16}
+        tintColor={GameColors.lemon}
+        weight="bold"
+      />
+      <Text style={styles.rankLineText} numberOfLines={1}>
+        {text}
+      </Text>
+      <SymbolView
+        name={CHEVRON_ICON}
+        size={13}
+        tintColor={GameColors.white}
+        weight="heavy"
+      />
+    </Pressable>
+  );
+}
+
 type ResultScreenProps = {
   result: RunResult;
+  /** Today's daily place, shown under the score; null hides the line. */
+  dailyRank?: DailyRank | null;
+  onOpenRanking: () => void;
   onRetry: () => void;
   onShare: () => void;
   onMenu: () => void;
@@ -84,6 +164,8 @@ type ResultScreenProps = {
  */
 export function ResultScreen({
   result: record,
+  dailyRank = null,
+  onOpenRanking,
   onRetry,
   onShare,
   onMenu,
@@ -96,13 +178,15 @@ export function ResultScreen({
   // Shorter phones (SE, mini) shrink the trophy and score, and the body
   // scrolls above the buttons if it still doesn't fit (an SE leaves ~350pt).
   const compact = height < 800;
-  const trophySize = compact ? 64 : 136;
+  // A daily record also carries the calendar header, so its trophy is
+  // smaller or the coins row gets pushed under the buttons.
+  const trophySize = compact ? 64 : record.daily ? 92 : 136;
 
   // Sized from the digit count: `adjustsFontSizeToFit` sometimes shrinks a
   // short score to a few points on iOS.
   const scoreText = formatScore(record.score);
   const scoreSize =
-    (scoreText.length <= 4 ? 112 : scoreText.length <= 5 ? 96 : 80) *
+    (scoreText.length <= 4 ? 96 : scoreText.length <= 5 ? 84 : 72) *
     (compact ? 0.64 : 1);
 
   const gap = record.best - record.score;
@@ -142,7 +226,7 @@ export function ResultScreen({
         />
         {!capturing ? (
           <MainButton
-            tone="quiet"
+            tone="cyan"
             size="small"
             onPress={onMenu}
             accessibilityLabel={gt('Menu')}
@@ -208,16 +292,39 @@ export function ResultScreen({
             />
           </Animated.View>
         )}
-        <Text
-          style={[
-            styles.score,
-            { fontSize: scoreSize, lineHeight: Math.round(scoreSize * 1.08) },
-          ]}
-          numberOfLines={1}
-        >
-          {scoreText}
-        </Text>
+        {record.isNewBest ? (
+          // Captures show the final score, never a number mid-count.
+          <CountUpText
+            from={record.best}
+            value={record.score}
+            delay={RECORD_COUNT_DELAY}
+            settled={capturing}
+            style={[
+              styles.score,
+              { fontSize: scoreSize, lineHeight: Math.round(scoreSize * 1.08) },
+            ]}
+          />
+        ) : (
+          <Text
+            style={[
+              styles.score,
+              { fontSize: scoreSize, lineHeight: Math.round(scoreSize * 1.08) },
+            ]}
+            numberOfLines={1}
+          >
+            {scoreText}
+          </Text>
+        )}
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        {record.daily && dailyRank ? (
+          // Left out of the shared image: a place on today's board goes stale.
+          <View
+            style={[styles.rankSlot, capturing && styles.hidden]}
+            pointerEvents={capturing ? 'none' : 'box-none'}
+          >
+            <DailyRankLine rank={dailyRank} onPress={onOpenRanking} />
+          </View>
+        ) : null}
 
         <Animated.View
           entering={FadeIn.delay(250)}
@@ -260,12 +367,15 @@ export function ResultScreen({
             })}
           >
             <Image source={COINS} style={styles.coins} contentFit="contain" />
-            <Text style={styles.coinsText}>
-              <Text style={styles.coinsAmount}>
-                +{formatScore(record.coinsEarned)}
-              </Text>{' '}
-              {gt('coins earned')}
-            </Text>
+            {/* Only the amount moves: it rolls up after the score's turn. */}
+            <CoinCountUp
+              value={record.coinsEarned}
+              delay={record.isNewBest ? 1500 : 450}
+              align="left"
+              settled={capturing}
+              style={[styles.coinsText, styles.coinsAmount]}
+            />
+            <Text style={styles.coinsText}>{gt('coins earned')}</Text>
           </View>
         ) : null}
       </ScrollView>
@@ -459,17 +569,17 @@ const styles = StyleSheet.create({
   coinsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 6,
     marginTop: 12,
     // The coin stack and text shadow overhang their boxes; room below keeps
     // the scroll view from clipping them.
     paddingBottom: 6,
   },
-  coins: { width: 44, height: 34 },
+  coins: { width: 47, height: 36 },
   coinsText: {
     fontFamily: GameFonts.display,
-    fontSize: 19,
-    lineHeight: 23,
+    fontSize: 21,
+    lineHeight: 26,
     color: GameColors.white,
     textShadowColor: 'rgba(0,10,80,0.5)',
     textShadowOffset: { width: 0, height: 2 },
@@ -489,4 +599,29 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   hidden: { opacity: 0 },
+  // Fixed height, so "Checking…" turning into the rank never moves the stats.
+  rankSlot: {
+    height: 40,
+    marginTop: 10,
+    justifyContent: 'center',
+  },
+  rankLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: 'rgba(185,240,255,0.7)',
+    backgroundColor: 'rgba(0,20,110,0.35)',
+  },
+  rankLineText: {
+    flexShrink: 1,
+    fontFamily: GameFonts.body,
+    fontSize: 16,
+    lineHeight: 20,
+    color: GameColors.white,
+  },
+  pressed: { opacity: 0.7 },
 });
