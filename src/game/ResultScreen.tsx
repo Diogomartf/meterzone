@@ -23,8 +23,7 @@ import { formatScore } from '@/game/format';
 import { MainButton } from '@/game/MainButton';
 import { MenuIcon } from '@/game/MenuIcon';
 import { ArchedText } from '@/game/ArchedText';
-import { CoinCountUp } from '@/game/CoinCountUp';
-import { useCountUp } from '@/game/useCountUp';
+import { CoinCountUp, CountUpText } from '@/game/CoinCountUp';
 
 const BG = require('../../assets/images/record-bg.webp');
 const LOGO = require('../../assets/images/zone-meter-logo.webp');
@@ -36,33 +35,6 @@ const TROPHY_ASPECT = 600 / 416;
 
 /** The record ticks up from the old best while the trophy lands. */
 const RECORD_COUNT_DELAY = 300;
-
-/**
- * A new record counts up from the previous best to the new score with the
- * shared count-up motion. Its own component, so the per-digit re-renders
- * stay out of the screen.
- */
-function RecordCountUp({
-  from,
-  to,
-  style,
-}: {
-  from: number;
-  to: number;
-  style: object;
-}) {
-  const { shown, popStyle } = useCountUp({
-    from,
-    to,
-    delay: RECORD_COUNT_DELAY,
-  });
-
-  return (
-    <Animated.Text style={[style, popStyle]} numberOfLines={1}>
-      {formatScore(shown)}
-    </Animated.Text>
-  );
-}
 
 /**
  * The trophy settles in: a small, eased-out grow from 88% with a fade, no
@@ -321,9 +293,12 @@ export function ResultScreen({
           </Animated.View>
         )}
         {record.isNewBest ? (
-          <RecordCountUp
+          // Captures show the final score, never a number mid-count.
+          <CountUpText
             from={record.best}
-            to={record.score}
+            value={record.score}
+            delay={RECORD_COUNT_DELAY}
+            settled={capturing}
             style={[
               styles.score,
               { fontSize: scoreSize, lineHeight: Math.round(scoreSize * 1.08) },
@@ -397,6 +372,7 @@ export function ResultScreen({
               value={record.coinsEarned}
               delay={record.isNewBest ? 1500 : 450}
               align="left"
+              settled={capturing}
               style={[styles.coinsText, styles.coinsAmount]}
             />
             <Text style={styles.coinsText}>{gt('coins earned')}</Text>

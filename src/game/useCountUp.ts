@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import {
+  cancelAnimation,
   Easing,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
+  withDelay,
   withSequence,
   withSpring,
   withTiming,
@@ -12,68 +14,71 @@ import {
 /** How long every count-up runs. */
 const COUNT_DURATION = 1100;
 
-/** Ease-out cubic: races through the low numbers, slows onto the total. */
-const easeOut = (p: number) => 1 - (1 - p) ** 3;
-
 /**
  * The one count-up motion for numbers that land on screen (a new record,
- * coins earned, a reward): rolls from `from` to `to` after `delay` ms, then
- * a quick swell and settle. Returns the number to show and the pop style for
- * an `Animated.Text`. Reduce Motion shows `to` straight away.
+ * coins earned, a reward): rolls from `from` to `to` after `delay` ms, racing
+ * through the low numbers and slowing onto the total, then a quick swell and
+ * settle. Everything runs on the UI thread: `count` is a shared value for an
+ * animated text, so React never re-renders while it counts.
  *
- * Use it in a small component of its own, so the per-digit re-renders stay
- * out of the screen around it.
+ * `settled` jumps straight to `to` with no pop, e.g. while the screen is
+ * captured for sharing. Reduce Motion always shows `to`.
  */
 export function useCountUp({
   from = 0,
   to,
   delay = 250,
+  settled = false,
 }: {
   from?: number;
   to: number;
   delay?: number;
+  settled?: boolean;
 }) {
   const reduceMotion = useReducedMotion();
-  const [shown, setShown] = useState(reduceMotion ? to : from);
+  const count = useSharedValue(reduceMotion || settled ? to : from);
   const scale = useSharedValue(1);
 
   useEffect(() => {
-    if (reduceMotion) return;
-    let frame = 0;
-    let start: number | null = null;
-    let last = from;
-    const tick = (now: number) => {
-      // Plain `if`: React Compiler can't lower `??=` and would skip this file.
-      if (start === null) start = now + delay;
-      const p = Math.min(1, Math.max(0, (now - start) / COUNT_DURATION));
-      const next = Math.round(from + (to - from) * easeOut(p));
-      // Only re-render when the digits actually change.
-      if (next !== last) {
-        last = next;
-        setShown(next);
-      }
-      if (p < 1) {
-        frame = requestAnimationFrame(tick);
-      } else {
-        // Landed: a quick swell and settle, on the UI thread.
-        scale.set(
-          withSequence(
-            withTiming(1.14, {
-              duration: 110,
-              easing: Easing.out(Easing.quad),
-            }),
-            withSpring(1, { damping: 7, stiffness: 220 }),
-          ),
-        );
-      }
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [from, to, delay, reduceMotion, scale]);
+    if (reduceMotion) {
+      count.set(to);
+      return;
+    }
+    count.set(from);
+    count.set(
+      withDelay(
+        delay,
+        withTiming(to, {
+          duration: COUNT_DURATION,
+          easing: Easing.out(Easing.cubic),
+        }),
+      ),
+    );
+    // Landed: a quick swell and settle.
+    scale.set(
+      withDelay(
+        delay + COUNT_DURATION,
+        withSequence(
+          withTiming(1.14, { duration: 110, easing: Easing.out(Easing.quad) }),
+          withSpring(1, { damping: 7, stiffness: 220 }),
+        ),
+      ),
+    );
+    // Without `settled`, so ending a capture never replays the count.
+  }, [from, to, delay, reduceMotion, count, scale]);
+
+  // A capture shows the total at once and the count never resumes after it.
+  useEffect(() => {
+    if (!settled) return;
+    cancelAnimation(count);
+    cancelAnimation(scale);
+    count.set(to);
+    scale.set(1);
+  }, [settled, to, count, scale]);
 
   const popStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
 
-  return { shown, popStyle };
+  return { count, popStyle };
 }
