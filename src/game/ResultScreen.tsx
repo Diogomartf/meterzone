@@ -1,6 +1,8 @@
 import { Image } from 'expo-image';
 import { useGT, useLocale } from 'gt-react-native';
+import { SymbolView } from 'expo-symbols';
 import {
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -99,8 +101,82 @@ export type RunResult = {
   coinsEarned: number;
 };
 
+/** Today's daily place for the game-over line; null shows no line. */
+export type DailyRank =
+  | { kind: 'checking' }
+  | { kind: 'signedOut' }
+  /** `toNext`: points to pass the player above, null at #1 or unknown. */
+  | { kind: 'placed'; rank: number; toNext: number | null };
+
+const RANK_ICON = {
+  ios: 'trophy.fill',
+  android: 'emoji_events',
+  web: 'emoji_events',
+} as const;
+const CHEVRON_ICON = {
+  ios: 'chevron.right',
+  android: 'chevron_right',
+  web: 'chevron_right',
+} as const;
+
+/**
+ * One tappable line under a daily score: the player's place today and the gap
+ * to the next spot, or an invite to see the board. Opens the ranking.
+ */
+function DailyRankLine({
+  rank,
+  onPress,
+}: {
+  rank: DailyRank;
+  onPress: () => void;
+}) {
+  const gt = useGT();
+  const text =
+    rank.kind === 'checking'
+      ? gt('Checking your rank…')
+      : rank.kind === 'signedOut'
+        ? gt('See where you rank today')
+        : rank.rank === 1
+          ? gt('#1 today! Hold on to it.')
+          : rank.toNext != null
+            ? gt('#{rank} today · {points} points to #{next}', {
+                rank: rank.rank,
+                points: formatScore(rank.toNext),
+                next: rank.rank - 1,
+              })
+            : gt('#{rank} today', { rank: rank.rank });
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.rankLine, pressed && styles.pressed]}
+      accessibilityRole="button"
+      accessibilityLabel={text}
+      accessibilityHint={gt('Opens the ranking')}
+    >
+      <SymbolView
+        name={RANK_ICON}
+        size={16}
+        tintColor={GameColors.lemon}
+        weight="bold"
+      />
+      <Text style={styles.rankLineText} numberOfLines={1}>
+        {text}
+      </Text>
+      <SymbolView
+        name={CHEVRON_ICON}
+        size={13}
+        tintColor={GameColors.white}
+        weight="heavy"
+      />
+    </Pressable>
+  );
+}
+
 type ResultScreenProps = {
   result: RunResult;
+  /** Today's daily place, shown under the score; null hides the line. */
+  dailyRank?: DailyRank | null;
+  onOpenRanking: () => void;
   onRetry: () => void;
   onShare: () => void;
   onMenu: () => void;
@@ -116,6 +192,8 @@ type ResultScreenProps = {
  */
 export function ResultScreen({
   result: record,
+  dailyRank = null,
+  onOpenRanking,
   onRetry,
   onShare,
   onMenu,
@@ -136,7 +214,7 @@ export function ResultScreen({
   // short score to a few points on iOS.
   const scoreText = formatScore(record.score);
   const scoreSize =
-    (scoreText.length <= 4 ? 112 : scoreText.length <= 5 ? 96 : 80) *
+    (scoreText.length <= 4 ? 96 : scoreText.length <= 5 ? 84 : 72) *
     (compact ? 0.64 : 1);
 
   const gap = record.best - record.score;
@@ -263,6 +341,15 @@ export function ResultScreen({
           </Text>
         )}
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        {record.daily && dailyRank ? (
+          // Left out of the shared image: a place on today's board goes stale.
+          <View
+            style={[styles.rankSlot, capturing && styles.hidden]}
+            pointerEvents={capturing ? 'none' : 'box-none'}
+          >
+            <DailyRankLine rank={dailyRank} onPress={onOpenRanking} />
+          </View>
+        ) : null}
 
         <Animated.View
           entering={FadeIn.delay(250)}
@@ -536,4 +623,29 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   hidden: { opacity: 0 },
+  // Fixed height, so "Checking…" turning into the rank never moves the stats.
+  rankSlot: {
+    height: 40,
+    marginTop: 10,
+    justifyContent: 'center',
+  },
+  rankLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: 'rgba(185,240,255,0.7)',
+    backgroundColor: 'rgba(0,20,110,0.35)',
+  },
+  rankLineText: {
+    flexShrink: 1,
+    fontFamily: GameFonts.body,
+    fontSize: 16,
+    lineHeight: 20,
+    color: GameColors.white,
+  },
+  pressed: { opacity: 0.7 },
 });

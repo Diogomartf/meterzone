@@ -83,13 +83,21 @@ import type {
 } from '@/game/types';
 import {
   dailyRewardCoins,
+  isSignedInToRanking,
+  loadRanking,
+  pointsToPass,
+  rankingAvailable,
   signInToRanking,
   submitRunToRanking,
 } from '@/game/ranking';
 import { useRunState } from '@/game/useRunState';
 import { MainButton } from '@/game/MainButton';
 import { MenuIcon } from '@/game/MenuIcon';
-import { ResultScreen, type RunResult } from '@/game/ResultScreen';
+import {
+  ResultScreen,
+  type DailyRank,
+  type RunResult,
+} from '@/game/ResultScreen';
 import { useDailyReward } from '@/game/useDailyReward';
 import { usePersistState } from '@/game/usePersistState';
 import { useSounds } from '@/game/useSounds';
@@ -265,6 +273,8 @@ export function GameScreen() {
     'menu' | 'highscores' | 'language' | 'skins' | 'ranking'
   >('menu');
   const [capturingShare, setCapturingShare] = useState(false);
+  /** Where today's daily run landed on the board, for the game-over line. */
+  const [dailyRank, setDailyRank] = useState<DailyRank | null>(null);
   /** Dev-menu skin preview: shows a look on the meter without unlocking it. */
   const [devSkin, setDevSkin] = useState<SkinId | null>(null);
   // Where the home cards end and how tall PLAY is, so PLAY never sits on them.
@@ -272,6 +282,8 @@ export function GameScreen() {
   const [playH, setPlayH] = useState(0);
   /** Dev-menu preview of the result screen, with sample numbers. */
   const [resultPreview, setResultPreview] = useState<RunResult | null>(null);
+  /** The daily rank line a dev-menu preview shows, since previews never load one. */
+  const [previewRank, setPreviewRank] = useState<DailyRank | null>(null);
   const [reviewPromptVisible, setReviewPromptVisible] = useState(false);
   const reviewPromptTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -445,6 +457,39 @@ export function GameScreen() {
     void gameHaptics.result('Great');
   };
 
+  /**
+   * After a daily run of today's sequence, looks up the player's place on the
+   * daily board for the game-over line. Signed-out players get an invite
+   * instead; offline or unranked shows nothing. Ignored once they've left.
+   */
+  const showDailyRank = async (submitted: Promise<void>) => {
+    const isToday =
+      stateRef.current.dailyMode && runDayRef.current === todayKey();
+    if (!rankingAvailable || !isToday) {
+      setDailyRank(null);
+      return;
+    }
+    if (!isSignedInToRanking()) {
+      setDailyRank({ kind: 'signedOut' });
+      return;
+    }
+    const token = runTokenRef.current;
+    setDailyRank({ kind: 'checking' });
+    // Read the board after the score is in, or it may show the old place.
+    await submitted;
+    const board = await loadRanking('daily').catch(() => null);
+    if (token !== runTokenRef.current) return;
+    setDailyRank(
+      board?.you
+        ? {
+            kind: 'placed',
+            rank: board.you.rank,
+            toNext: pointsToPass(board.you, board.above),
+          }
+        : null,
+    );
+  };
+
   const endRun = async (finalScore: number, session: SessionStats) => {
     // Snapshot the pre-run best so the results screen can show the record
     // that was standing (previous score / difference from it).
@@ -459,11 +504,12 @@ export function GameScreen() {
       day: runDayRef.current,
     });
     applyPersist(next);
-    void submitRunToRanking(
+    const submitted = submitRunToRanking(
       finalScore,
       stateRef.current.dailyMode,
       runDayRef.current,
     );
+    void showDailyRank(submitted);
     const beatBest = finalScore > 0 && finalScore >= runBestBaselineRef.current;
     dispatch({ type: 'gameOver', isNewBest: beatBest });
 
@@ -918,9 +964,11 @@ export function GameScreen() {
     const preview = (
       name: string,
       run: Pick<RunResult, 'daily' | 'isNewBest' | 'score' | 'best'>,
+      rank: DailyRank | null = null,
     ) => ({
       name,
-      callback: () =>
+      callback: () => {
+        setPreviewRank(rank);
         setResultPreview({
           ...run,
           day: todayKey(),
@@ -928,7 +976,8 @@ export function GameScreen() {
           combo: 5,
           level: 9,
           coinsEarned: 18,
-        }),
+        });
+      },
       shouldCollapse: true,
     });
     // One entry per screen first; their variants after, so the list starts
@@ -980,6 +1029,26 @@ export function GameScreen() {
         score: 1840,
         best: 1215,
       }),
+      preview(
+        'Daily rank · #7, 120 to #6',
+        { daily: true, isNewBest: false, score: 1120, best: 1215 },
+        { kind: 'placed', rank: 7, toNext: 120 },
+      ),
+      preview(
+        'Daily rank · #1',
+        { daily: true, isNewBest: true, score: 1840, best: 1215 },
+        { kind: 'placed', rank: 1, toNext: null },
+      ),
+      preview(
+        'Daily rank · checking',
+        { daily: true, isNewBest: false, score: 1120, best: 1215 },
+        { kind: 'checking' },
+      ),
+      preview(
+        'Daily rank · signed out',
+        { daily: true, isNewBest: false, score: 1120, best: 1215 },
+        { kind: 'signedOut' },
+      ),
       reward(2),
       reward(3),
       reward(7),
@@ -1563,6 +1632,12 @@ export function GameScreen() {
       {runResult ? (
         <ResultScreen
           result={runResult}
+          dailyRank={resultPreview ? previewRank : dailyRank}
+          onOpenRanking={() => {
+            setResultPreview(null);
+            setMenuInitialView('ranking');
+            openMenu();
+          }}
           capturing={capturingShare}
           onRetry={() => {
             if (resultPreview) {
