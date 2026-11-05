@@ -120,10 +120,10 @@ export function PlayModeSheet({ daily, onPlay, onClose }: PlayModeSheetProps) {
       description: gt('Same challenge for everyone. A fresh start every day.'),
       art: CALENDAR,
       artStyle: styles.artCalendar,
-      // Teal: leans toward the home screen's green Daily challenge button.
-      face: ['#E9FBF6', '#BDEFE2'],
-      border: '#94DCC9',
-      borderSelected: '#14B394',
+      // Sky blue, like the home screen's Daily challenge card.
+      face: ['#F4FCFF', '#C9EBFF'],
+      border: '#8DC3EC',
+      borderSelected: '#0A7BFD',
     },
   ];
 
@@ -221,8 +221,8 @@ export function PlayModeSheet({ daily, onPlay, onClose }: PlayModeSheetProps) {
         </View>
 
         <MainButton
-          // Daily matches the home screen's green Daily challenge button.
-          tone={selected ? 'green' : 'gold'}
+          // Daily goes blue to match its card; Normal stays gold like PLAY.
+          tone={selected ? 'blue' : 'gold'}
           size="large"
           icon={PLAY_ICON}
           label={selected ? gt('PLAY DAILY') : gt('PLAY NORMAL')}
@@ -302,8 +302,13 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 2,
   },
+  // The thicker border eats into the padding, so the card's content stays
+  // put when it's selected.
   optionSelected: {
     borderWidth: 3,
+    paddingVertical: 13,
+    paddingLeft: 11,
+    paddingRight: 15,
   },
   optionPressed: {
     transform: [{ scale: 0.98 }],

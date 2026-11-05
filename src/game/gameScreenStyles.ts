@@ -63,6 +63,30 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 10,
   },
+  /** Daily run marker over the hearts: calendar plus DAILY in a pill. */
+  dailyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingLeft: 4,
+    paddingRight: 10,
+    paddingVertical: 3,
+    borderRadius: 999,
+    borderWidth: 2.5,
+    borderColor: GameColors.ink,
+    backgroundColor: '#DDF3FF',
+    marginBottom: 8,
+  },
+  dailyBadgeIcon: {
+    width: 26,
+    height: 26,
+  },
+  dailyBadgeText: {
+    fontFamily: GameFonts.display,
+    fontSize: 16,
+    lineHeight: 20,
+    color: '#1A2F6B',
+  },
   bestPill: {
     paddingHorizontal: 12,
     paddingVertical: 5,

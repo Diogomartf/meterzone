@@ -29,15 +29,6 @@ const TONES = {
     shadow: '#7A4A00',
     shadowOpacity: 0.45,
   },
-  green: {
-    outline: GameColors.ink,
-    face: ['#5BE35B', '#5BE35B', '#14D414', '#00CA00', '#00BC00'],
-    lip: '#009C00',
-    text: GameColors.white,
-    textShadow: 'rgba(0,70,0,0.45)',
-    shadow: GameColors.ink,
-    shadowOpacity: 0.25,
-  },
   /**
    * The home header coin badge's 3D look: gold face, thin gold outline, a
    * darker gold lip with no outline of its own, and a soft drop shadow.
@@ -78,6 +69,9 @@ const TONES = {
     shadowOpacity: 0.3,
   },
 } as const;
+
+/** The pill's edge, unless a tone sets its own `border`. */
+const SHELL_BORDER = 3;
 
 /** Where the face colours change — the first two hold the bevel band. */
 const FACE_STOPS = [0, 0.12, 0.2, 0.6, 1] as const;
@@ -141,6 +135,7 @@ export function MainButton({
   const square = label == null;
   const lip = square ? SQUARE_LIP[size] : LIP[size];
   const radius = square ? Math.round(SQUARE[size] * 0.38) : 999;
+  const border = 'border' in colors ? colors.border : SHELL_BORDER;
 
   return (
     <Pressable
@@ -196,7 +191,16 @@ export function MainButton({
                 styles.face,
                 square
                   ? { width: SQUARE[size], height: SQUARE[size] }
-                  : FACE_SIZE[size],
+                  : [
+                      FACE_SIZE[size],
+                      // A thinner edge gives the face the difference, so every
+                      // tone is the same height and swapping tones never jumps.
+                      {
+                        minHeight:
+                          FACE_SIZE[size].minHeight +
+                          2 * (SHELL_BORDER - border),
+                      },
+                    ],
               ]}
             >
               {'gloss' in colors && colors.gloss && !square ? (
@@ -329,7 +333,7 @@ const styles = StyleSheet.create({
   },
   shell: {
     borderRadius: 999,
-    borderWidth: 3,
+    borderWidth: SHELL_BORDER,
     overflow: 'hidden',
   },
   face: {

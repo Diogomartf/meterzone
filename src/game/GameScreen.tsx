@@ -99,6 +99,7 @@ import { resetScreenshotAutoplay, useMeterTap } from '@/game/useMeterTap';
 const LOGO = require('../../assets/images/zone-meter-logo.webp');
 const FEEDBACK_EMAIL = 'hello@meterzone.net';
 
+const DAILY_ICON = require('../../assets/images/daily-card-calendar.webp');
 /** Each skin's backdrop; every one keeps the pad at the same height. */
 const SKIN_BG: Record<SkinId, number> = {
   toxic: require('../../assets/images/game-bg.webp'),
@@ -898,6 +899,10 @@ export function GameScreen() {
     setMenuInitialView('ranking');
     openMenu();
   });
+  const openBestScores = useEffectEvent(() => {
+    setMenuInitialView('highscores');
+    openMenu();
+  });
   useEffect(() => {
     if (!__DEV__) return;
     const reward = (rank: number) => ({
@@ -956,6 +961,11 @@ export function GameScreen() {
       {
         name: 'Ranking · 8 players, you #5',
         callback: () => openSampleRanking(8, 5),
+        shouldCollapse: true,
+      },
+      {
+        name: 'Best scores',
+        callback: () => openBestScores(),
         shouldCollapse: true,
       },
       preview('Game over · daily', {
@@ -1352,11 +1362,8 @@ export function GameScreen() {
                 <Text
                   style={[styles.bestLabel, isNewBest && styles.bestLabelHot]}
                 >
-                  {isNewBest
-                    ? gt('NEW BEST')
-                    : dailyMode
-                      ? gt('DAILY')
-                      : gt('BEST')}
+                  {/* The DAILY badge by the logo already names the mode. */}
+                  {isNewBest ? gt('NEW BEST') : gt('BEST')}
                 </Text>
                 <Text
                   style={[styles.bestValue, isNewBest && styles.bestValueHot]}
@@ -1395,6 +1402,17 @@ export function GameScreen() {
 
         {phase !== 'ready' && phase !== 'gameover' ? (
           <View style={styles.statsBlock} pointerEvents="none">
+            {/* A daily run says so, centred over the hearts. */}
+            {dailyMode ? (
+              <View style={styles.dailyBadge}>
+                <Image
+                  source={DAILY_ICON}
+                  style={styles.dailyBadgeIcon}
+                  contentFit="contain"
+                />
+                <Text style={styles.dailyBadgeText}>{gt('DAILY')}</Text>
+              </View>
+            ) : null}
             <View style={styles.heartsAboveScore}>
               <Hearts lives={lives} max={STARTING_LIVES} />
             </View>

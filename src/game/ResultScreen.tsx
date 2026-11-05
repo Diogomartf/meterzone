@@ -21,6 +21,8 @@ import { formatScore } from '@/game/format';
 import { MainButton } from '@/game/MainButton';
 import { MenuIcon } from '@/game/MenuIcon';
 import { ArchedText } from '@/game/ArchedText';
+import { CoinCountUp } from '@/game/CoinCountUp';
+import { useCountUp } from '@/game/useCountUp';
 
 const BG = require('../../assets/images/record-bg.webp');
 const LOGO = require('../../assets/images/zone-meter-logo.webp');
@@ -29,6 +31,36 @@ const CALENDAR = require('../../assets/images/daily-calendar.webp');
 const COINS = require('../../assets/images/coins-stack.webp');
 /** Width over height of the trophy art, confetti included. */
 const TROPHY_ASPECT = 600 / 416;
+
+/** The record ticks up from the old best while the trophy lands. */
+const RECORD_COUNT_DELAY = 300;
+
+/**
+ * A new record counts up from the previous best to the new score with the
+ * shared count-up motion. Its own component, so the per-digit re-renders
+ * stay out of the screen.
+ */
+function RecordCountUp({
+  from,
+  to,
+  style,
+}: {
+  from: number;
+  to: number;
+  style: object;
+}) {
+  const { shown, popStyle } = useCountUp({
+    from,
+    to,
+    delay: RECORD_COUNT_DELAY,
+  });
+
+  return (
+    <Animated.Text style={[style, popStyle]} numberOfLines={1}>
+      {formatScore(shown)}
+    </Animated.Text>
+  );
+}
 
 /**
  * The trophy settles in: a small, eased-out grow from 88% with a fade, no
@@ -96,7 +128,9 @@ export function ResultScreen({
   // Shorter phones (SE, mini) shrink the trophy and score, and the body
   // scrolls above the buttons if it still doesn't fit (an SE leaves ~350pt).
   const compact = height < 800;
-  const trophySize = compact ? 64 : 136;
+  // A daily record also carries the calendar header, so its trophy is
+  // smaller or the coins row gets pushed under the buttons.
+  const trophySize = compact ? 64 : record.daily ? 92 : 136;
 
   // Sized from the digit count: `adjustsFontSizeToFit` sometimes shrinks a
   // short score to a few points on iOS.
@@ -208,15 +242,26 @@ export function ResultScreen({
             />
           </Animated.View>
         )}
-        <Text
-          style={[
-            styles.score,
-            { fontSize: scoreSize, lineHeight: Math.round(scoreSize * 1.08) },
-          ]}
-          numberOfLines={1}
-        >
-          {scoreText}
-        </Text>
+        {record.isNewBest ? (
+          <RecordCountUp
+            from={record.best}
+            to={record.score}
+            style={[
+              styles.score,
+              { fontSize: scoreSize, lineHeight: Math.round(scoreSize * 1.08) },
+            ]}
+          />
+        ) : (
+          <Text
+            style={[
+              styles.score,
+              { fontSize: scoreSize, lineHeight: Math.round(scoreSize * 1.08) },
+            ]}
+            numberOfLines={1}
+          >
+            {scoreText}
+          </Text>
+        )}
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
 
         <Animated.View
@@ -260,12 +305,14 @@ export function ResultScreen({
             })}
           >
             <Image source={COINS} style={styles.coins} contentFit="contain" />
-            <Text style={styles.coinsText}>
-              <Text style={styles.coinsAmount}>
-                +{formatScore(record.coinsEarned)}
-              </Text>{' '}
-              {gt('coins earned')}
-            </Text>
+            {/* Only the amount moves: it rolls up after the score's turn. */}
+            <CoinCountUp
+              value={record.coinsEarned}
+              delay={record.isNewBest ? 1500 : 450}
+              align="left"
+              style={[styles.coinsText, styles.coinsAmount]}
+            />
+            <Text style={styles.coinsText}>{gt('coins earned')}</Text>
           </View>
         ) : null}
       </ScrollView>
@@ -459,17 +506,17 @@ const styles = StyleSheet.create({
   coinsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 6,
     marginTop: 12,
     // The coin stack and text shadow overhang their boxes; room below keeps
     // the scroll view from clipping them.
     paddingBottom: 6,
   },
-  coins: { width: 44, height: 34 },
+  coins: { width: 47, height: 36 },
   coinsText: {
     fontFamily: GameFonts.display,
-    fontSize: 19,
-    lineHeight: 23,
+    fontSize: 21,
+    lineHeight: 26,
     color: GameColors.white,
     textShadowColor: 'rgba(0,10,80,0.5)',
     textShadowOffset: { width: 0, height: 2 },

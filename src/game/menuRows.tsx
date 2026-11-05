@@ -25,6 +25,7 @@ import { styles } from '@/game/menuSheetStyles';
 
 // Higher-contrast cut of reward-sunburst so the rays read at card size.
 const SUNBURST = require('../../assets/images/hall-of-fame-sunburst.webp');
+const TODAY_ICON = require('../../assets/images/daily-card-calendar.webp');
 
 const STAR_ICON = { ios: 'star.fill', android: 'star', web: 'star' } as const;
 const CHEVRON_ICON = {
@@ -39,7 +40,7 @@ const SHARE_ICON = {
 } as const;
 
 /** Shared presentational rows and cards used across the menu's views. */
-export type HighscoreKind = 'normal' | 'today' | 'record';
+export type HighscoreKind = 'normal' | 'record';
 
 const EXTERNAL_ICON = {
   ios: 'arrow.up.right.square',
@@ -337,7 +338,7 @@ export function RecordCard({
               <FlatButton
                 onPress={onShare}
                 icon={SHARE_ICON}
-                size={36}
+                size={44}
                 hitSlop={8}
                 accessibilityLabel={gt('Share {title} record', { title })}
               />
@@ -385,27 +386,24 @@ export function TodayStrip({
   score,
   level,
   emptyHint,
-  hideShare,
-  onShare,
 }: {
   /** Whether a daily run finished today; a run can end on zero points. */
   played: boolean;
   score: number;
   level: number;
   emptyHint: string;
-  hideShare?: boolean;
-  onShare?: () => void;
 }) {
   const gt = useGT();
-  const empty = !played;
   return (
     <View style={styles.hsToday}>
-      <Text style={styles.hsTodayLabel}>{gt('TODAY')}</Text>
-      <View style={styles.hsTodayRule} />
-      {empty ? (
-        <Text style={styles.hsTodayHint}>{emptyHint}</Text>
-      ) : (
-        <>
+      <Image
+        source={TODAY_ICON}
+        style={styles.hsTodayIcon}
+        contentFit="contain"
+      />
+      <View style={styles.hsTodayBody}>
+        <Text style={styles.hsTodayLabel}>{gt('TODAY')}</Text>
+        {played ? (
           <Text
             style={styles.hsTodayScore}
             numberOfLines={1}
@@ -414,19 +412,11 @@ export function TodayStrip({
           >
             {formatScore(score)}
           </Text>
-          <LevelPill level={level} />
-          {score > 0 && onShare && !hideShare ? (
-            <FlatButton
-              onPress={onShare}
-              icon={SHARE_ICON}
-              size={36}
-              hitSlop={8}
-              style={styles.hsTodayShare}
-              accessibilityLabel={gt("Share today's daily score")}
-            />
-          ) : null}
-        </>
-      )}
+        ) : (
+          <Text style={styles.hsTodayHint}>{emptyHint}</Text>
+        )}
+      </View>
+      {played ? <LevelPill level={level} /> : null}
     </View>
   );
 }
