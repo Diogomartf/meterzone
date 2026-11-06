@@ -262,12 +262,13 @@ export const styles = StyleSheet.create({
     lineHeight: 18,
     color: GameColors.ink,
   },
-  statsBlock: { marginTop: -10, alignItems: 'center' },
+  statsBlock: { marginTop: -18, alignItems: 'center' },
   heartsAboveScore: {
     marginBottom: 6,
     alignItems: 'center',
   },
   bigScore: {
+    marginTop: 6,
     fontFamily: GameFonts.display,
     fontSize: 52,
     lineHeight: 56,
