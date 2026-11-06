@@ -22,6 +22,7 @@ import { styles } from '@/game/gameScreenStyles';
 import { CountdownBurst } from '@/game/CountdownBurst';
 import { DailyCard } from '@/game/DailyCard';
 import { Hearts } from '@/game/Hearts';
+import { LiveBackdrop } from '@/game/LiveBackdrop';
 import { MenuSheet } from '@/game/MenuSheet';
 import { MissBreak } from '@/game/MissBreak';
 import { PerfectSwoosh } from '@/game/PerfectSwoosh';
@@ -1348,8 +1349,12 @@ export function GameScreen() {
           contentPosition="center"
           priority="high"
           cachePolicy="memory-disk"
-          recyclingKey={`game-bg-v3-${skin.id}`}
+          recyclingKey={`game-bg-v4-${skin.id}`}
         />
+        {/* Only toxic's art comes in layers; the others have them baked in. */}
+        {skin.id === 'toxic' ? (
+          <LiveBackdrop paused={phase === 'gameover'} />
+        ) : null}
       </View>
 
       <View
