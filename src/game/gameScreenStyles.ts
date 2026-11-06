@@ -49,8 +49,8 @@ export const styles = StyleSheet.create({
     paddingRight: 4,
   },
   logoHud: {
-    width: 140,
-    height: 101,
+    width: 112,
+    height: 81,
     marginLeft: -4,
   },
   bottomBar: {
@@ -182,19 +182,24 @@ export const styles = StyleSheet.create({
     color: '#1A2F6B',
     fontVariant: ['tabular-nums'],
   },
-  /** Extra room between the best card and the Daily card under it. */
-  homeDaily: {
-    marginTop: 8,
+  /** The best and Daily cards: one width, narrower than the screen. */
+  homeCards: {
+    width: '88%',
+    maxWidth: 340,
+    alignSelf: 'center',
+    gap: 8,
   },
   topRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    // Centre on the logo rather than hugging the top edge.
-    alignSelf: 'center',
+    // Level with the top of the logo's letters, below the art's transparent
+    // space.
+    alignSelf: 'flex-start',
+    marginTop: 6,
   },
   bestCardShell: {
-    borderRadius: 22,
+    borderRadius: 18,
     // A warm lip under the face, and a soft drop onto the sky.
     backgroundColor: '#E3C477',
     paddingBottom: 5,
@@ -210,31 +215,31 @@ export const styles = StyleSheet.create({
   bestCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 22,
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 18,
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.9)',
   },
   bestCardIcon: {
-    width: 52,
-    height: 52,
+    width: 40,
+    height: 40,
   },
   bestCardBody: {
     flex: 1,
   },
   bestCardLabel: {
     fontFamily: GameFonts.body,
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 16,
     letterSpacing: 0.5,
     color: '#1A2F6B',
   },
   bestCardValue: {
     fontFamily: GameFonts.display,
-    fontSize: 42,
-    lineHeight: 48,
+    fontSize: 30,
+    lineHeight: 34,
     letterSpacing: -0.5,
     color: '#1A2F6B',
     fontVariant: ['tabular-nums'],
@@ -247,22 +252,23 @@ export const styles = StyleSheet.create({
   },
   bestCardLevel: {
     borderRadius: 999,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
     backgroundColor: GameColors.lemon,
   },
   bestCardLevelText: {
     fontFamily: GameFonts.body,
-    fontSize: 15,
-    lineHeight: 19,
+    fontSize: 14,
+    lineHeight: 18,
     color: GameColors.ink,
   },
-  statsBlock: { marginTop: 2, alignItems: 'center' },
+  statsBlock: { marginTop: -18, alignItems: 'center' },
   heartsAboveScore: {
     marginBottom: 6,
     alignItems: 'center',
   },
   bigScore: {
+    marginTop: 6,
     fontFamily: GameFonts.display,
     fontSize: 52,
     lineHeight: 56,

@@ -61,7 +61,7 @@ const MIN_PERFECT_PX = 2;
 
 /** Target bands: Nice purple, Great orange, Perfect yellow. */
 const LIQUID_SHADE = [
-  'rgba(255,255,255,0.07)',
+  'rgba(255,255,255,0)',
   'rgba(255,255,255,0)',
   'rgba(0,0,0,0)',
   'rgba(0,0,0,0.2)',
@@ -130,6 +130,7 @@ function VerticalMeterComponent({
 
   const greatPx = 2 * greatHalf * innerH;
   const perfectPx = Math.max(MIN_PERFECT_PX, 2 * perfectHalf * innerH);
+  const lineH = Math.min(perfectPx, Math.max(2, 2 * scale));
 
   useEffect(() => {
     if (active) {
@@ -174,10 +175,7 @@ function VerticalMeterComponent({
     transform: [{ translateY: (0.5 - zoneTarget.value) * innerH }],
   }));
   // Nice tracks zoneHalf live, since a shrinking zone narrows it mid-fill.
-  const niceUnderStyle = useAnimatedStyle(() => ({
-    transform: [{ scaleY: Math.max(0, zoneHalf.value * 2) }],
-  }));
-  const niceOverStyle = useAnimatedStyle(() => ({
+  const niceStyle = useAnimatedStyle(() => ({
     transform: [{ scaleY: Math.max(0, zoneHalf.value * 2) }],
   }));
   // The glow sits just outside the Nice band, never inside the hit area.
@@ -265,7 +263,7 @@ function VerticalMeterComponent({
             style={StyleSheet.absoluteFill}
           />
 
-          {/* Target, under the liquid */}
+          {/* Target, under the liquid, which hides it completely */}
           <Animated.View
             style={[styles.zone, { height: innerH }, zoneUnderStyle]}
             pointerEvents="none"
@@ -276,7 +274,7 @@ function VerticalMeterComponent({
                 style={StyleSheet.absoluteFill}
               />
             </Animated.View>
-            <Animated.View style={[styles.zoneFull, niceUnderStyle]}>
+            <Animated.View style={[styles.zoneFull, niceStyle]}>
               <LinearGradient
                 colors={EYE.nice}
                 start={{ x: 0, y: 0.5 }}
@@ -289,6 +287,14 @@ function VerticalMeterComponent({
               start={{ x: 0, y: 0.5 }}
               end={{ x: 1, y: 0.5 }}
               style={[styles.band, centred(greatPx)]}
+            />
+            <View
+              style={[
+                styles.band,
+                styles.perfect,
+                centred(perfectPx),
+                { shadowRadius: 5 * scale },
+              ]}
             />
           </Animated.View>
 
@@ -361,7 +367,7 @@ function VerticalMeterComponent({
             {skin.burning ? <LavaFlames scale={scale} active={active} /> : null}
           </Animated.View>
 
-          {/* Target again, see-through above the liquid so it never hides */}
+          {/* The one mark over the liquid: the centre, the most perfect tap */}
           <Animated.View
             style={[
               styles.zone,
@@ -371,20 +377,7 @@ function VerticalMeterComponent({
             ]}
             pointerEvents="none"
           >
-            <Animated.View
-              style={[styles.zoneFull, styles.overlayNice, niceOverStyle]}
-            />
-            <View
-              style={[styles.band, styles.overlayGreat, centred(greatPx)]}
-            />
-            <View
-              style={[
-                styles.band,
-                styles.perfect,
-                centred(perfectPx),
-                { shadowRadius: 5 * scale },
-              ]}
-            />
+            <View style={[styles.band, styles.perfectLine, centred(lineH)]} />
           </Animated.View>
 
           <View style={styles.ticks} pointerEvents="none">
@@ -407,8 +400,8 @@ function VerticalMeterComponent({
           <LinearGradient
             colors={[
               'rgba(255,255,255,0)',
-              'rgba(255,255,255,0.14)',
-              'rgba(255,255,255,0.14)',
+              'rgba(255,255,255,0.08)',
+              'rgba(255,255,255,0.08)',
               'rgba(255,255,255,0)',
             ]}
             locations={[0, 0.2, 0.75, 1]}
@@ -486,11 +479,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
   },
-  overlayNice: {
-    backgroundColor: 'rgba(160,90,230,0.1)',
-  },
-  overlayGreat: {
-    backgroundColor: 'rgba(255,122,61,0.18)',
+  // The Perfect band's own colour, so it only shows where liquid covers the band.
+  perfectLine: {
+    backgroundColor: EYE.perfect,
   },
   perfect: {
     backgroundColor: EYE.perfect,

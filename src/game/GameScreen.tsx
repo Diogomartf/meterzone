@@ -22,6 +22,7 @@ import { styles } from '@/game/gameScreenStyles';
 import { CountdownBurst } from '@/game/CountdownBurst';
 import { DailyCard } from '@/game/DailyCard';
 import { Hearts } from '@/game/Hearts';
+import { LiveBackdrop } from '@/game/LiveBackdrop';
 import { MenuSheet } from '@/game/MenuSheet';
 import { MissBreak } from '@/game/MissBreak';
 import { PerfectSwoosh } from '@/game/PerfectSwoosh';
@@ -1348,8 +1349,12 @@ export function GameScreen() {
           contentPosition="center"
           priority="high"
           cachePolicy="memory-disk"
-          recyclingKey={`game-bg-v3-${skin.id}`}
+          recyclingKey={`game-bg-v4-${skin.id}`}
         />
+        {/* Only toxic's art comes in layers; the others have them baked in. */}
+        {skin.id === 'toxic' ? (
+          <LiveBackdrop paused={phase === 'gameover'} />
+        ) : null}
       </View>
 
       <View
@@ -1456,16 +1461,14 @@ export function GameScreen() {
             )}
           </View>
           {phase === 'ready' ? (
-            <>
+            <View style={styles.homeCards}>
               <ScoreModule
                 best={persist?.highScore ?? 0}
                 bestLevel={persist?.bestLevel ?? 0}
                 onOpen={openScores}
               />
-              <View style={styles.homeDaily}>
-                <DailyCard onPress={() => startRun(true)} />
-              </View>
-            </>
+              <DailyCard onPress={() => startRun(true)} />
+            </View>
           ) : null}
         </View>
 
@@ -1485,11 +1488,11 @@ export function GameScreen() {
             <View style={styles.heartsAboveScore}>
               <Hearts lives={lives} max={STARTING_LIVES} />
             </View>
-            <Text style={[styles.bigScore, isNewBest && styles.bigScoreHot]}>
-              {formatScore(score)}
-            </Text>
             <Text style={styles.metaLine}>
               {gt('LVL {level}', { level: round.level })}
+            </Text>
+            <Text style={[styles.bigScore, isNewBest && styles.bigScoreHot]}>
+              {formatScore(score)}
             </Text>
             <TapHowToLine visible={showTapHowTo} />
             {isNewBest ? (
@@ -1651,6 +1654,13 @@ export function GameScreen() {
             if (resultPreview) return;
             void gameHaptics.next();
             void shareScoreImage();
+          }}
+          onHome={() => {
+            if (resultPreview) {
+              setResultPreview(null);
+              return;
+            }
+            goBackFromMenu();
           }}
           onMenu={() => {
             setResultPreview(null);

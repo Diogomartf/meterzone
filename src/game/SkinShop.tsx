@@ -6,6 +6,7 @@ import { msg, useGT, useMessages } from 'gt-react-native';
 
 import { GameColors, Gradients } from '@/constants/gameTheme';
 import { formatScore } from '@/game/format';
+import { MainButton } from '@/game/MainButton';
 import { styles } from '@/game/menuSheetStyles';
 import {
   SKINS,
@@ -196,9 +197,12 @@ function SkinCard({
         <>
           <PriceTag cost={skin.cost} />
           {action === 'unlock' ? (
-            <View style={[styles.skinBadge, styles.skinBadgeUnlock]}>
-              <Text style={styles.skinBadgeText}>{gt('Unlock')}</Text>
-            </View>
+            <MainButton
+              tone="gold"
+              size="small"
+              label={gt('Unlock')}
+              onPress={onPress}
+            />
           ) : (
             <View style={styles.skinShort}>
               <SymbolView

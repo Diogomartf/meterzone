@@ -20,9 +20,10 @@ export const SKINS: Record<SkinId, SkinDef> = {
     id: 'toxic',
     name: 'Toxic',
     cost: 0,
-    // Top → bottom: sunny yellow → lime → bright green → cyan → sky blue,
-    // vivid and solid like the store art, in a lime frame
-    liquid: ['#FFE21F', '#C6EE22', '#3EDD3A', '#22CFD0', '#2B9BF0'],
+    // Top → bottom: sky blue → cyan → bright green → lime → sunny yellow, vivid
+    // and solid in a lime frame. The surface stays blue so it stands out from
+    // the yellow Perfect zone it has to stop on.
+    liquid: ['#2B9BF0', '#22CFD0', '#3EDD3A', '#C6EE22', '#FFE21F'],
     shell: '#8ED91E',
     shellDark: '#4E9A0E',
   },
@@ -109,7 +110,7 @@ export function liquidSurface(skin: SkinDef): {
   const high = skin.liquid[1];
   return {
     foam: ['#FFFFFF', top, high],
-    glow: [hexAlpha(high, 0), hexAlpha(high, 0.28), hexAlpha(top, 0.5)],
+    glow: [hexAlpha(high, 0), hexAlpha(high, 0.12), hexAlpha(top, 0.25)],
     shadow: high,
   };
 }

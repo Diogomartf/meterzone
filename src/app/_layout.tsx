@@ -72,6 +72,9 @@ const NATIVE_SPLASH: SplashArt =
 /** Everything the first screen paints — warmed while the splash is up. */
 const FIRST_SCREEN_IMAGES: number[] = [
   require('@/assets/images/game-bg.webp'),
+  require('@/assets/images/game-bg-clouds.webp'),
+  require('@/assets/images/game-star.webp'),
+  require('@/assets/images/game-star-faint.webp'),
   require('@/assets/images/zone-meter-logo.webp'),
   require('@/assets/images/coin.webp'),
 ];

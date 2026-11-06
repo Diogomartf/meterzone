@@ -1323,9 +1323,6 @@ export const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#B7D8F0',
   },
-  skinBadgeUnlock: {
-    backgroundColor: GameColors.bubble,
-  },
   skinBadgeText: {
     fontFamily: GameFonts.body,
     fontSize: 15,
