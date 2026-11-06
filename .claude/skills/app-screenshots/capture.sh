@@ -40,18 +40,15 @@ tap_at() {
   done
   echo "tap_at $1,$2: screen did not change" >&2; return 1
 }
-language_button() { tap_at 92 884; }
+language_row() { tap_at 220 474; }  # In Settings
 sheet_back() { tap_at 49 133; }
 avatar_tab() { tap_at 316 290; }
-scores_card() { tap_at 359 120; }
+scores_card() { tap_at 220 180; }
 
-# Menu rows end in "›" in every language: 1 Play mode, 2 Hall of fame, 3 Ranking,
-# 4 Avatar & skins, 5 Settings, 6 How to play, 7 Send feedback.
-menu_row() {
-  local hit=$(sim_ui | awk -F'\t' -v n=$1 '$1 ~ /›$/ && ++i == n { print; exit }')
-  [[ -z $hit ]] && { echo "menu_row: no row $1" >&2; return 1; }
-  tap_at ${hit[(ws:	:)2]} ${hit[(ws:	:)3]} ${2:-1.5}
-}
+# Menu rows by position, top to bottom: 1 Play mode, 2 Hall of fame, 3 Ranking,
+# 4 Avatar & skins, 5 Settings, 6 How to play.
+MENU_ROW_Y=(218 322 424 528 621 683)
+menu_row() { tap_at 220 ${MENU_ROW_Y[$1]} ${2:-1.5}; }
 
 # Fail loudly if the dev-menu gear is on screen; screenshots must show only app UI.
 assert_no_fab() {
@@ -90,7 +87,7 @@ shoot_splash() {
     xcrun simctl io $UDID screenshot --mask=ignored $f >/dev/null 2>&1
     if ! sim_has_banner $f; then
       local b=$(magick $f -format '%[fx:int(255*p{40,240}.b)]' info:)
-      (( b > 235 )) && { echo $f; return 0; }
+      (( b > 235 )) && { sim_paint_island $f; echo $f; return 0; }
     fi
     sleep 0.3
   done
@@ -105,6 +102,12 @@ dev_menu() {
   xcrun simctl notify_post $UDID com.apple.UIKit.SimulatorShake
   sim_wait "$1" || return 1
   sleep 1.5
+  # The list runs past the screen, and a tap below the fold lands nowhere.
+  local y=$(sim_ui | awk -F'\t' -v l="$1" '$1 == l { print $3; exit }')
+  if (( y > 900 )); then
+    axe swipe --start-x 220 --start-y 900 --end-x 220 --end-y 400 --udid $UDID >/dev/null
+    sleep 1.5
+  fi
   for i in 1 2 3; do
     sim_tap "$1" ${2:-3} || return 1
     sim_ui | grep -qF "$1" || return 0
@@ -113,7 +116,7 @@ dev_menu() {
 }
 
 play_button() { tap_at 220 653 0.3; }
-daily_button() { tap_at 354 884 0.3; }
+daily_button() { tap_at 220 253 0.3; }
 
 # Records a normal autoplay run from the countdown through ~12 levels to $OUT/gameplay.mp4,
 # then pulls full-resolution frames from it into $OUT/_burst to pick the stills from.
@@ -154,7 +157,8 @@ EXPECTED=(00-splash 01-home 02-hall-of-fame 03-menu 04-play-mode 05-ranking 06-s
 # Switch the app's language, from whatever language it is in.
 set_language() {
   open_app && wait_home || return 1
-  language_button || return 1
+  # The home Menu button ignores simulated taps, so go through the scores card.
+  scores_card && sheet_back && menu_row 5 && language_row || return 1
   sim_tap "${FLAG[$1]}" 2 || return 1
   sheet_back && tap_at 391 133  # Back to menu, then Close
 }
