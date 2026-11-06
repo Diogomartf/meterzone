@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useGT, useMessages } from 'gt-react-native';
 
+import { trackTap, type TapLocation, type TapTarget } from '@/analytics';
 import { GameColors } from '@/constants/gameTheme';
 import { FlatButton } from '@/game/FlatButton';
 import { formatScore } from '@/game/format';
@@ -69,16 +70,22 @@ export function ToggleRow({
   icon,
   value,
   onPress,
+  track,
 }: {
   label: string;
   subtitle?: string;
   icon?: SymbolViewProps['name'];
   value: boolean;
   onPress: () => void;
+  /** Analytics name for taps. */
+  track: TapTarget;
 }) {
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        trackTap(track, { enabled: !value });
+        onPress();
+      }}
       style={({ pressed }) => [
         styles.row,
         icon != null && styles.rowCompact,
@@ -107,6 +114,7 @@ export function ActionRow({
   value,
   external,
   onPress,
+  track,
   destructive,
 }: {
   label: string;
@@ -118,12 +126,17 @@ export function ActionRow({
   /** Opens outside the app: an external-link mark replaces the chevron. */
   external?: boolean;
   onPress: () => void;
+  /** Analytics name for taps. */
+  track: TapTarget;
   destructive?: boolean;
 }) {
   const ink = destructive ? GameColors.scoreBad : GameColors.ink;
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        trackTap(track);
+        onPress();
+      }}
       style={({ pressed }) => [
         styles.row,
         icon != null && styles.rowCompact,
@@ -171,6 +184,7 @@ export function MenuTile({
   artStyle,
   tint,
   onPress,
+  track,
 }: {
   label: string;
   subtitle: string;
@@ -179,10 +193,15 @@ export function MenuTile({
   artStyle: StyleProp<ImageStyle>;
   tint: readonly [string, string];
   onPress: () => void;
+  /** Analytics name for taps. */
+  track: TapTarget;
 }) {
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        trackTap(track);
+        onPress();
+      }}
       style={({ pressed }) => pressed && styles.tilePressed}
       accessibilityRole="button"
       accessibilityLabel={`${label}. ${subtitle}`}
@@ -232,6 +251,7 @@ export function SupportCard() {
           icon={STAR_ICON}
           label={gt('Rate app')}
           accessibilityLabel={gt('Leave a 5-star review')}
+          track="menu.rate_app"
           onPress={() => {
             // Stop future soft prompts once they choose to review.
             void markReviewAccepted();
@@ -244,6 +264,7 @@ export function SupportCard() {
           icon={SHARE_ICON}
           label={gt('Share')}
           accessibilityLabel={gt('Share MeterZone with friends')}
+          track="menu.share_app"
           onPress={() => {
             void shareApp(m(SHARE_APP_TAGLINE)).catch(() => {
               Alert.alert(
@@ -270,6 +291,7 @@ export function RecordCard({
   emptyHint,
   hideShare,
   onShare,
+  shareTrack,
   children,
 }: {
   /** The mode, set big: "NORMAL", "DAILY CHALLENGE". */
@@ -287,6 +309,8 @@ export function RecordCard({
   emptyHint: string;
   hideShare?: boolean;
   onShare?: () => void;
+  /** Analytics name for the share button. */
+  shareTrack: TapTarget;
   /** Extra rows under the record, like the daily card's "Today" strip. */
   children?: ReactNode;
 }) {
@@ -336,6 +360,7 @@ export function RecordCard({
           <View style={styles.hsSide}>
             {!empty && onShare && !hideShare ? (
               <FlatButton
+                track={shareTrack}
                 onPress={onShare}
                 icon={SHARE_ICON}
                 size={44}
@@ -457,11 +482,14 @@ export function TabSwitch<T extends string>({
   tabs,
   value,
   onChange,
+  track,
   style,
 }: {
   tabs: readonly { value: T; label: string }[];
   value: T;
   onChange: (value: T) => void;
+  /** Analytics location of this switch; each tab adds its value. */
+  track: TapLocation;
   style?: StyleProp<ViewStyle>;
 }) {
   return (
@@ -471,7 +499,10 @@ export function TabSwitch<T extends string>({
         return (
           <Pressable
             key={tab.value}
-            onPress={() => onChange(tab.value)}
+            onPress={() => {
+              trackTap(`${track}.tab_${tab.value}`);
+              onChange(tab.value);
+            }}
             style={[styles.rankTab, active && styles.rankTabActive]}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}

@@ -16,8 +16,9 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { msg, useGT, useMessages } from 'gt-react-native';
+import { msg, useGT, useLocale, useMessages } from 'gt-react-native';
 
+import { setAnalyticsLanguage, track, trackScreen } from '@/analytics';
 import { styles } from '@/game/gameScreenStyles';
 import { CountdownBurst } from '@/game/CountdownBurst';
 import { DailyCard } from '@/game/DailyCard';
@@ -230,6 +231,11 @@ export function GameScreen() {
   const muted = Boolean(persist?.soundMuted);
   const buttonSounds = persist?.buttonSoundsEnabled !== false;
   const { play } = useSounds(muted, buttonSounds);
+
+  const locale = useLocale();
+  useEffect(() => {
+    setAnalyticsLanguage(locale);
+  }, [locale]);
 
   const [state, dispatch, stateRef] = useRunState();
   const {
@@ -513,12 +519,22 @@ export function GameScreen() {
     void showDailyRank(submitted);
     const beatBest = finalScore > 0 && finalScore >= runBestBaselineRef.current;
     dispatch({ type: 'gameOver', isNewBest: beatBest });
+    track('game_ended', {
+      mode: stateRef.current.dailyMode ? 'daily' : 'normal',
+      score: finalScore,
+      level: stateRef.current.round.level,
+      coins_earned: session.coinsEarned,
+      best_combo: session.bestCombo,
+      is_new_best: beatBest,
+      total_runs: next.totalRuns,
+    });
 
     // Soft prompt only — native Store Review waits for a positive tap.
     if (shouldShowReviewPrompt(next, { isNewHighScore: beatBest })) {
       if (reviewPromptTimer.current) clearTimeout(reviewPromptTimer.current);
       reviewPromptTimer.current = setTimeout(() => {
         reviewPromptTimer.current = null;
+        track('review_prompt_shown', { total_runs: next.totalRuns });
         setReviewPromptVisible(true);
       }, TIMING.reviewPromptDelay);
     }
@@ -529,6 +545,12 @@ export function GameScreen() {
       if (reviewPromptTimer.current) clearTimeout(reviewPromptTimer.current);
     };
   }, []);
+
+  const analyticsScreen =
+    phase === 'ready' ? 'home' : phase === 'gameover' ? 'game_over' : 'game';
+  useEffect(() => {
+    trackScreen(analyticsScreen);
+  }, [analyticsScreen]);
 
   const onReviewAccept = () => {
     setReviewPromptVisible(false);
@@ -871,6 +893,10 @@ export function GameScreen() {
     resetScreenshotAutoplay();
     runDayRef.current = todayKey();
     dispatch({ type: 'startRun', daily });
+    track('game_started', {
+      mode: daily ? 'daily' : 'normal',
+      total_runs: persistRef.current?.totalRuns ?? 0,
+    });
     rngRef.current = daily
       ? createRng(dailySeed(runDayRef.current))
       : Math.random;
@@ -1091,6 +1117,7 @@ export function GameScreen() {
         return;
       }
       applyPersist(next);
+      track('skin_unlocked', { skin: id, cost: SKINS[id].cost });
       void gameHaptics.result('Great');
     })();
   };
@@ -1100,6 +1127,7 @@ export function GameScreen() {
       const next = await equipSkin(id);
       if (!next) return;
       applyPersist(next);
+      track('skin_equipped', { skin: id });
       void gameHaptics.next();
     })();
   };
@@ -1121,6 +1149,7 @@ export function GameScreen() {
         return;
       }
       applyPersist(next);
+      track('avatar_pack_unlocked', { pack: id });
       void gameHaptics.result('Great');
     })();
   };
@@ -1419,6 +1448,7 @@ export function GameScreen() {
                 <MainButton
                   tone="cyan"
                   size="small"
+                  track="home.menu"
                   onPress={() => {
                     setMenuInitialView('menu');
                     openMenu();
@@ -1599,6 +1629,7 @@ export function GameScreen() {
                 size="large"
                 style={styles.mainCta}
                 label={gt('PLAY')}
+                track="home.play"
                 // Silent: it drops straight into the game and its countdown.
                 clickSound={false}
                 onPress={() => startRun(false)}
@@ -1620,6 +1651,7 @@ export function GameScreen() {
             <MainButton
               tone="cyan"
               size="small"
+              track="game.menu"
               onPress={() => {
                 setMenuInitialView('menu');
                 openMenu();

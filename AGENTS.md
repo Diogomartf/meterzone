@@ -25,7 +25,23 @@ Coins are meant to be slow. An average player (dies around level 21, about 53 co
 
 - Payouts are per tap in `scoreFill` (`src/game/scoring.ts`): Perfect 5 plus half the streak, capped at 8 by `MAX_STREAK_COIN_BONUS`; Great 3; Nice 1. Keep the cap: without it, long runs pay far more than everything else.
 - Skins (`src/game/skins.ts`) and avatar packs (`src/game/avatars.ts`) each climb a ×3 price ladder, and tests enforce it. A new skin or pack continues its ladder at 3× the last price, not a price picked on its own.
-- Before changing a payout or a price, run `bun run sim:coins` and put its games-per-item table, before and after, in the PR description. It plays simulated runs through the real scoring and catalog. The players are made up because the app has no analytics, so treat the counts as estimates.
+- Before changing a payout or a price, run `bun run sim:coins` and put its games-per-item table, before and after, in the PR description. It plays simulated runs through the real scoring and catalog. The players are made up, so treat the counts as estimates, and check them against `game_ended` in PostHog.
+
+# Analytics
+
+Use PostHog for all product analytics (`src/analytics.ts`, EU cloud, anonymous, no accounts). Don't add another analytics SDK, and call the helpers in `src/analytics.ts` rather than PostHog directly.
+
+**Every new feature ships with tracking, in the same PR.** That covers new screens, buttons, modals, rewards, unlocks and game modes, and changes that alter what an existing event means.
+
+- **Taps:** `MainButton`, `FlatButton` and the menu rows require a `track` prop, like `track="home.menu"` (`location.button`), which sends `button_tapped`. Any other tappable surface calls `trackTap` itself. Add new locations to `TapLocation`.
+- **Screens:** new screens or menu pages call `trackScreen`.
+- **Outcomes:** when something happens that a tap can't prove, like an unlock that succeeded, call `track('snake_case_event', { ...properties })`. Use past tense (`game_ended`, `skin_unlocked`).
+- **Names:** never use translated labels as names or property values. Existing names feed PostHog insights, so add a new one rather than renaming.
+- **Don't track** per-frame work or the meter tap (`game_ended` carries the run's totals), and never send names, emails, Game Center ids or free text. Dev-menu preview callbacks never call `track` directly.
+
+Debug builds send nothing unless Metro runs with `EXPO_PUBLIC_POSTHOG_DEV=1`. The key and host are public and live in `.env` and in `eas.json`'s `production` profile.
+
+When tracking a new kind of data about players, update `website/src/pages/privacy.astro` and the App Store privacy labels in the same change.
 
 # Translations
 

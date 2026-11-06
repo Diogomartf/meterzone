@@ -28,7 +28,11 @@
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_POSTHOG_KEY": "phc_nUizgExbqb99EaWo3aHd5iRtaDDUh6JTPWq8iyY3mRG6",
+        "EXPO_PUBLIC_POSTHOG_HOST": "https://eu.i.posthog.com"
+      }
     }
   },
   "submit": {

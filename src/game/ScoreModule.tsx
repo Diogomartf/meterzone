@@ -4,6 +4,7 @@ import { SymbolView } from 'expo-symbols';
 import { Pressable, Text, View } from 'react-native';
 import { useGT } from 'gt-react-native';
 
+import { trackTap } from '@/analytics';
 import { GameColors } from '@/constants/gameTheme';
 import { formatScore } from '@/game/format';
 import { styles } from '@/game/gameScreenStyles';
@@ -33,7 +34,10 @@ export function CoinBadge({
   const gt = useGT();
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        trackTap('home.coins');
+        onPress();
+      }}
       style={({ pressed }) => [
         styles.coinBadgeShell,
         pressed && styles.coinBadgePressed,
@@ -68,7 +72,10 @@ export function ScoreModule({ best, bestLevel, onOpen }: ScoreModuleProps) {
   const gt = useGT();
   return (
     <Pressable
-      onPress={onOpen}
+      onPress={() => {
+        trackTap('home.stats');
+        onOpen();
+      }}
       style={({ pressed }) => [
         styles.bestCardShell,
         pressed && styles.bestCardPressed,

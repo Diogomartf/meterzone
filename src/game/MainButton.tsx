@@ -11,6 +11,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
+import { trackTap, type TapTarget } from '@/analytics';
 import { GameColors, GameFonts } from '@/constants/gameTheme';
 import { playClick } from '@/game/useSounds';
 
@@ -96,6 +97,10 @@ type MainButtonProps = {
   /** Custom content for a square icon tile, like the menu bars. */
   children?: ReactNode;
   onPress: () => void;
+  /** Analytics name for taps. */
+  track: TapTarget;
+  /** Extra analytics context, like which skin an Unlock belongs to. */
+  trackProps?: Record<string, string>;
   tone?: keyof typeof TONES;
   /**
    * `small` sizes to its label for tight rows like the home screen's; the
@@ -123,6 +128,8 @@ export function MainButton({
   accessibilityLabel,
   children,
   onPress,
+  track,
+  trackProps,
   tone = 'blue',
   size = 'regular',
   subtitle,
@@ -141,7 +148,10 @@ export function MainButton({
     <Pressable
       // On press-in, so the click lands with the visual drop.
       onPressIn={clickSound ? playClick : undefined}
-      onPress={onPress}
+      onPress={() => {
+        trackTap(track, trackProps);
+        onPress();
+      }}
       disabled={loading}
       style={[
         styles.pressable,

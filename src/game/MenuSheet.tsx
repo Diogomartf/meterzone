@@ -26,6 +26,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useGT, useLocaleSelector, useMessages } from 'gt-react-native';
 
+import { trackScreen, trackTap } from '@/analytics';
 import { GameColors, Gradients } from '@/constants/gameTheme';
 import {
   ActionRow,
@@ -300,6 +301,10 @@ export function MenuSheet({
   // for all seven views — is built by *this* render first. The sheet is shut
   // for almost every GameScreen render, so stop before paying for it. Every
   // hook above still runs, so the open/close animation is untouched.
+  useEffect(() => {
+    if (visible) trackScreen(`menu/${view}`);
+  }, [view, visible]);
+
   if (!visible) return null;
 
   const title =
@@ -444,7 +449,10 @@ export function MenuSheet({
         >
           <Pressable
             style={styles.dismissArea}
-            onPress={dismiss}
+            onPress={() => {
+              trackTap('menu.backdrop');
+              dismiss();
+            }}
             accessibilityLabel={gt('Dismiss menu')}
           />
         </Animated.View>
@@ -463,6 +471,7 @@ export function MenuSheet({
                   {view !== 'menu' ? (
                     <FlatButton
                       tone="soft"
+                      track={`${view}.back`}
                       onPress={() => setView('menu')}
                       icon={BACK_ICON}
                       hitSlop={10}
@@ -477,7 +486,10 @@ export function MenuSheet({
                   {view === 'menu' ? (
                     <View style={styles.coinPillSlot} pointerEvents="box-none">
                       <Pressable
-                        onPress={() => setView('skins')}
+                        onPress={() => {
+                          trackTap('menu.coins');
+                          setView('skins');
+                        }}
                         style={({ pressed }) =>
                           pressed ? styles.closeBtnPressed : undefined
                         }
@@ -508,6 +520,7 @@ export function MenuSheet({
                       {canGoBack ? (
                         <FlatButton
                           tone="soft"
+                          track="menu.home"
                           onPress={onGoBack}
                           icon={HOME_ICON}
                           hitSlop={6}
@@ -516,6 +529,7 @@ export function MenuSheet({
                       ) : null}
                       <FlatButton
                         tone="soft"
+                        track="menu.close"
                         onPress={dismiss}
                         icon={CLOSE_ICON}
                         hitSlop={6}
@@ -550,6 +564,7 @@ export function MenuSheet({
                         art={PLAY_MODE_ART}
                         artStyle={styles.tileArtPlayMode}
                         tint={TILE_TINTS.blue}
+                        track="menu.play_mode"
                         onPress={() => setModeSheetOpen(true)}
                       />
                       <MenuTile
@@ -558,6 +573,7 @@ export function MenuSheet({
                         art={CROWN_ART}
                         artStyle={styles.tileArtCrown}
                         tint={TILE_TINTS.gold}
+                        track="menu.hall_of_fame"
                         onPress={() => setView('highscores')}
                       />
                       {rankingAvailable ? (
@@ -567,6 +583,7 @@ export function MenuSheet({
                           art={RANKING_ART}
                           artStyle={styles.tileArtRanking}
                           tint={TILE_TINTS.lavender}
+                          track="menu.ranking"
                           onPress={() => setView('ranking')}
                         />
                       ) : null}
@@ -576,6 +593,7 @@ export function MenuSheet({
                         art={SKINS_ART}
                         artStyle={styles.tileArtSkins}
                         tint={TILE_TINTS.mint}
+                        track="menu.skins"
                         onPress={() => setView('skins')}
                       />
                     </View>
@@ -584,18 +602,21 @@ export function MenuSheet({
                       <ActionRow
                         icon={SETTINGS_ICON}
                         label={gt('Settings')}
+                        track="menu.settings"
                         onPress={() => setView('settings')}
                       />
                       <View style={styles.divider} />
                       <ActionRow
                         icon={HELP_ICON}
                         label={gt('How to play')}
+                        track="menu.how_to_play"
                         onPress={() => setView('howto')}
                       />
                       <View style={styles.divider} />
                       <ActionRow
                         icon={FEEDBACK_ICON}
                         label={gt('Send feedback')}
+                        track="menu.send_feedback"
                         onPress={onSendFeedback}
                       />
                     </View>
@@ -607,7 +628,10 @@ export function MenuSheet({
                       {gt('Made by')}{' '}
                       <Text
                         style={styles.madeByLink}
-                        onPress={() => void Linking.openURL(AUTHOR_URL)}
+                        onPress={() => {
+                          trackTap('menu.author');
+                          void Linking.openURL(AUTHOR_URL);
+                        }}
                         accessibilityRole="link"
                       >
                         Diogo
@@ -663,6 +687,7 @@ export function MenuSheet({
                         level={bestLevel}
                         emptyHint={gt('Beat the meter. Own the board.')}
                         hideShare={sharingKind === 'normal'}
+                        shareTrack="highscores.share_normal"
                         onShare={() => void shareHighscore('normal')}
                       />
                     </View>
@@ -691,6 +716,7 @@ export function MenuSheet({
                         meta={recordMeta}
                         emptyHint={gt('Same challenge for everyone. Go!')}
                         hideShare={sharingKind === 'record'}
+                        shareTrack="highscores.share_daily"
                         onShare={() => void shareHighscore('record')}
                       >
                         {dailyRecordScore > 0 && sharingKind !== 'record' ? (
@@ -735,7 +761,13 @@ export function MenuSheet({
                               getLocaleProperties(code).nativeRegionName
                             }
                             selected={code === locale}
-                            onPress={() => switchLocale(code)}
+                            onPress={() => {
+                              trackTap('language.select', {
+                                from: locale,
+                                to: code,
+                              });
+                              switchLocale(code);
+                            }}
                           />
                         </View>
                       ))}
@@ -750,6 +782,7 @@ export function MenuSheet({
                       style={styles.shopTabs}
                       value={shopTab}
                       onChange={setShopTab}
+                      track="skins"
                       tabs={[
                         { value: 'skins', label: gt('SKINS') },
                         { value: 'avatar', label: gt('AVATAR') },
@@ -795,6 +828,7 @@ export function MenuSheet({
                         icon={SOUND_ICON}
                         label={gt('Sound effects')}
                         value={soundOn}
+                        track="settings.sound"
                         onPress={onToggleSound}
                       />
                       <View style={styles.divider} />
@@ -802,6 +836,7 @@ export function MenuSheet({
                         icon={TAP_ICON}
                         label={gt('Button sounds')}
                         value={buttonSoundsOn}
+                        track="settings.button_sounds"
                         onPress={onToggleButtonSounds}
                       />
                       <View style={styles.divider} />
@@ -809,6 +844,7 @@ export function MenuSheet({
                         icon={HAPTICS_ICON}
                         label={gt('Haptics')}
                         value={hapticsOn}
+                        track="settings.haptics"
                         onPress={onToggleHaptics}
                       />
                     </View>
@@ -819,6 +855,7 @@ export function MenuSheet({
                         icon={GLOBE_ICON}
                         label={gt('App language')}
                         value={currentLanguageName}
+                        track="settings.language"
                         onPress={() => setView('language')}
                       />
                     </View>
@@ -829,12 +866,14 @@ export function MenuSheet({
                         icon={PRIVACY_ICON}
                         label={gt('Privacy policy')}
                         external
+                        track="settings.privacy_policy"
                         onPress={() => void Linking.openURL(PRIVACY_URL)}
                       />
                       <View style={styles.divider} />
                       <ActionRow
                         icon={FEEDBACK_ICON}
                         label={gt('Contact us')}
+                        track="settings.contact"
                         onPress={onSendFeedback}
                       />
                     </View>
@@ -843,6 +882,7 @@ export function MenuSheet({
                       <ActionRow
                         icon={DELETE_ICON}
                         label={gt('Delete data')}
+                        track="settings.delete_data"
                         onPress={confirmDeleteData}
                         destructive
                       />

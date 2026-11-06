@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import GameServices, {
   type NativeRankEntry,
 } from '../../modules/game-services/src/GameServicesModule';
+import { trackGameCenter } from '@/analytics';
 import { todayKey } from '@/game/storage';
 import type { PersistState } from '@/game/types';
 
@@ -37,6 +38,7 @@ export async function signInToRanking(persist: PersistState): Promise<void> {
   if (!rankingAvailable || !GameServices) return;
   try {
     const signedIn = await GameServices.authenticateAsync(false);
+    trackGameCenter('launch', signedIn);
     if (!signedIn) return;
     await submitBests({
       highScore: persist.highScore,
@@ -65,8 +67,10 @@ export async function signInToRankingInteractive(
   try {
     signedIn = await GameServices.authenticateAsync(true);
   } catch {
+    trackGameCenter('sign_in', false);
     return false;
   }
+  trackGameCenter('sign_in', signedIn);
   if (!signedIn) return false;
   // Signed in either way — a failed upload is retried at the next sign-in.
   await submitBests(bests).catch(() => undefined);
@@ -80,7 +84,9 @@ export async function signInToRankingInteractive(
 export async function refreshRankingSignIn(): Promise<boolean> {
   if (!rankingAvailable || !GameServices) return false;
   try {
-    return await GameServices.authenticateAsync(false);
+    const signedIn = await GameServices.authenticateAsync(false);
+    trackGameCenter('refresh', signedIn);
+    return signedIn;
   } catch {
     return false;
   }

@@ -14,6 +14,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGT } from 'gt-react-native';
 
+import { trackTap } from '@/analytics';
 import { GameColors, GameFonts } from '@/constants/gameTheme';
 import { FlatButton } from '@/game/FlatButton';
 import { MainButton } from '@/game/MainButton';
@@ -132,7 +133,10 @@ export function PlayModeSheet({ daily, onPlay, onClose }: PlayModeSheetProps) {
       <Animated.View style={[styles.dim, dimStyle]}>
         <Pressable
           style={StyleSheet.absoluteFill}
-          onPress={close}
+          onPress={() => {
+            trackTap('play_mode.backdrop');
+            close();
+          }}
           accessibilityLabel={gt('Close')}
         />
       </Animated.View>
@@ -158,6 +162,7 @@ export function PlayModeSheet({ daily, onPlay, onClose }: PlayModeSheetProps) {
                 </Text>
               </View>
               <FlatButton
+                track="play_mode.close"
                 onPress={close}
                 icon={CLOSE_ICON}
                 hitSlop={10}
@@ -173,7 +178,12 @@ export function PlayModeSheet({ daily, onPlay, onClose }: PlayModeSheetProps) {
             return (
               <Pressable
                 key={mode.label}
-                onPress={() => setSelected(mode.daily)}
+                onPress={() => {
+                  trackTap('play_mode.select', {
+                    mode: mode.daily ? 'daily' : 'normal',
+                  });
+                  setSelected(mode.daily);
+                }}
                 style={({ pressed }) => [pressed && styles.optionPressed]}
                 accessibilityRole="radio"
                 accessibilityState={{ checked: on }}
@@ -228,6 +238,8 @@ export function PlayModeSheet({ daily, onPlay, onClose }: PlayModeSheetProps) {
           label={selected ? gt('PLAY DAILY') : gt('PLAY NORMAL')}
           // Silent like the home PLAY: it drops straight into the countdown.
           clickSound={false}
+          track="play_mode.play"
+          trackProps={{ mode: selected ? 'daily' : 'normal' }}
           onPress={() => onPlay(selected)}
         />
       </Animated.View>
