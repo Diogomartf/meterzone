@@ -49,8 +49,8 @@ export const styles = StyleSheet.create({
     paddingRight: 4,
   },
   logoHud: {
-    width: 140,
-    height: 101,
+    width: 112,
+    height: 81,
     marginLeft: -4,
   },
   bottomBar: {
@@ -196,7 +196,7 @@ export const styles = StyleSheet.create({
     // Level with the top of the logo's letters, below the art's transparent
     // space.
     alignSelf: 'flex-start',
-    marginTop: 8,
+    marginTop: 6,
   },
   bestCardShell: {
     borderRadius: 18,
@@ -262,7 +262,7 @@ export const styles = StyleSheet.create({
     lineHeight: 18,
     color: GameColors.ink,
   },
-  statsBlock: { marginTop: 2, alignItems: 'center' },
+  statsBlock: { marginTop: -10, alignItems: 'center' },
   heartsAboveScore: {
     marginBottom: 6,
     alignItems: 'center',

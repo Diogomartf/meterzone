@@ -1483,11 +1483,11 @@ export function GameScreen() {
             <View style={styles.heartsAboveScore}>
               <Hearts lives={lives} max={STARTING_LIVES} />
             </View>
-            <Text style={[styles.bigScore, isNewBest && styles.bigScoreHot]}>
-              {formatScore(score)}
-            </Text>
             <Text style={styles.metaLine}>
               {gt('LVL {level}', { level: round.level })}
+            </Text>
+            <Text style={[styles.bigScore, isNewBest && styles.bigScoreHot]}>
+              {formatScore(score)}
             </Text>
             <TapHowToLine visible={showTapHowTo} />
             {isNewBest ? (
