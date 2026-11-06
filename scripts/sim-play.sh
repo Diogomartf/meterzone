@@ -80,7 +80,7 @@ axe button home --udid $UDID >/dev/null 2>&1; sleep 1
 xcrun simctl openurl $UDID \
   "meterzone://expo-development-client/?url=http%3A%2F%2Flocalhost%3A$METRO_PORT"
 echo "Waiting for the home screen (the first bundle takes up to a minute)…"
-if (( ${#daily} )); then start=(220 326); else start=(220 653); fi
+if (( ${#daily} )); then start=(220 253); else start=(220 653); fi
 target=""
 for i in {1..90}; do
   target=$(element_at $start)
