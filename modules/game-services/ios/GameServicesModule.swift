@@ -75,6 +75,17 @@ public class GameServicesModule: Module {
       )
     }
 
+    AsyncFunction("reportAchievementsAsync") { (ids: [String], showBanner: Bool) async throws in
+      guard GKLocalPlayer.local.isAuthenticated else { throw NotSignedInException() }
+      let achievements = ids.map { id -> GKAchievement in
+        let achievement = GKAchievement(identifier: id)
+        achievement.percentComplete = 100
+        achievement.showsCompletionBanner = showBanner
+        return achievement
+      }
+      try await GKAchievement.report(achievements)
+    }
+
     /**
      * The top of the board, the player's own entry, and the entry just above
      * theirs (for "N points to #2"). Recurring boards return their current

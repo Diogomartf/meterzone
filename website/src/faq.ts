@@ -18,7 +18,7 @@ export const GAME_FAQS = [
   {
     question: 'Do I need an account?',
     answer:
-      'No. Scores, settings, and unlocks are stored on your device. To appear on the leaderboards, sign in with the Game Center account already on your iPhone — no email or password.',
+      'No. Scores, settings, and unlocks are stored on your device. To appear on the leaderboards and collect achievements, sign in with the Game Center account already on your iPhone — no email or password.',
   },
   {
     question: 'How do the MeterZone leaderboards work?',

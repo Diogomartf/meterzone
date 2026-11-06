@@ -1,3 +1,5 @@
+import type { AchievementId } from '@/game/achievements';
+
 export type RoundResult = 'perfect' | 'zone' | 'near' | 'miss';
 export type RoundLabel =
   'Perfect' | 'Great' | 'Good' | 'Nice' | 'Close' | 'Miss';
@@ -47,6 +49,8 @@ export type SessionStats = {
   hits: number;
   perfects: number;
   misses: number;
+  /** Rounds cleared before losing the first life. */
+  cleanRounds: number;
   bestCombo: number;
   coinsEarned: number;
 };
@@ -104,4 +108,12 @@ export type PersistState = {
   tapHintPlays: number;
   /** UTC day of the last daily finish paid out — never paid twice. */
   dailyRewardDay: string;
+  /** Perfects across every finished run */
+  totalPerfects: number;
+  /** Consecutive UTC days with a finished daily, ending on `day`. */
+  dailyStreak: { day: string; count: number };
+  /** Achievements earned on this device, signed in or not. */
+  earnedAchievements: AchievementId[];
+  /** The earned ones Game Center has accepted. */
+  reportedAchievements: AchievementId[];
 };

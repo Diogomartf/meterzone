@@ -1,6 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {
+  type AchievementId,
+  isAchievementId,
+  nextDailyStreak,
+  withAchievements,
+} from '@/game/achievements';
+import {
   avatarPack,
   FREE_AVATAR_PACK,
   isAvatarPackId,
@@ -52,7 +58,22 @@ const DEFAULT_STATE: PersistState = {
   reviewLastPromptAtRuns: 0,
   tapHintPlays: 0,
   dailyRewardDay: '',
+  totalPerfects: 0,
+  dailyStreak: { day: '', count: 0 },
+  earnedAchievements: [],
+  reportedAchievements: [],
 };
+
+function parseDailyStreak(value: unknown): PersistState['dailyStreak'] {
+  const streak = value as Partial<PersistState['dailyStreak']> | null;
+  return typeof streak?.day === 'string' && Number.isFinite(streak.count)
+    ? { day: streak.day, count: Math.max(0, Number(streak.count)) }
+    : { ...DEFAULT_STATE.dailyStreak };
+}
+
+function parseAchievements(value: unknown): AchievementId[] {
+  return Array.isArray(value) ? value.filter(isAchievementId) : [];
+}
 
 function parseReviewPromptStatus(value: unknown): ReviewPromptStatus {
   if (value === 'accepted') return 'accepted';
@@ -143,7 +164,7 @@ export async function loadPersist(): Promise<PersistState> {
       : dailyBest.score > 0
         ? { ...dailyBest }
         : { ...EMPTY_DAILY };
-    return {
+    return withAchievements({
       ...DEFAULT_STATE,
       ...parsed,
       unlockedSkins: parsed.unlockedSkins?.length
@@ -173,7 +194,13 @@ export async function loadPersist(): Promise<PersistState> {
       tapHintPlays: migrateTapHintPlays(parsed),
       dailyRewardDay:
         typeof parsed.dailyRewardDay === 'string' ? parsed.dailyRewardDay : '',
-    };
+      totalPerfects: Number.isFinite(parsed.totalPerfects)
+        ? Math.max(0, Number(parsed.totalPerfects))
+        : 0,
+      dailyStreak: parseDailyStreak(parsed.dailyStreak),
+      earnedAchievements: parseAchievements(parsed.earnedAchievements),
+      reportedAchievements: parseAchievements(parsed.reportedAchievements),
+    });
   } catch {
     const base = freshPersist();
     return {
@@ -292,6 +319,9 @@ export async function commitRunResult(input: {
   bestCombo: number;
   bestLevel: number;
   isDaily: boolean;
+  perfects?: number;
+  /** Rounds cleared before losing the first life. */
+  cleanRounds?: number;
   /**
    * UTC day the run started on. A daily run belongs to that day's challenge
    * even when it ends after midnight. Defaults to today.
@@ -327,6 +357,7 @@ export async function commitRunResult(input: {
       dailyRecord = betterDaily(prev.dailyRecord, dailyBest);
     }
 
+    const perfects = input.perfects ?? 0;
     const next: PersistState = {
       ...prev,
       coins: prev.coins + input.coinsEarned,
@@ -341,9 +372,35 @@ export async function commitRunResult(input: {
       dailyBest,
       dailyRecord,
       totalRuns: (prev.totalRuns ?? 0) + 1,
+      totalPerfects: prev.totalPerfects + perfects,
+      dailyStreak: input.isDaily
+        ? nextDailyStreak(prev.dailyStreak, day)
+        : prev.dailyStreak,
       // Coach progress is recorded per fill — do not fold this run's attempts
       // here or an abandoned run's fills would be forgotten, then double-counted.
       tapHintPlays: prev.tapHintPlays,
+    };
+    const earned = withAchievements(next, {
+      perfects,
+      cleanRounds: input.cleanRounds,
+    });
+    await savePersist(earned);
+    return earned;
+  });
+}
+
+/** Records what Game Center accepted, so it's never sent twice. */
+export async function markAchievementsReported(
+  ids: AchievementId[],
+): Promise<PersistState> {
+  return withPersistLock(async () => {
+    const prev = await loadPersist();
+    const next: PersistState = {
+      ...prev,
+      reportedAchievements: [
+        ...prev.reportedAchievements,
+        ...ids.filter((id) => !prev.reportedAchievements.includes(id)),
+      ],
     };
     await savePersist(next);
     return next;
@@ -400,12 +457,12 @@ export async function unlockSkin(
     const prev = await loadPersist();
     if (prev.unlockedSkins.includes(skin)) return prev;
     if (prev.coins < cost) return null;
-    const next: PersistState = {
+    const next = withAchievements({
       ...prev,
       coins: prev.coins - cost,
       unlockedSkins: [...prev.unlockedSkins, skin],
       equippedSkin: skin,
-    };
+    });
     await savePersist(next);
     return next;
   });
@@ -486,15 +543,15 @@ export function dailySeed(day: string = todayKey()): number {
 export async function claimDailyReward(
   day: string,
   coins: number,
+  rank?: number,
 ): Promise<PersistState | null> {
   return withPersistLock(async () => {
     const prev = await loadPersist();
     if (coins <= 0 || day <= prev.dailyRewardDay) return null;
-    const next: PersistState = {
-      ...prev,
-      coins: prev.coins + coins,
-      dailyRewardDay: day,
-    };
+    const next = withAchievements(
+      { ...prev, coins: prev.coins + coins, dailyRewardDay: day },
+      { dailyRank: rank },
+    );
     await savePersist(next);
     return next;
   });

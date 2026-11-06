@@ -49,6 +49,11 @@ declare class GameServicesModule extends NativeModule<GameServicesEvents> {
   loadPreviousOccurrenceAsync?(
     leaderboardId: string,
   ): Promise<{ start: number; you?: NativeRankEntry } | null>;
+  /**
+   * iOS only — marks achievements complete. Earned ones are ignored, so
+   * retrying is safe. `showBanner` shows Game Center's banner for each.
+   */
+  reportAchievementsAsync?(ids: string[], showBanner: boolean): Promise<void>;
   /** Opens the platform's leaderboards screen over the app. */
   showLeaderboardsAsync(): Promise<void>;
 }

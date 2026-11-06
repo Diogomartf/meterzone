@@ -101,6 +101,7 @@ import {
   type RunResult,
 } from '@/game/ResultScreen';
 import { useDailyReward } from '@/game/useDailyReward';
+import { useAchievements } from '@/game/useAchievements';
 import { usePersistState } from '@/game/usePersistState';
 import { useSounds } from '@/game/useSounds';
 import { useTapCoach } from '@/game/useTapCoach';
@@ -373,6 +374,7 @@ export function GameScreen() {
   }, [persist]);
 
   const dailyReward = useDailyReward(rankingSignInDone, applyPersist);
+  useAchievements(persist, rankingSignInDone);
 
   useEffect(() => {
     return () => {
@@ -508,6 +510,8 @@ export function GameScreen() {
       bestCombo: session.bestCombo,
       bestLevel: stateRef.current.round.level,
       isDaily: stateRef.current.dailyMode,
+      perfects: session.perfects,
+      cleanRounds: session.cleanRounds,
       day: runDayRef.current,
     });
     applyPersist(next);
