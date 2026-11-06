@@ -27,6 +27,11 @@ import { CoinCountUp, CountUpText } from '@/game/CoinCountUp';
 
 const BG = require('../../assets/images/record-bg.webp');
 const LOGO = require('../../assets/images/zone-meter-logo.webp');
+const HOME_ICON = {
+  ios: 'house.fill',
+  android: 'home',
+  web: 'home',
+} as const;
 const TROPHY = require('../../assets/images/trophy-record.webp');
 const CALENDAR = require('../../assets/images/daily-calendar.webp');
 const COINS = require('../../assets/images/coins-stack.webp');
@@ -156,6 +161,7 @@ type ResultScreenProps = {
   onOpenRanking: () => void;
   onRetry: () => void;
   onShare: () => void;
+  onHome: () => void;
   onMenu: () => void;
   /** Hides the buttons while the screen is captured for sharing. */
   capturing?: boolean;
@@ -173,6 +179,7 @@ export function ResultScreen({
   onOpenRanking,
   onRetry,
   onShare,
+  onHome,
   onMenu,
   capturing = false,
 }: ResultScreenProps) {
@@ -247,14 +254,23 @@ export function ResultScreen({
           contentFit="contain"
         />
         {!capturing ? (
-          <MainButton
-            tone="cyan"
-            size="small"
-            onPress={onMenu}
-            accessibilityLabel={gt('Menu')}
-          >
-            <MenuIcon />
-          </MainButton>
+          <View style={styles.headerActions}>
+            <MainButton
+              tone="white"
+              size="small"
+              icon={HOME_ICON}
+              onPress={onHome}
+              accessibilityLabel={gt('Go home')}
+            />
+            <MainButton
+              tone="cyan"
+              size="small"
+              onPress={onMenu}
+              accessibilityLabel={gt('Menu')}
+            >
+              <MenuIcon />
+            </MainButton>
+          </View>
         ) : null}
       </View>
 
@@ -466,6 +482,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
   },
+  headerActions: { flexDirection: 'row', gap: 10 },
   // The art has transparent space above the letters; the negative top margin
   // lines the letters up with the top of the menu button.
   logoCompact: { width: 80, height: 58, marginTop: -5 },

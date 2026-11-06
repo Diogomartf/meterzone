@@ -1655,6 +1655,13 @@ export function GameScreen() {
             void gameHaptics.next();
             void shareScoreImage();
           }}
+          onHome={() => {
+            if (resultPreview) {
+              setResultPreview(null);
+              return;
+            }
+            goBackFromMenu();
+          }}
           onMenu={() => {
             setResultPreview(null);
             setMenuInitialView('menu');
