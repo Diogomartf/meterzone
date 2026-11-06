@@ -51,7 +51,7 @@ Measure before and after any change made for speed, on the same runs, and put bo
 
 1. Wrap `<GameScreen />` in `src/app/index.tsx` with `<Profiler id="game" onRender={(_, phase, ms) => console.log(`[perf] ${phase} ${ms.toFixed(2)}`)}>`. Temporary: never commit it.
 2. Run `scripts/sim-play.sh` (see "Simulator gameplay") twice. Each run is the same 17 rounds, and the script prints the run's GameScreen commits and total render time.
-3. For the "before" side, `git show master:<file> > <file>` for the changed files, run it twice more, then restore them. The script bundles fresh each time, so there's nothing to restart.
+3. For the "before" side, `git show main:<file> > <file>` for the changed files, run it twice more, then restore them. The script bundles fresh each time, so there's nothing to restart.
 4. Remove the Profiler wrapper afterwards.
 
 Dev-build times are inflated: compare runs with each other, never against a frame budget. Dropped frames and UI-thread time can only be judged in a release build on a real iPhone with Instruments (Animation Hitches, Time Profiler).
