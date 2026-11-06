@@ -18,7 +18,12 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { trackTap } from '@/analytics';
-import { GameColors, GameFonts, fillParent } from '@/constants/gameTheme';
+import {
+  GameColors,
+  GameFonts,
+  fillParent,
+  headerLogo,
+} from '@/constants/gameTheme';
 import { FlatButton } from '@/game/FlatButton';
 import { formatScore } from '@/game/format';
 import { MainButton } from '@/game/MainButton';
@@ -492,15 +497,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   headerActions: { flexDirection: 'row', gap: 10 },
-  // The art has transparent space above the letters; the negative top margin
-  // lines the letters up with the top of the menu button.
+  // Same top-edge rule as `headerLogo`, with the margin scaled to the size.
   logoCompact: { width: 80, height: 58, marginTop: -5 },
-  logo: {
-    width: 104,
-    height: 75,
-    marginTop: -6,
-    marginLeft: -4,
-  },
+  logo: headerLogo,
   // Taller content overflows evenly both ways, so scaling it about its centre
   // lands it exactly inside the body.
   body: {

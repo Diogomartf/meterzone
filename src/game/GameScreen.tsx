@@ -1442,6 +1442,20 @@ export function GameScreen() {
               />
             </View>
 
+            {/* A daily run says so, up in the header to leave the game room. */}
+            {dailyMode && phase !== 'ready' && phase !== 'gameover' ? (
+              <View style={styles.dailySlot} pointerEvents="none">
+                <View style={styles.dailyBadge}>
+                  <Image
+                    source={DAILY_ICON}
+                    style={styles.dailyBadgeIcon}
+                    contentFit="contain"
+                  />
+                  <Text style={styles.dailyBadgeText}>{gt('DAILY')}</Text>
+                </View>
+              </View>
+            ) : null}
+
             {phase === 'ready' ? (
               <View style={styles.topRight} pointerEvents="box-none">
                 <CoinBadge coins={persist?.coins ?? 0} onPress={openSkins} />
@@ -1466,7 +1480,7 @@ export function GameScreen() {
                 <Text
                   style={[styles.bestLabel, isNewBest && styles.bestLabelHot]}
                 >
-                  {/* The DAILY badge by the logo already names the mode. */}
+                  {/* The DAILY badge in the header already names the mode. */}
                   {isNewBest ? gt('NEW BEST') : gt('BEST')}
                 </Text>
                 <Text
@@ -1504,17 +1518,6 @@ export function GameScreen() {
 
         {phase !== 'ready' && phase !== 'gameover' ? (
           <View style={styles.statsBlock} pointerEvents="none">
-            {/* A daily run says so, centred over the hearts. */}
-            {dailyMode ? (
-              <View style={styles.dailyBadge}>
-                <Image
-                  source={DAILY_ICON}
-                  style={styles.dailyBadgeIcon}
-                  contentFit="contain"
-                />
-                <Text style={styles.dailyBadgeText}>{gt('DAILY')}</Text>
-              </View>
-            ) : null}
             <View style={styles.heartsAboveScore}>
               <Hearts lives={lives} max={STARTING_LIVES} />
             </View>

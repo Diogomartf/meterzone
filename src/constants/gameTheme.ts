@@ -77,6 +77,18 @@ export const GameFonts = {
  * Spelled out rather than using `StyleSheet.absoluteFillObject`, which react-native
  * dropped in 0.86 — spreading the now-undefined value silently produced in-flow views.
  */
+/**
+ * The header logo on every screen. The art has transparent space above the
+ * letters, and the negative top margin cancels it, so the letters start at the
+ * header's top edge, level with whatever sits on the right.
+ */
+export const headerLogo = {
+  width: 104,
+  height: 75,
+  marginTop: -6,
+  marginLeft: -4,
+};
+
 export const fillParent = {
   position: 'absolute' as const,
   left: 0,

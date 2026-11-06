@@ -1,6 +1,11 @@
 import { StyleSheet } from 'react-native';
 
-import { GameColors, GameFonts, fillParent } from '@/constants/gameTheme';
+import {
+  GameColors,
+  GameFonts,
+  fillParent,
+  headerLogo,
+} from '@/constants/gameTheme';
 
 /** Every style for GameScreen and the small components it composes. */
 export const styles = StyleSheet.create({
@@ -48,11 +53,7 @@ export const styles = StyleSheet.create({
     gap: 8,
     paddingRight: 4,
   },
-  logoHud: {
-    width: 112,
-    height: 81,
-    marginLeft: -4,
-  },
+  logoHud: headerLogo,
   bottomBar: {
     position: 'absolute',
     left: 16,
@@ -63,7 +64,15 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 10,
   },
-  /** Daily run marker over the hearts: calendar plus DAILY in a pill. */
+  /** Centres the daily marker on the screen, whatever the header's sides hold. */
+  dailySlot: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  /** Daily run marker in the header: calendar plus DAILY in a pill. */
   dailyBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -75,7 +84,6 @@ export const styles = StyleSheet.create({
     borderWidth: 2.5,
     borderColor: GameColors.ink,
     backgroundColor: '#DDF3FF',
-    marginBottom: 8,
   },
   dailyBadgeIcon: {
     width: 26,
@@ -191,12 +199,8 @@ export const styles = StyleSheet.create({
   },
   topRight: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 10,
-    // Level with the top of the logo's letters, below the art's transparent
-    // space.
-    alignSelf: 'flex-start',
-    marginTop: 6,
   },
   bestCardShell: {
     borderRadius: 18,
