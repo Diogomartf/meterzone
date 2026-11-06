@@ -112,7 +112,7 @@ describe('liquidSurface', () => {
     ]);
     expect(surface.shadow).toBe(SKINS.ice.liquid[1]);
     expect(surface.glow[0]).toBe(hexAlpha(SKINS.ice.liquid[1], 0));
-    expect(surface.glow[2]).toBe(hexAlpha(SKINS.ice.liquid[0], 0.5));
+    expect(surface.glow[2]).toBe(hexAlpha(SKINS.ice.liquid[0], 0.25));
   });
 });
 
