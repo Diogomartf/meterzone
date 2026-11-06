@@ -1,9 +1,9 @@
 import { Image } from 'expo-image';
 import { useGT, useLocale } from 'gt-react-native';
 import { SymbolView } from 'expo-symbols';
+import { useState } from 'react';
 import {
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -35,6 +35,11 @@ const TROPHY_ASPECT = 600 / 416;
 
 /** The record ticks up from the old best while the trophy lands. */
 const RECORD_COUNT_DELAY = 300;
+
+/** Side padding of the body. */
+const BODY_GUTTER = 24;
+/** Width of an average display-font capital, as a share of font size. */
+const HEADLINE_LETTER_WIDTH = 0.62;
 
 /**
  * The trophy settles in: a small, eased-out grow from 88% with a fade, no
@@ -174,20 +179,29 @@ export function ResultScreen({
   const gt = useGT();
   const locale = useLocale();
   const insets = useSafeAreaInsets();
-  const { height } = useWindowDimensions();
-  // Shorter phones (SE, mini) shrink the trophy and score, and the body
-  // scrolls above the buttons if it still doesn't fit (an SE leaves ~350pt).
-  const compact = height < 800;
-  // A daily record also carries the calendar header, so its trophy is
-  // smaller or the coins row gets pushed under the buttons.
-  const trophySize = compact ? 64 : record.daily ? 92 : 136;
+  const { height, width } = useWindowDimensions();
+  // Shorter phones (SE, mini) shrink the trophy and score.
+  const compact = height < 830;
+  // A daily also carries the calendar header, which takes the room of the
+  // bigger logo and stats on anything short of a Pro Max.
+  const snug = compact || (record.daily && height < 900);
+  const trophySize = compact ? 58 : snug ? 65 : record.daily ? 83 : 122;
 
   // Sized from the digit count: `adjustsFontSizeToFit` sometimes shrinks a
   // short score to a few points on iOS.
   const scoreText = formatScore(record.score);
   const scoreSize =
-    (scoreText.length <= 4 ? 96 : scoreText.length <= 5 ? 84 : 72) *
+    (scoreText.length <= 4 ? 71 : scoreText.length <= 5 ? 61 : 53) *
     (compact ? 0.64 : 1);
+
+  // Translations run long ("FIN DE LA PARTIDA"), so it never outgrows the row.
+  const gameOverText = gt('GAME OVER');
+  const gameOverSize = Math.min(
+    compact ? 34 : 42,
+    Math.floor(
+      (width - BODY_GUTTER * 2) / (gameOverText.length * HEADLINE_LETTER_WIDTH),
+    ),
+  );
 
   const gap = record.best - record.score;
   const subtitle = record.isNewBest
@@ -199,6 +213,14 @@ export function ResultScreen({
     : gap > 0
       ? gt('−{gap} from your best', { gap: formatScore(gap) })
       : null;
+
+  // Nothing here may ever be cut, and it's also the shared image, so a body
+  // that still doesn't fit (an SE leaves ~350pt) shrinks as a whole. It's
+  // hidden until measured, so it never shows at the wrong size.
+  const [bodyHeight, setBodyHeight] = useState(0);
+  const [contentHeight, setContentHeight] = useState(0);
+  const measured = bodyHeight > 0 && contentHeight > 0;
+  const bodyScale = measured ? Math.min(1, bodyHeight / contentHeight) : 1;
 
   const date = new Date(record.day + 'T12:00:00').toLocaleDateString(locale, {
     month: 'short',
@@ -221,7 +243,7 @@ export function ResultScreen({
       >
         <Image
           source={LOGO}
-          style={[styles.logo, compact && styles.logoCompact]}
+          style={[styles.logo, snug && styles.logoCompact]}
           contentFit="contain"
         />
         {!capturing ? (
@@ -236,160 +258,164 @@ export function ResultScreen({
         ) : null}
       </View>
 
-      <ScrollView
+      <View
         style={styles.body}
-        contentContainerStyle={styles.bodyContent}
-        showsVerticalScrollIndicator={false}
-        alwaysBounceVertical={false}
+        onLayout={(e) => setBodyHeight(e.nativeEvent.layout.height)}
       >
-        {record.daily ? (
-          <>
-            <View style={styles.titleRow}>
-              <Image
-                source={CALENDAR}
-                style={compact ? styles.calendarCompact : styles.calendar}
-                contentFit="contain"
-              />
-              <Text style={[styles.title, compact && styles.titleCompact]}>
-                {gt('DAILY\nCHALLENGE')}
-              </Text>
-            </View>
-            <View style={styles.dateRow}>
-              <View style={styles.dateLine} />
-              <Text style={styles.date}>{date}</Text>
-              <View style={styles.dateLine} />
-            </View>
-          </>
-        ) : null}
+        <View
+          style={[
+            styles.bodyContent,
+            { opacity: measured ? 1 : 0, transform: [{ scale: bodyScale }] },
+          ]}
+          onLayout={(e) => setContentHeight(e.nativeEvent.layout.height)}
+        >
+          {record.daily ? (
+            <>
+              <View style={styles.titleRow}>
+                <Image
+                  source={CALENDAR}
+                  style={compact ? styles.calendarCompact : styles.calendar}
+                  contentFit="contain"
+                />
+                <Text style={[styles.title, compact && styles.titleCompact]}>
+                  {gt('DAILY\nCHALLENGE')}
+                </Text>
+              </View>
+              <View style={styles.dateRow}>
+                <View style={styles.dateLine} />
+                <Text style={styles.date}>{date}</Text>
+                <View style={styles.dateLine} />
+              </View>
+            </>
+          ) : null}
 
-        {record.isNewBest ? (
-          <>
+          {record.isNewBest ? (
+            <>
+              <Animated.View entering={trophyEntering}>
+                <Image
+                  source={TROPHY}
+                  style={{
+                    width: trophySize * TROPHY_ASPECT,
+                    height: trophySize,
+                    marginTop: compact ? 0 : -2,
+                    marginBottom: compact ? 0 : 10,
+                  }}
+                  contentFit="contain"
+                />
+              </Animated.View>
+              <ArchedText
+                text={gt('NEW BEST!')}
+                style={[styles.newBest, compact && styles.newBestCompact]}
+              />
+            </>
+          ) : (
             <Animated.View entering={trophyEntering}>
-              <Image
-                source={TROPHY}
-                style={{
-                  width: trophySize * TROPHY_ASPECT,
-                  height: trophySize,
-                  marginVertical: compact ? 0 : 4,
-                }}
-                contentFit="contain"
+              <ArchedText
+                text={gameOverText}
+                style={[
+                  styles.newBest,
+                  styles.gameOver,
+                  {
+                    fontSize: gameOverSize,
+                    lineHeight: Math.round(gameOverSize * 1.16),
+                  },
+                ]}
               />
             </Animated.View>
-            <ArchedText
-              text={gt('NEW BEST!')}
-              style={[styles.newBest, compact && styles.newBestCompact]}
-            />
-          </>
-        ) : (
-          <Animated.View entering={trophyEntering}>
-            <ArchedText
-              text={gt('GAME OVER')}
+          )}
+          {record.isNewBest ? (
+            // Captures show the final score, never a number mid-count.
+            <CountUpText
+              from={record.best}
+              value={record.score}
+              delay={RECORD_COUNT_DELAY}
+              settled={capturing}
               style={[
-                styles.newBest,
-                styles.gameOver,
-                compact && styles.newBestCompact,
+                styles.score,
+                {
+                  fontSize: scoreSize,
+                  lineHeight: Math.round(scoreSize * 1.08),
+                },
               ]}
             />
+          ) : (
+            <Text
+              style={[
+                styles.score,
+                {
+                  fontSize: scoreSize,
+                  lineHeight: Math.round(scoreSize * 1.08),
+                },
+              ]}
+              numberOfLines={1}
+            >
+              {scoreText}
+            </Text>
+          )}
+          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+          {record.daily && dailyRank ? (
+            // Left out of the shared image: a place on today's board goes stale.
+            <View
+              style={[styles.rankSlot, capturing && styles.hidden]}
+              pointerEvents={capturing ? 'none' : 'box-none'}
+            >
+              <DailyRankLine rank={dailyRank} onPress={onOpenRanking} />
+            </View>
+          ) : null}
+
+          <Animated.View
+            entering={FadeIn.delay(250)}
+            style={[styles.stats, snug && styles.statsCompact]}
+          >
+            <View style={styles.stat}>
+              <Text style={[styles.statValue, snug && styles.statValueCompact]}>
+                {record.accuracy}%
+              </Text>
+              <Text style={styles.statLabel}>{gt('Accuracy')}</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.stat}>
+              <Text style={[styles.statValue, snug && styles.statValueCompact]}>
+                {record.combo}
+              </Text>
+              <Text style={styles.statLabel}>{gt('Combo')}</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.stat}>
+              <Text style={[styles.statValue, snug && styles.statValueCompact]}>
+                {record.level}
+              </Text>
+              <Text style={styles.statLabel}>{gt('Level')}</Text>
+            </View>
           </Animated.View>
-        )}
-        {record.isNewBest ? (
-          // Captures show the final score, never a number mid-count.
-          <CountUpText
-            from={record.best}
-            value={record.score}
-            delay={RECORD_COUNT_DELAY}
-            settled={capturing}
-            style={[
-              styles.score,
-              { fontSize: scoreSize, lineHeight: Math.round(scoreSize * 1.08) },
-            ]}
-          />
-        ) : (
-          <Text
-            style={[
-              styles.score,
-              { fontSize: scoreSize, lineHeight: Math.round(scoreSize * 1.08) },
-            ]}
-            numberOfLines={1}
-          >
-            {scoreText}
-          </Text>
-        )}
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-        {record.daily && dailyRank ? (
-          // Left out of the shared image: a place on today's board goes stale.
-          <View
-            style={[styles.rankSlot, capturing && styles.hidden]}
-            pointerEvents={capturing ? 'none' : 'box-none'}
-          >
-            <DailyRankLine rank={dailyRank} onPress={onOpenRanking} />
-          </View>
-        ) : null}
 
-        <Animated.View
-          entering={FadeIn.delay(250)}
-          style={[styles.stats, compact && styles.statsCompact]}
-        >
-          <View style={styles.stat}>
-            <Text
-              style={[styles.statValue, compact && styles.statValueCompact]}
+          {record.coinsEarned > 0 ? (
+            <View
+              style={styles.coinsRow}
+              accessible
+              accessibilityLabel={gt('+{earned} coins', {
+                earned: record.coinsEarned,
+              })}
             >
-              {record.accuracy}%
-            </Text>
-            <Text style={styles.statLabel}>{gt('Accuracy')}</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.stat}>
-            <Text
-              style={[styles.statValue, compact && styles.statValueCompact]}
-            >
-              {record.combo}
-            </Text>
-            <Text style={styles.statLabel}>{gt('Combo')}</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.stat}>
-            <Text
-              style={[styles.statValue, compact && styles.statValueCompact]}
-            >
-              {record.level}
-            </Text>
-            <Text style={styles.statLabel}>{gt('Level')}</Text>
-          </View>
-        </Animated.View>
-
-        {record.coinsEarned > 0 ? (
-          <View
-            style={styles.coinsRow}
-            accessible
-            accessibilityLabel={gt('+{earned} coins', {
-              earned: record.coinsEarned,
-            })}
-          >
-            <Image source={COINS} style={styles.coins} contentFit="contain" />
-            {/* Only the amount moves: it rolls up after the score's turn. */}
-            <CoinCountUp
-              value={record.coinsEarned}
-              delay={record.isNewBest ? 1500 : 450}
-              align="left"
-              settled={capturing}
-              style={[styles.coinsText, styles.coinsAmount]}
-            />
-            <Text style={styles.coinsText}>{gt('coins earned')}</Text>
-          </View>
-        ) : null}
-      </ScrollView>
+              <Image source={COINS} style={styles.coins} contentFit="contain" />
+              {/* Only the amount moves: it rolls up after the score's turn. */}
+              <CoinCountUp
+                value={record.coinsEarned}
+                delay={record.isNewBest ? 1500 : 450}
+                align="left"
+                settled={capturing}
+                style={[styles.coinsText, styles.coinsAmount]}
+              />
+              <Text style={styles.coinsText}>{gt('coins earned')}</Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
 
       <View
         style={[
           styles.actions,
-          // Lifted off the yellow pad at the bottom of the art, so Share stays
-          // on the sky. Short phones need the room more than the lift.
-          {
-            paddingBottom: compact
-              ? insets.bottom + 16
-              : Math.max(insets.bottom + 16, height * 0.095),
-          },
+          { paddingBottom: insets.bottom + 28 },
           compact && styles.actionsCompact,
           capturing && styles.hidden,
         ]}
@@ -440,20 +466,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
   },
-  logoCompact: { width: 80, height: 58 },
+  // The art has transparent space above the letters; the negative top margin
+  // lines the letters up with the top of the menu button.
+  logoCompact: { width: 80, height: 58, marginTop: -5 },
   logo: {
     width: 104,
     height: 75,
+    marginTop: -6,
     marginLeft: -4,
   },
+  // Taller content overflows evenly both ways, so scaling it about its centre
+  // lands it exactly inside the body.
   body: {
     flex: 1,
+    justifyContent: 'center',
   },
   bodyContent: {
-    flexGrow: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: BODY_GUTTER,
     paddingVertical: 8,
   },
   titleRow: {
@@ -477,7 +507,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginTop: 6,
+    marginTop: 8,
+    marginBottom: 12,
   },
   dateLine: {
     width: 36,
@@ -493,8 +524,8 @@ const styles = StyleSheet.create({
   },
   newBest: {
     fontFamily: GameFonts.display,
-    fontSize: 50,
-    lineHeight: 58,
+    fontSize: 34,
+    lineHeight: 40,
     color: GameColors.lemon,
     textShadowColor: ink,
     textShadowOffset: { width: 0, height: 4 },
@@ -503,14 +534,14 @@ const styles = StyleSheet.create({
   gameOver: {
     color: '#FF5A5A',
   },
-  newBestCompact: { fontSize: 34, lineHeight: 40 },
+  newBestCompact: { fontSize: 28, lineHeight: 33 },
   score: {
     fontFamily: GameFonts.display,
     color: GameColors.white,
     textShadowColor: ink,
     textShadowOffset: { width: 0, height: 6 },
     textShadowRadius: 0,
-    marginTop: -14,
+    marginTop: -2,
     marginBottom: -6,
     alignSelf: 'stretch',
     textAlign: 'center',
@@ -520,7 +551,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     lineHeight: 24,
     textAlign: 'center',
-    color: GameColors.white,
+    color: '#CDEBFF',
     textShadowColor: 'rgba(0,10,80,0.5)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 0,
@@ -530,8 +561,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 14,
-    paddingVertical: 12,
-    borderRadius: 26,
+    paddingVertical: 8,
+    borderRadius: 20,
     borderWidth: 2.5,
     // A pale cyan rim that glows a little into the sky around it.
     borderColor: 'rgba(185,240,255,0.9)',
@@ -541,22 +572,22 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.55,
     shadowRadius: 8,
   },
-  statValueCompact: { fontSize: 30, lineHeight: 34 },
-  statsCompact: { marginTop: 10, paddingVertical: 6 },
+  statValueCompact: { fontSize: 26, lineHeight: 29 },
+  statsCompact: { marginTop: 10, paddingVertical: 6, borderRadius: 18 },
   stat: {
     flex: 1,
     alignItems: 'center',
   },
   statValue: {
     fontFamily: GameFonts.display,
-    fontSize: 38,
-    lineHeight: 42,
+    fontSize: 30,
+    lineHeight: 33,
     color: STAT_INK,
   },
   statLabel: {
     fontFamily: GameFonts.display,
-    fontSize: 17,
-    lineHeight: 20,
+    fontSize: 14,
+    lineHeight: 17,
     color: STAT_INK,
   },
   statDivider: {
@@ -571,8 +602,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     marginTop: 12,
-    // The coin stack and text shadow overhang their boxes; room below keeps
-    // the scroll view from clipping them.
+    // The coin stack and text shadow overhang their boxes.
     paddingBottom: 6,
   },
   coins: { width: 47, height: 36 },

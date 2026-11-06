@@ -35,7 +35,12 @@ export function DailyCard({ onPress }: { onPress: () => void }) {
           <Text style={styles.title} numberOfLines={1}>
             {gt('Daily challenge')}
           </Text>
-          <Text style={styles.subtitle} numberOfLines={1}>
+          <Text
+            style={styles.subtitle}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+          >
             {gt('A new challenge every day')}
           </Text>
         </View>
@@ -53,7 +58,7 @@ export function DailyCard({ onPress }: { onPress: () => void }) {
 const styles = StyleSheet.create({
   shell: {
     width: '100%',
-    borderRadius: 22,
+    borderRadius: 18,
     // A cool lip under the face, and a soft drop onto the sky.
     backgroundColor: '#8DC3EC',
     paddingBottom: 5,
@@ -69,16 +74,16 @@ const styles = StyleSheet.create({
   face: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 22,
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 18,
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.9)',
   },
   icon: {
-    width: 52,
-    height: 52,
+    width: 40,
+    height: 40,
   },
   divider: {
     width: 1.5,
@@ -92,14 +97,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: GameFonts.display,
-    fontSize: 21,
-    lineHeight: 26,
+    fontSize: 18,
+    lineHeight: 22,
     color: NAVY,
   },
   subtitle: {
     fontFamily: GameFonts.soft,
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: 13,
+    lineHeight: 16,
     color: NAVY,
   },
 });

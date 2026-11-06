@@ -1456,16 +1456,14 @@ export function GameScreen() {
             )}
           </View>
           {phase === 'ready' ? (
-            <>
+            <View style={styles.homeCards}>
               <ScoreModule
                 best={persist?.highScore ?? 0}
                 bestLevel={persist?.bestLevel ?? 0}
                 onOpen={openScores}
               />
-              <View style={styles.homeDaily}>
-                <DailyCard onPress={() => startRun(true)} />
-              </View>
-            </>
+              <DailyCard onPress={() => startRun(true)} />
+            </View>
           ) : null}
         </View>
 
