@@ -27,7 +27,7 @@ const supportFaqs = [
   {
     question: 'Where is my game data stored?',
     answer:
-      'High scores, settings, and unlocks stay on your device. See the Privacy Policy for details.',
+      'High scores, settings, and unlocks stay on your device. The app also sends anonymous usage analytics. See the Privacy Policy for details.',
     privacyLink: true,
   },
 ];
@@ -58,7 +58,7 @@ const jsonLd = [
       acceptedAnswer: {
         '@type': 'Answer',
         text: faq.privacyLink
-          ? `High scores, settings, and unlocks stay on your device. See the Privacy Policy at ${SITE_URL}/privacy/ for details.`
+          ? `High scores, settings, and unlocks stay on your device. The app also sends anonymous usage analytics. See the Privacy Policy at ${SITE_URL}/privacy/ for details.`
           : faq.answer,
       },
     })),
@@ -175,6 +175,7 @@ const jsonLd = [
                     {faq.privacyLink ? (
                       <>
                         High scores, settings, and unlocks stay on your device.
+                        The app also sends anonymous usage analytics.
                         See the{' '}
                         <a href="/privacy/">Privacy Policy</a> for details.
                       </>

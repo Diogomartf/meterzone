@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { msg, useGT, useMessages } from 'gt-react-native';
 
+import { trackTap } from '@/analytics';
 import { GameColors, Gradients } from '@/constants/gameTheme';
 import { formatScore } from '@/game/format';
 import { MainButton } from '@/game/MainButton';
@@ -126,7 +127,10 @@ function SkinCard({
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        trackTap('skins.card', { skin: skin.id, action });
+        onPress();
+      }}
       disabled={!pressable}
       style={({ pressed }) => [
         styles.skinCard,
@@ -201,6 +205,8 @@ function SkinCard({
               tone="gold"
               size="small"
               label={gt('Unlock')}
+              track="skins.unlock"
+              trackProps={{ skin: skin.id }}
               onPress={onPress}
             />
           ) : (

@@ -3,6 +3,7 @@ import { SymbolView } from 'expo-symbols';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useGT } from 'gt-react-native';
 
+import { trackTap } from '@/analytics';
 import { GameColors, GameFonts } from '@/constants/gameTheme';
 import { FlatButton } from '@/game/FlatButton';
 import { MainButton } from '@/game/MainButton';
@@ -42,7 +43,10 @@ export function ReviewPromptModal({
       <View style={styles.overlay}>
         <Pressable
           style={styles.backdrop}
-          onPress={onDecline}
+          onPress={() => {
+            trackTap('review_prompt.dismiss');
+            onDecline();
+          }}
           accessibilityLabel={gt('Dismiss')}
         />
         <View style={styles.sheet}>
@@ -79,12 +83,14 @@ export function ReviewPromptModal({
                 tone="gold"
                 icon={{ ios: 'star.fill', android: 'star', web: 'star' }}
                 label={gt('Rate 5 stars')}
+                track="review_prompt.rate"
                 onPress={accept}
               />
               <FlatButton
                 tone="glass"
                 label={gt('Not now')}
                 accessibilityLabel={gt('Not now')}
+                track="review_prompt.not_now"
                 onPress={onDecline}
               />
             </View>

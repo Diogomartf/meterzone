@@ -4,6 +4,7 @@ import { SymbolView } from 'expo-symbols';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useGT } from 'gt-react-native';
 
+import { trackTap } from '@/analytics';
 import { GameFonts } from '@/constants/gameTheme';
 
 const CALENDAR = require('../../assets/images/daily-card-calendar.webp');
@@ -20,7 +21,10 @@ export function DailyCard({ onPress }: { onPress: () => void }) {
   const gt = useGT();
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        trackTap('home.daily');
+        onPress();
+      }}
       style={({ pressed }) => [styles.shell, pressed && styles.shellPressed]}
       accessibilityRole="button"
       accessibilityLabel={gt('Daily challenge')}

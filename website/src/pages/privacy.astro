@@ -2,7 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { APP_NAME, CONTACT_EMAIL, SITE_URL } from '../site';
 
-const lastUpdated = 'October 28, 2026';
+const lastUpdated = 'November 6, 2026';
 
 const privacyDescription = `${APP_NAME} privacy policy — a free one-tap timing game that keeps scores on your device. No accounts, no tracking ads. Contact ${CONTACT_EMAIL} with questions.`;
 
@@ -54,8 +54,9 @@ const jsonLd = [
         The app saves game progress locally on your phone — high scores, daily
         challenge results, settings (such as sound and haptics), coins, unlocked
         skins and avatar packs, and your chosen avatar.
-        This information stays on your device using local storage (AsyncStorage) and
-        is not sent to our servers.
+        This information is kept on your device using local storage (AsyncStorage).
+        Your saved progress is not uploaded; the app analytics described below
+        record gameplay events separately.
       </p>
     </section>
 
@@ -87,6 +88,25 @@ const jsonLd = [
       <p>
         If you choose to share a score image, your device’s standard share sheet
         is used. We do not receive the shared content.
+      </p>
+    </section>
+
+    <section>
+      <h2>App analytics</h2>
+      <p>
+        To understand how the game is played and improve it, the app sends usage
+        events to PostHog, our analytics provider, on servers in the European Union.
+        These include the screens and menus you open, the buttons you tap, runs you
+        start and finish with their score, level and coins earned, items you unlock
+        or equip, and whether the rating prompt was shown and answered. We can&rsquo;t
+        see the stars you give or what you write in a store review.
+      </p>
+      <p>
+        Events are linked to a random identifier stored on your device, not to your
+        name, email, or Game Center account. They also include whether you are
+        connected to Game Center (yes or no), your app language, app version, operating system, device model, and time zone. We have asked
+        PostHog not to look up your location from your IP address. We do not use
+        this data for advertising, and we do not share it with data brokers.
       </p>
     </section>
 

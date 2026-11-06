@@ -31,6 +31,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useGT } from 'gt-react-native';
 
+import { trackTap } from '@/analytics';
 import { GameColors } from '@/constants/gameTheme';
 import { formatScore } from '@/game/format';
 import { FlatButton } from '@/game/FlatButton';
@@ -291,6 +292,7 @@ export function RankingScreen({
         <TabSwitch
           value={kind}
           onChange={switchKind}
+          track="ranking"
           tabs={[
             { value: 'daily', label: gt('DAILY') },
             { value: 'endless', label: gt('ENDLESS') },
@@ -327,6 +329,7 @@ export function RankingScreen({
                     ? gt('Connecting…')
                     : gt('Continue with {service}', { service: SERVICE_NAME })
                 }
+                track="ranking.sign_in"
                 onPress={() => void signIn()}
               />
               <Text style={styles.rankHint}>
@@ -351,6 +354,7 @@ export function RankingScreen({
             </Text>
             <FlatButton
               tone="blue"
+              track="ranking.try_again"
               onPress={retry}
               label={gt('TRY AGAIN')}
               accessibilityLabel={gt('TRY AGAIN')}
@@ -494,11 +498,19 @@ function LiveBoard({
       )}
 
       {kind === 'daily' ? (
-        <MainButton tone="gold" label={gt('PLAY DAILY')} onPress={onPlay} />
+        <MainButton
+          tone="gold"
+          label={gt('PLAY DAILY')}
+          track="ranking.play_daily"
+          onPress={onPlay}
+        />
       ) : null}
 
       <Pressable
-        onPress={() => void openRanking()}
+        onPress={() => {
+          trackTap('ranking.full_board');
+          void openRanking();
+        }}
         style={styles.rankMore}
         accessibilityRole="button"
       >
@@ -593,6 +605,7 @@ function YourSpotCard({
               size={36}
               hitSlop={8}
               accessibilityLabel={gt('Share your ranking')}
+              track="ranking.share"
               onPress={() => void share()}
             />
           ) : null}

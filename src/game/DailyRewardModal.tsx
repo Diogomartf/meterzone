@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useGT } from 'gt-react-native';
 
+import { trackTap } from '@/analytics';
 import { GameColors, GameFonts } from '@/constants/gameTheme';
 import { formatScore } from '@/game/format';
 import { CoinCountUp, FloatingSparkle } from '@/game/CoinCountUp';
@@ -48,7 +49,10 @@ export function DailyRewardModal({ reward, onClose }: DailyRewardModalProps) {
       <View style={styles.overlay}>
         <Pressable
           style={styles.backdrop}
-          onPress={onClose}
+          onPress={() => {
+            trackTap('daily_reward.dismiss');
+            onClose();
+          }}
           accessibilityLabel={gt('Dismiss')}
         />
         {reward ? (
@@ -129,6 +133,7 @@ export function DailyRewardModal({ reward, onClose }: DailyRewardModalProps) {
                   label={gt('Collect {count} coins', {
                     count: formatScore(reward.coins),
                   })}
+                  track="daily_reward.collect"
                   onPress={onClose}
                 />
               </View>

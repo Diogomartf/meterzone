@@ -3,6 +3,7 @@ import { Linking, Platform, Share } from 'react-native';
 
 import { msg } from 'gt-react-native';
 
+import { track } from '@/analytics';
 import type { PersistState } from '@/game/types';
 
 /** App Store Connect numeric app id — write-review deep links. */
@@ -81,6 +82,7 @@ export async function requestNativeReview(): Promise<void> {
     if (await StoreReview.isAvailableAsync()) {
       const hasAction = await StoreReview.hasAction();
       if (hasAction) {
+        track('review_requested', { method: 'native' });
         await StoreReview.requestReview();
         return;
       }
@@ -95,6 +97,8 @@ export async function requestNativeReview(): Promise<void> {
       : Platform.OS === 'android'
         ? 'market://details?id=com.diogomartf.meterzone'
         : MARKETING_URL;
+
+  track('review_requested', { method: 'store_page' });
 
   try {
     if (await Linking.canOpenURL(url)) {

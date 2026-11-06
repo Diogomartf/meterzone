@@ -8,6 +8,9 @@ import { mock } from 'bun:test';
  * Registered via `preload` in bunfig.toml.
  */
 
+// React Native's bundler defines this; `bun test` doesn't.
+Object.assign(globalThis, { __DEV__: true });
+
 mock.module('react-native', () => ({
   Platform: { OS: 'ios', select: (spec: Record<string, unknown>) => spec.ios },
   AppState: {
@@ -34,6 +37,14 @@ mock.module('gt-react-native', () => ({
 mock.module('expo', () => ({
   NativeModule: class {},
   requireOptionalNativeModule: () => null,
+}));
+
+mock.module('posthog-react-native', () => ({
+  default: class {
+    capture() {}
+    screen() {}
+    register() {}
+  },
 }));
 
 mock.module('expo-store-review', () => ({

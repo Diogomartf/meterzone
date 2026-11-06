@@ -8,6 +8,7 @@ import {
   avatarPackAction,
   type AvatarPack,
 } from '@/game/avatars';
+import { trackTap } from '@/analytics';
 import { formatScore } from '@/game/format';
 import { MainButton } from '@/game/MainButton';
 import { styles } from '@/game/menuSheetStyles';
@@ -70,7 +71,10 @@ export function AvatarPicker({
           return (
             <Pressable
               key={color}
-              onPress={() => onSelect({ ...current, color })}
+              onPress={() => {
+                trackTap('avatar.color', { color });
+                onSelect({ ...current, color });
+              }}
               style={[styles.avatarSwatch, selected && styles.avatarSwatchOn]}
               accessibilityRole="radio"
               accessibilityState={{ selected }}
@@ -155,7 +159,10 @@ function PackCard({
             return (
               <Pressable
                 key={emoji}
-                onPress={() => onSelect({ ...current, emoji })}
+                onPress={() => {
+                  trackTap('avatar.emoji', { emoji });
+                  onSelect({ ...current, emoji });
+                }}
                 disabled={!owned}
                 style={[
                   styles.avatarCell,
@@ -187,6 +194,8 @@ function PackCard({
                 tone="gold"
                 size="small"
                 label={gt('Unlock')}
+                track="avatar.unlock_pack"
+                trackProps={{ pack: pack.id }}
                 onPress={() => onUnlock(pack.id)}
               />
             )}

@@ -8,6 +8,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
+import { trackTap, type TapTarget } from '@/analytics';
 import { GameColors, GameFonts } from '@/constants/gameTheme';
 
 /**
@@ -63,6 +64,8 @@ type Tone = {
 
 type FlatButtonProps = {
   onPress: () => void;
+  /** Analytics name for taps. */
+  track: TapTarget;
   /** Read out by screen readers; also the visible text unless icon-only. */
   accessibilityLabel: string;
   /** Visible text. Leave out for an icon-only square button. */
@@ -88,6 +91,7 @@ type FlatButtonProps = {
  */
 export function FlatButton({
   onPress,
+  track,
   accessibilityLabel,
   label,
   icon,
@@ -103,7 +107,10 @@ export function FlatButton({
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        trackTap(track);
+        onPress();
+      }}
       hitSlop={hitSlop}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}

@@ -92,7 +92,12 @@ export function HowToPlay({
         ))}
       </View>
 
-      <MainButton label={gt("LET'S PLAY!")} size="large" onPress={onPlay} />
+      <MainButton
+        label={gt("LET'S PLAY!")}
+        size="large"
+        track="howto.play"
+        onPress={onPlay}
+      />
     </ScrollView>
   );
 }

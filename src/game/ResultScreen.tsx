@@ -17,6 +17,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { trackTap } from '@/analytics';
 import { GameColors, GameFonts, fillParent } from '@/constants/gameTheme';
 import { FlatButton } from '@/game/FlatButton';
 import { formatScore } from '@/game/format';
@@ -129,7 +130,10 @@ function DailyRankLine({
             : gt('#{rank} today', { rank: rank.rank });
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        trackTap('game_over.ranking');
+        onPress();
+      }}
       style={({ pressed }) => [styles.rankLine, pressed && styles.pressed]}
       accessibilityRole="button"
       accessibilityLabel={text}
@@ -259,12 +263,14 @@ export function ResultScreen({
               tone="white"
               size="small"
               icon={HOME_ICON}
+              track="game_over.home"
               onPress={onHome}
               accessibilityLabel={gt('Go home')}
             />
             <MainButton
               tone="cyan"
               size="small"
+              track="game_over.menu"
               onPress={onMenu}
               accessibilityLabel={gt('Menu')}
             >
@@ -442,6 +448,8 @@ export function ResultScreen({
           size="large"
           icon={{ ios: 'arrow.clockwise', android: 'refresh', web: 'refresh' }}
           label={gt('RETRY')}
+          track="game_over.retry"
+          trackProps={{ mode: record.daily ? 'daily' : 'normal' }}
           onPress={onRetry}
         />
         <FlatButton
@@ -454,6 +462,7 @@ export function ResultScreen({
           }}
           label={gt('Share score')}
           accessibilityLabel={gt('Share score')}
+          track="game_over.share"
           onPress={onShare}
           style={styles.share}
         />
