@@ -211,6 +211,25 @@ async function submitBest(leaderboardId: string, score: number) {
   await GameServices.submitScoreAsync(score, [leaderboardId]);
 }
 
+/**
+ * Tells Game Center these achievements are complete. False when it didn't take
+ * them (signed out, offline, or a build with no achievements), to retry later.
+ */
+export async function reportAchievements(
+  ids: string[],
+  showBanner: boolean,
+): Promise<boolean> {
+  if (!isSignedInToRanking() || !GameServices?.reportAchievementsAsync) {
+    return false;
+  }
+  try {
+    await GameServices.reportAchievementsAsync(ids, showBanner);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Coins for a final daily rank: the podium, then a flat amount for the rest of the top ten. */
 export const DAILY_REWARDS = { podium: [500, 300, 200], topTen: 100 } as const;
 

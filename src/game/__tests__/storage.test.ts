@@ -9,6 +9,7 @@ import {
   ensureAvatar,
   equipSkin,
   loadPersist,
+  markAchievementsReported,
   markReviewAccepted,
   recordReviewPromptDecline,
   recordTapHintPlay,
@@ -652,5 +653,69 @@ describe('daily rewards', () => {
   test('old saves start with nothing paid', async () => {
     seed({ coins: 5 });
     expect((await loadPersist()).dailyRewardDay).toBe('');
+  });
+});
+
+describe('achievements', () => {
+  const run = {
+    score: 100,
+    coinsEarned: 0,
+    bestCombo: 0,
+    bestLevel: 1,
+    isDaily: false,
+  };
+
+  test('existing saves get credit for past progress on load', async () => {
+    await savePersist({
+      ...(await loadPersist()),
+      totalRuns: 120,
+      bestLevel: 31,
+    });
+    const { earnedAchievements } = await loadPersist();
+    expect(earnedAchievements).toContain('meterzone.games.100');
+    expect(earnedAchievements).toContain('meterzone.level.30');
+    expect(earnedAchievements).not.toContain('meterzone.games.1000');
+  });
+
+  test('a run adds its Perfects and keeps one-run achievements', async () => {
+    await commitRunResult({ ...run, perfects: 10, cleanRounds: 20 });
+    const s = await commitRunResult({ ...run, perfects: 2 });
+    expect(s.totalPerfects).toBe(12);
+    expect(s.earnedAchievements).toContain('meterzone.perfect.first');
+    expect(s.earnedAchievements).toContain('meterzone.perfect.run10');
+    expect(s.earnedAchievements).toContain('meterzone.clean.20');
+  });
+
+  test('only daily runs move the daily streak', async () => {
+    await commitRunResult({ ...run, isDaily: true, day: '2026-11-01' });
+    await commitRunResult({ ...run, isDaily: false, day: '2026-11-02' });
+    const s = await commitRunResult({
+      ...run,
+      isDaily: true,
+      day: '2026-11-02',
+    });
+    expect(s.dailyStreak).toEqual({ day: '2026-11-02', count: 2 });
+  });
+
+  test('a daily reward carries its rank', async () => {
+    const s = await claimDailyReward('2026-11-01', 500, 1);
+    expect(s?.earnedAchievements).toContain('meterzone.daily.first_place');
+  });
+
+  test('reported achievements stop being pending and survive a reload', async () => {
+    await commitRunResult({ ...run, perfects: 1 });
+    await markAchievementsReported(['meterzone.perfect.first']);
+    await markAchievementsReported(['meterzone.perfect.first']);
+    expect((await loadPersist()).reportedAchievements).toEqual([
+      'meterzone.perfect.first',
+    ]);
+  });
+
+  test('unknown ids in a save are dropped', async () => {
+    await savePersist({
+      ...(await loadPersist()),
+      earnedAchievements: ['nope'] as never[],
+    });
+    expect((await loadPersist()).earnedAchievements).toEqual([]);
   });
 });

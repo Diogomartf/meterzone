@@ -91,6 +91,7 @@ export function emptyStats(): SessionStats {
     hits: 0,
     perfects: 0,
     misses: 0,
+    cleanRounds: 0,
     bestCombo: 0,
     coinsEarned: 0,
   };
@@ -106,6 +107,10 @@ export function tallyRound(
     hits: result.result === 'miss' ? prev.hits : prev.hits + 1,
     perfects: result.result === 'perfect' ? prev.perfects + 1 : prev.perfects,
     misses: result.costsLife ? prev.misses + 1 : prev.misses,
+    cleanRounds:
+      prev.misses === 0 && !result.costsLife
+        ? prev.cleanRounds + 1
+        : prev.cleanRounds,
     bestCombo: Math.max(prev.bestCombo, result.combo),
     coinsEarned: prev.coinsEarned + result.coins,
   };

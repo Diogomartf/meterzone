@@ -27,6 +27,15 @@ Coins are meant to be slow. An average player (dies around level 21, about 53 co
 - Skins (`src/game/skins.ts`) and avatar packs (`src/game/avatars.ts`) each climb a ×3 price ladder, and tests enforce it. A new skin or pack continues its ladder at 3× the last price, not a price picked on its own.
 - Before changing a payout or a price, run `bun run sim:coins` and put its games-per-item table, before and after, in the PR description. It plays simulated runs through the real scoring and catalog. The players are made up, so treat the counts as estimates, and check them against `game_ended` in PostHog.
 
+# Game Center achievements
+
+`src/game/achievements.ts` lists the ids and when each is earned. `scripts/sync-achievements.ts` holds the points, text in every store language and artwork, and `bun run achievements:sync` adds whatever App Store Connect is missing without changing what's there.
+
+- Earning happens on the device, signed in or not, in `withAchievements`. Saved progress is rechecked on every load, so players get credit for what they already did. Something only one moment can prove (like Sharp Run) goes through `AchievementMoment`.
+- `useAchievements` reports what Game Center hasn't accepted yet, and retries on the next sync.
+- Achievements pay no coins.
+- Live achievements are hard to change and can't simply be deleted, so add new ones rather than repurposing an id. New ones must fit Apple's 1,000-point limit, which the script checks.
+
 # Analytics
 
 Use PostHog for all product analytics (`src/analytics.ts`, EU cloud, anonymous, no accounts). Don't add another analytics SDK, and call the helpers in `src/analytics.ts` rather than PostHog directly.

@@ -22,7 +22,8 @@ async function payDailyReward(): Promise<Payout | null> {
   checking = true;
   try {
     const finish = await loadDailyFinish();
-    const next = finish && (await claimDailyReward(finish.day, finish.coins));
+    const next =
+      finish && (await claimDailyReward(finish.day, finish.coins, finish.rank));
     checking = false;
     return finish && next ? { finish, next } : null;
   } catch {
