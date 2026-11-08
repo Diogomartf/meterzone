@@ -2,8 +2,8 @@
 # Capture the MeterZone screenshot set for one or more locales.
 #   capture.sh [--video-only] [locale...]   locales: en-US pt-PT pt-BR es-ES (default: all)
 #   --video-only re-records just gameplay.mp4 and keeps the saved screenshots and stills.
-# Output per locale in screenshots/raw/<locale>/: NN-name.png, gameplay.mp4, and _burst/ frames
-# from the gameplay run to pick the best hits from.
+# Output per locale in screenshots/raw/<locale>/: NN-name.png, gameplay.mp4, and _burst/ and
+# _skins/ frames to pick the best hits from.
 # Everything is captured into a temp dir and moved into the repo at the end of each locale:
 # Metro watches the repo, and files appearing there mid-capture make the app reload and
 # flash the blue "Refreshing…" banner over the shot.
@@ -103,11 +103,13 @@ dev_menu() {
   sim_wait "$1" || return 1
   sleep 1.5
   # The list runs past the screen, and a tap below the fold lands nowhere.
-  local y=$(sim_ui | awk -F'\t' -v l="$1" '$1 == l { print $3; exit }')
-  if (( y > 900 )); then
+  local y
+  for i in 1 2 3 4; do
+    y=$(sim_ui | awk -F'\t' -v l="$1" '$1 == l { print $3; exit }')
+    (( y > 900 )) || break
     axe swipe --start-x 220 --start-y 900 --end-x 220 --end-y 400 --udid $UDID >/dev/null
     sleep 1.5
-  fi
+  done
   for i in 1 2 3; do
     sim_tap "$1" ${2:-3} || return 1
     sim_ui | grep -qF "$1" || return 0
@@ -117,6 +119,19 @@ dev_menu() {
 
 play_button() { tap_at 220 653 0.3; }
 daily_button() { tap_at 220 253 0.3; }
+
+# Shoot one locked skin from a fresh launch: home as $2, then a burst of a run into
+# $OUT/_skins/ to pick the $2-play still from (see SKILL.md). The liquid is what sells a skin
+# and it's nearly empty at home, but frames between levels show no meter, so a fixed-time shot
+# won't do. The relaunch ends the previous run and drops the preview, so nothing leaks into
+# the next step, and a dev-menu skin is never saved.
+skin_shots() {
+  open_app && wait_home || return 1
+  dev_menu "Skin · $1" && sim_shot $2 || return 1
+  play_button || return 1
+  mkdir -p $OUT/_skins
+  for i in {01..14}; do sim_shot _skins/$2-$i >/dev/null || return 1; done
+}
 
 # Records a normal autoplay run from the countdown through ~12 levels to $OUT/gameplay.mp4,
 # then pulls full-resolution frames from it into $OUT/_burst to pick the stills from.
@@ -152,7 +167,8 @@ sleep 50  # 14 autoplay hits, then three misses end the run
 
 # Every file a finished locale must have. _burst/ is checked separately.
 EXPECTED=(00-splash 01-home 02-hall-of-fame 03-menu 04-play-mode 05-ranking 06-skins
-  07-avatar 08-settings 09-how-to-play 11-game-over 14-reward-card 15-ranking-you-5th)
+  07-avatar 08-settings 09-how-to-play 11-game-over 14-reward-card 15-ranking-you-5th
+  16-skin-lava 17-skin-ice 18-skin-gold)
 
 # Switch the app's language, from whatever language it is in.
 set_language() {
@@ -190,6 +206,9 @@ capture_locale() {
   dev_menu "Ranking · 8 players, you #5" && sim_shot 15-ranking-you-5th || return 1
   sheet_back && tap_at 391 133 || return 1  # Back to menu, then Close
 
+  # Skins nobody has unlocked yet, also from the dev menu.
+  skin_shots Lava 16-skin-lava && skin_shots Ice 17-skin-ice && skin_shots Gold 18-skin-gold || return 1
+
   # Gameplay: the countdown frame comes from the burst (first frames), the rest from autoplay.
   record_run || return 1
   sleep 16  # autoplay stops after 14 hits; three misses end the run
@@ -204,6 +223,7 @@ check_locale() {
   done
   [[ -s $OUT/gameplay.mp4 ]] || { echo "missing gameplay.mp4" >&2; ok=1; }
   [[ -n $(print -l $OUT/_burst/*.png(N)) ]] || { echo "missing _burst/ frames" >&2; ok=1; }
+  [[ -n $(print -l $OUT/_skins/*.png(N)) ]] || { echo "missing _skins/ frames" >&2; ok=1; }
   for f in $OUT/*.png(N); do
     sim_has_banner $f && { echo "reload banner in ${f:t}" >&2; ok=1; }
     sim_has_island $f && { echo "Dynamic Island in ${f:t}" >&2; ok=1; }
@@ -235,4 +255,4 @@ rm -rf $STAGE
 
 xcrun simctl status_bar $UDID clear
 if (( VIDEO_ONLY )); then echo "Done. New gameplay.mp4 in $ROOT/<locale>/."
-else echo "Done. Pick gameplay stills from $ROOT/<locale>/_burst/ (see SKILL.md), then delete _burst/."; fi
+else echo "Done. Pick stills from $ROOT/<locale>/_burst/ and _skins/ (see SKILL.md), then delete both."; fi

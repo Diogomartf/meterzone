@@ -5,7 +5,7 @@ description: Capture MeterZone screenshots and a gameplay video from the iOS sim
 
 # MeterZone app screenshots
 
-Captures every screen, a splash shot, gameplay stills and a 30s gameplay video with sound for each app language, into `screenshots/raw/<locale>/`. Screenshots and video show only the app UI. Never the Expo dev-menu gear, never the dev client's blue "Refreshing…"/"Downloading…" reload banner, never system prompts.
+Captures every screen, a splash shot, gameplay stills, the skins and a 30s gameplay video with sound for each app language, into `screenshots/raw/<locale>/`. Screenshots and video show only the app UI. Never the Expo dev-menu gear, never the dev client's blue "Refreshing…"/"Downloading…" reload banner, never system prompts.
 
 ## Never capture during a reload
 
@@ -55,6 +55,8 @@ It runs in the background for about 3 minutes per locale. `sim_prepare` hides th
 | `11-game-over.png` | Game over |
 | `14-reward-card.png` | Daily reward card for 2nd place, a dev-menu preview |
 | `15-ranking-you-5th.png` | Ranking with 8 players and you 5th, a dev-menu preview |
+| `16-skin-lava.png` / `17-skin-ice.png` / `18-skin-gold.png` | Home in each skin, a dev-menu preview |
+| `_skins/16-skin-lava-NN.png` (and ice, gold) | Frames from a run in each skin, to pick stills from |
 | `_burst/NNN.png` | Full-resolution frames from `gameplay.mp4`, 3 per second (simctl can't screenshot while recording) |
 
 ## After the run: pick gameplay stills
@@ -73,7 +75,9 @@ Popups stay up for about 3 frames. For each locale, copy into the locale folder:
 - `12-gameplay-perfect.png`: PERFECT! (PERFEITO!, ¡PERFECTO!) with a combo, the higher the better
 - `13-gameplay-hit.png`: a Great or Nice popup (pt-PT: ÓTIMO!/FIXE!, pt-BR: ÓTIMO!/LEGAL!)
 
-Then delete `_burst/`. Review every final image and re-shoot anything with the gear, the reload banner, a system alert, a stuck screen, or the wrong language.
+For skins, look through `_skins/` and copy one frame per skin into the locale folder, as `16-skin-lava-play.png`, `17-skin-ice-play.png` and `18-skin-gold-play.png`: tall liquid in the tube, ideally with a PERFECT! popup. Skip the frames between levels, where the meter is gone.
+
+Then delete `_burst/` and `_skins/`. Review every final image and re-shoot anything with the gear, the reload banner, a system alert, a stuck screen, or the wrong language.
 
 ## Gotchas
 
@@ -82,7 +86,7 @@ Then delete `_burst/`. Review every final image and re-shoot anything with the g
 - Hall of fame, ranking and the rest open inside the menu sheet: Back returns to the menu, and Close is the X at (391,133). The home Menu button doesn't respond to simulated taps, so reach the menu through the scores card, then Back.
 - If `axe` starts timing out ("Timed out creating the simulator remote automation session") or taps stop registering, reboot the simulator (`xcrun simctl shutdown/boot $UDID`) and rerun the affected locale.
 - `simctl launch` can fail with `FBSOpenApplicationServiceErrorDomain code=4` after a reboot. `open_app` instead opens the dev client deep link to Metro.
-- Dev-menu previews (the reward card and the sample ranking) open through `dev_menu`, which shakes the simulator (`xcrun simctl notify_post $UDID com.apple.UIKit.SimulatorShake`). Cmd+D sent through `axe key-combo` doesn't open the menu. Item names are English in every language, so they're tapped by label. The shake can grow the Dynamic Island for a moment; `sim_shot` retakes the shot until it can be painted out (`sim_has_island`).
+- Dev-menu previews (the reward card and the sample ranking) open through `dev_menu`, which shakes the simulator (`xcrun simctl notify_post $UDID com.apple.UIKit.SimulatorShake`). Cmd+D sent through `axe key-combo` doesn't open the menu. Item names are English in every language, so they're tapped by label, and `dev_menu` swipes until the row is on screen (the skins are at the very bottom). The shake can grow the Dynamic Island for a moment; `sim_shot` retakes the shot until it can be painted out (`sim_has_island`).
 - The simulator draws the Dynamic Island as a black pill in every frame, whatever `--mask` says (simctl and `axe record-video` both), and since Xcode 27 in screenshots too. `sim_shot` and the video encode paint it out with `SIM_ISLAND_FILTER` (an ffmpeg `delogo` over the pill, in `sim.sh`), and `record_run` retakes a video whose frames still show it.
 - simctl records no sound and writes frames only when the screen changes, so a raw recording starts late, has gaps and is silent. `sim_record_start` runs `sim-audio` beside it: a Core Audio process tap on the app's own Mac process, which needs no audio driver and leaves your speakers alone. Both log their wall-clock start, and `sim_record_encode` lines them up (within about 50 ms), resamples to a constant 30 fps, and starts 0.3s before the first change on screen, so the video never opens on a still or blank screen.
 - `open_app` presses Home before launching. Launched from inside another app, iOS adds a "◀ <app>" back link to the status bar.
