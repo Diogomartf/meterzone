@@ -21,6 +21,11 @@ export const GAME_FAQS = [
       'No. Scores, settings, and unlocks are stored on your device. To appear on the leaderboards and collect achievements, sign in with the Game Center account already on your iPhone — no email or password.',
   },
   {
+    question: 'Does MeterZone have achievements?',
+    answer:
+      'Yes. There are 22 Game Center achievements for games played, levels reached, combos, Perfects, the daily challenge, and skins, and a few stay hidden until you earn them. Sign in to Game Center to collect them; anything you earn while signed out arrives the next time you sign in.',
+  },
+  {
     question: 'How do the MeterZone leaderboards work?',
     answer:
       'Open Ranking from the menu. Daily ranks the best score on that day’s challenge and resets at midnight UTC; Endless ranks your all-time best in regular play. Both use Game Center, show the top 10 with your nickname, and tell you how many points you need to pass the next player.',

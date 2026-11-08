@@ -10,7 +10,7 @@ export const GET: APIRoute = () => {
 ## Official pages
 
 - [MeterZone](${SITE_URL}/): Game overview, gameplay preview, and frequently asked questions.
-- [How to play](${SITE_URL}/how-to-play/): Timing, scoring, combos, hearts, coins, skins, avatars, the daily challenge, and Game Center leaderboards.
+- [How to play](${SITE_URL}/how-to-play/): Timing, scoring, combos, hearts, coins, skins, avatars, the daily challenge, Game Center leaderboards, and achievements.
 - [About](${SITE_URL}/about/): Who makes MeterZone, release date, price and requirements.
 - [Support](${SITE_URL}/support/): Gameplay help and contact information.
 - [Privacy policy](${SITE_URL}/privacy/): App data storage, app analytics and website analytics.
