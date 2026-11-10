@@ -669,19 +669,15 @@ export function GameScreen() {
     if (!fromGo) play('start');
     void gameHaptics.start();
     fill.set(
-      withTiming(
-        1,
-        fillTiming(current.fillMs),
-        (finished) => {
-          if (!finished) return;
-          // Drop the UI-thread lock here, not in `finishRound`. The round is
-          // over the moment the fill lands; leaving `isFilling` set until the
-          // JS thread gets around to `finishRound` leaves a window where a tap
-          // passes the gesture's guard and scores the same round a second time.
-          isFilling.set(0);
-          runOnJS(finishRound)(1);
-        },
-      ),
+      withTiming(1, fillTiming(current.fillMs), (finished) => {
+        if (!finished) return;
+        // Drop the UI-thread lock here, not in `finishRound`. The round is
+        // over the moment the fill lands; leaving `isFilling` set until the
+        // JS thread gets around to `finishRound` leaves a window where a tap
+        // passes the gesture's guard and scores the same round a second time.
+        isFilling.set(0);
+        runOnJS(finishRound)(1);
+      }),
     );
   };
 
@@ -930,19 +926,15 @@ export function GameScreen() {
     isFilling.set(1);
     fill.set(from);
     fill.set(
-      withTiming(
-        1,
-        fillTiming(remaining),
-        (finished) => {
-          if (!finished) return;
-          // Drop the UI-thread lock here, not in `finishRound`. The round is
-          // over the moment the fill lands; leaving `isFilling` set until the
-          // JS thread gets around to `finishRound` leaves a window where a tap
-          // passes the gesture's guard and scores the same round a second time.
-          isFilling.set(0);
-          runOnJS(finishRound)(1);
-        },
-      ),
+      withTiming(1, fillTiming(remaining), (finished) => {
+        if (!finished) return;
+        // Drop the UI-thread lock here, not in `finishRound`. The round is
+        // over the moment the fill lands; leaving `isFilling` set until the
+        // JS thread gets around to `finishRound` leaves a window where a tap
+        // passes the gesture's guard and scores the same round a second time.
+        isFilling.set(0);
+        runOnJS(finishRound)(1);
+      }),
     );
   };
 
