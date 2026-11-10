@@ -6,6 +6,7 @@ import { GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   cancelAnimation,
   Easing,
+  ReduceMotion,
   runOnJS,
   useAnimatedReaction,
   useAnimatedStyle,
@@ -209,6 +210,19 @@ type ZoneMotion = {
   halfTo: SharedValue<number>;
   zoneShrinks: SharedValue<number>;
 };
+
+/**
+ * The fill is the game clock, not decoration. Reanimated's default
+ * (`ReduceMotion.System`) jumps every animation straight to its end value when
+ * iOS Reduce Motion is on, which filled the meter to 100% on the first frame
+ * and made every round a miss.
+ */
+const FILL_EASING = Easing.bezier(0.2, 0.05, 0.35, 1);
+const fillTiming = (duration: number) => ({
+  duration,
+  easing: FILL_EASING,
+  reduceMotion: ReduceMotion.Never,
+});
 
 /** Point the painted zone at a round's start/end geometry. */
 function syncZoneMotion(zone: ZoneMotion, config: RoundConfig) {
@@ -655,22 +669,15 @@ export function GameScreen() {
     if (!fromGo) play('start');
     void gameHaptics.start();
     fill.set(
-      withTiming(
-        1,
-        {
-          duration: current.fillMs,
-          easing: Easing.bezier(0.2, 0.05, 0.35, 1),
-        },
-        (finished) => {
-          if (!finished) return;
-          // Drop the UI-thread lock here, not in `finishRound`. The round is
-          // over the moment the fill lands; leaving `isFilling` set until the
-          // JS thread gets around to `finishRound` leaves a window where a tap
-          // passes the gesture's guard and scores the same round a second time.
-          isFilling.set(0);
-          runOnJS(finishRound)(1);
-        },
-      ),
+      withTiming(1, fillTiming(current.fillMs), (finished) => {
+        if (!finished) return;
+        // Drop the UI-thread lock here, not in `finishRound`. The round is
+        // over the moment the fill lands; leaving `isFilling` set until the
+        // JS thread gets around to `finishRound` leaves a window where a tap
+        // passes the gesture's guard and scores the same round a second time.
+        isFilling.set(0);
+        runOnJS(finishRound)(1);
+      }),
     );
   };
 
@@ -919,19 +926,15 @@ export function GameScreen() {
     isFilling.set(1);
     fill.set(from);
     fill.set(
-      withTiming(
-        1,
-        { duration: remaining, easing: Easing.bezier(0.2, 0.05, 0.35, 1) },
-        (finished) => {
-          if (!finished) return;
-          // Drop the UI-thread lock here, not in `finishRound`. The round is
-          // over the moment the fill lands; leaving `isFilling` set until the
-          // JS thread gets around to `finishRound` leaves a window where a tap
-          // passes the gesture's guard and scores the same round a second time.
-          isFilling.set(0);
-          runOnJS(finishRound)(1);
-        },
-      ),
+      withTiming(1, fillTiming(remaining), (finished) => {
+        if (!finished) return;
+        // Drop the UI-thread lock here, not in `finishRound`. The round is
+        // over the moment the fill lands; leaving `isFilling` set until the
+        // JS thread gets around to `finishRound` leaves a window where a tap
+        // passes the gesture's guard and scores the same round a second time.
+        isFilling.set(0);
+        runOnJS(finishRound)(1);
+      }),
     );
   };
 
