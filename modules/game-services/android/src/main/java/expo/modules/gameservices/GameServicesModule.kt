@@ -69,7 +69,7 @@ class GameServicesModule : Module() {
      * Games tasks can be awaited in order. Play Games has no daily-reset
      * boards, so `daily` reads today's slice of the leaderboard instead.
      */
-    AsyncFunction("loadLeaderboardAsync") { leaderboardId: String, count: Int, daily: Boolean ->
+    AsyncFunction("loadLeaderboardAsync") { leaderboardId: String, count: Int, daily: Boolean, _avatarLeaderboardId: String ->
       val span = if (daily) LeaderboardVariant.TIME_SPAN_DAILY else LeaderboardVariant.TIME_SPAN_ALL_TIME
       val activity = appContext.currentActivity ?: throw Exceptions.MissingActivity()
       val client = PlayGames.getLeaderboardsClient(activity)

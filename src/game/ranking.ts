@@ -15,10 +15,14 @@ import type { PersistState, PlayerAvatar } from '@/game/types';
  * daily sequence.
  */
 const LEADERBOARD_IDS = Platform.select({
-  ios: { normal: 'meterzone.normal.best', daily: 'meterzone.daily.best' },
+  ios: {
+    normal: 'meterzone.normal.best',
+    daily: 'meterzone.daily.best',
+    avatar: 'meterzone.avatar',
+  },
   // Filled in once the leaderboards exist in Play Console.
-  android: { normal: '', daily: '' },
-  default: { normal: '', daily: '' },
+  android: { normal: '', daily: '', avatar: '' },
+  default: { normal: '', daily: '', avatar: '' },
 });
 
 /** True when this build can show rankings. */
@@ -140,23 +144,29 @@ export async function loadRanking(kind: RankingKind): Promise<RankBoard> {
     kind === 'daily' ? LEADERBOARD_IDS.daily : LEADERBOARD_IDS.normal,
     RANKING_SIZE,
     kind === 'daily',
+    LEADERBOARD_IDS.avatar,
   );
   return {
-    top: board.top.map(withName),
-    you: board.you ? withName(board.you) : null,
-    above: board.above ? withName(board.above) : null,
+    top: board.top.map(rankEntryFrom),
+    you: board.you ? rankEntryFrom(board.you) : null,
+    above: board.above ? rankEntryFrom(board.above) : null,
   };
 }
 
-/** Display name, falling back to the player's nickname when it's blank. */
-function withName(entry: NativeRankEntry): RankEntry {
+/**
+ * A board entry as the screen shows it: the display name (or the nickname
+ * when it's blank) and the avatar the player last shared.
+ */
+export function rankEntryFrom(entry: NativeRankEntry): RankEntry {
   const name = entry.name?.trim() || entry.alias?.trim() || '';
   return {
     rank: entry.rank,
     name,
     score: entry.score,
     isYou: entry.isYou,
-    avatar: decodeAvatar(entry.context),
+    // The avatar board holds the current pick; a score's context only the one
+    // from when that best was set.
+    avatar: decodeAvatar(entry.avatar) ?? decodeAvatar(entry.context),
   };
 }
 
@@ -225,7 +235,7 @@ async function submitBests(bests: SavedBests) {
 
 /**
  * Game Center keeps only a player's best, with the context sent with it, so a
- * new avatar reaches the board with the next best (daily boards reset daily).
+ * score carries the avatar from when that best was set.
  */
 async function submitBest(
   leaderboardId: string,
@@ -238,6 +248,34 @@ async function submitBest(
     [leaderboardId],
     encodeAvatar(avatar),
   );
+}
+
+/**
+ * Puts the player's avatar on the hidden avatar board, which keeps each
+ * player's most recent score (their avatar code), so other players see it.
+ * A `pending` pick replaces what's there; otherwise the avatar only fills a
+ * missing entry, so an older save on another device never undoes a newer
+ * pick. True once the board holds a pick for the player. Never throws.
+ */
+export async function publishAvatar(
+  avatar: PlayerAvatar | null,
+  pending: boolean,
+): Promise<boolean> {
+  const id = LEADERBOARD_IDS.avatar;
+  const code = encodeAvatar(avatar);
+  if (!id || code === 0 || !isSignedInToRanking() || !GameServices) {
+    return false;
+  }
+  try {
+    if (!pending) {
+      const board = await GameServices.loadLeaderboardAsync(id, 1, false, '');
+      if (board.you) return true;
+    }
+    await GameServices.submitScoreAsync(code, [id], 0);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**

@@ -93,7 +93,7 @@ public class GameServicesModule: Module {
      */
     // `daily` only matters on Android; the iOS daily board is a recurring
     // leaderboard that already returns just today's occurrence.
-    AsyncFunction("loadLeaderboardAsync") { (leaderboardId: String, count: Int, _: Bool) async throws -> [String: Any] in
+    AsyncFunction("loadLeaderboardAsync") { (leaderboardId: String, count: Int, _: Bool, avatarLeaderboardId: String) async throws -> [String: Any] in
       guard GKLocalPlayer.local.isAuthenticated else { throw NotSignedInException() }
       guard let board = try await GKLeaderboard.loadLeaderboards(IDs: [leaderboardId]).first else {
         throw LeaderboardNotFoundException(leaderboardId)
@@ -112,9 +112,20 @@ public class GameServicesModule: Module {
         }
       }
 
-      var result: [String: Any] = ["top": top.map(Self.serialize)]
-      if let you { result["you"] = Self.serialize(you) }
-      if let above { result["above"] = Self.serialize(above) }
+      let shown = top + [you, above].compactMap { $0 }
+      let avatars = await Self.loadAvatars(
+        leaderboardId: avatarLeaderboardId,
+        players: shown.map(\.player)
+      )
+      func serialize(_ entry: GKLeaderboard.Entry) -> [String: Any] {
+        var row = Self.serialize(entry)
+        if let avatar = avatars[entry.player.gamePlayerID] { row["avatar"] = avatar }
+        return row
+      }
+
+      var result: [String: Any] = ["top": top.map(serialize)]
+      if let you { result["you"] = serialize(you) }
+      if let above { result["above"] = serialize(above) }
       return result
     }
 
@@ -155,6 +166,30 @@ public class GameServicesModule: Module {
     let waiting = pendingAuth
     pendingAuth = []
     waiting.forEach { $0.resolve(signedIn) }
+  }
+
+  /**
+   * Each player's latest score on the hidden avatar board (most recent score
+   * wins), keyed by player. Empty when the board can't be read: the avatars
+   * are a nicety, never a reason for the ranking to fail.
+   */
+  private static func loadAvatars(
+    leaderboardId: String,
+    players: [GKPlayer]
+  ) async -> [String: Int] {
+    guard !leaderboardId.isEmpty, !players.isEmpty else { return [:] }
+    do {
+      guard let board = try await GKLeaderboard.loadLeaderboards(IDs: [leaderboardId]).first
+      else { return [:] }
+      let (local, entries) = try await board.loadEntries(for: players, timeScope: .allTime)
+      var avatars: [String: Int] = [:]
+      for entry in entries + [local].compactMap({ $0 }) {
+        avatars[entry.player.gamePlayerID] = entry.score
+      }
+      return avatars
+    } catch {
+      return [:]
+    }
   }
 
   private static func serialize(_ entry: GKLeaderboard.Entry) -> [String: Any] {

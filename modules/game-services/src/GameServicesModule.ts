@@ -9,6 +9,8 @@ export type NativeRankEntry = {
   isYou: boolean;
   /** The number sent with the score (the player's avatar code); 0 for none. */
   context?: number;
+  /** iOS only — the player's latest avatar code from the avatar board. */
+  avatar?: number;
 };
 
 type GameServicesEvents = {
@@ -39,12 +41,15 @@ declare class GameServicesModule extends NativeModule<GameServicesEvents> {
   /**
    * The top `count` entries, plus the player's own entry and the one just
    * above it when the player is on the board. `daily` reads today's slice on
-   * Android; iOS daily boards reset on their own. Throws when signed out.
+   * Android; iOS daily boards reset on their own. On iOS, each entry also
+   * gets that player's score on `avatarLeaderboardId` (skipped when empty).
+   * Throws when signed out.
    */
   loadLeaderboardAsync(
     leaderboardId: string,
     count: number,
     daily: boolean,
+    avatarLeaderboardId: string,
   ): Promise<{
     top: NativeRankEntry[];
     you?: NativeRankEntry;

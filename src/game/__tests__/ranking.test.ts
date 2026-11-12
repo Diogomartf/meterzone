@@ -1,11 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 
-import { avatarFor } from '@/game/avatars';
+import { avatarFor, encodeAvatar } from '@/game/avatars';
 import {
   dailyRewardCoins,
   formatClock,
   msUntilDailyReset,
   pointsToPass,
+  rankEntryFrom,
   type RankEntry,
 } from '@/game/ranking';
 
@@ -35,6 +36,41 @@ describe('avatarFor', () => {
 
   test('handles an empty name', () => {
     expect(avatarFor('').emoji.length).toBeGreaterThan(0);
+  });
+});
+
+describe('rankEntryFrom', () => {
+  const crown = { emoji: '👑', color: '#FFC800' };
+  const pizza = { emoji: '🍕', color: '#FF6A6A' };
+  const base = { rank: 1, name: 'Mia', score: 10, isYou: false };
+
+  test("the avatar board's current pick beats the best's older one", () => {
+    const entry = rankEntryFrom({
+      ...base,
+      avatar: encodeAvatar(crown),
+      context: encodeAvatar(pizza),
+    });
+    expect(entry.avatar).toEqual(crown);
+  });
+
+  test("falls back to the best's avatar, then to none", () => {
+    expect(
+      rankEntryFrom({ ...base, context: encodeAvatar(pizza) }).avatar,
+    ).toEqual(pizza);
+    expect(
+      rankEntryFrom({
+        ...base,
+        avatar: 2 ** 24 + 9999 * 2 ** 8,
+        context: encodeAvatar(pizza),
+      }).avatar,
+    ).toEqual(pizza);
+    expect(rankEntryFrom({ ...base, context: 0 }).avatar).toBeNull();
+  });
+
+  test('a blank name falls back to the nickname', () => {
+    expect(rankEntryFrom({ ...base, name: ' ', alias: 'tap' }).name).toBe(
+      'tap',
+    );
   });
 });
 

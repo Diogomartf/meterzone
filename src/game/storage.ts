@@ -44,6 +44,7 @@ const DEFAULT_STATE: PersistState = {
   unlockedSkins: ['toxic'],
   equippedSkin: DEFAULT_SKIN,
   avatar: null,
+  avatarPending: false,
   unlockedAvatarPacks: [FREE_AVATAR_PACK],
   bestComboAllTime: 0,
   bestLevel: 0,
@@ -172,6 +173,7 @@ export async function loadPersist(): Promise<PersistState> {
         : ['toxic'],
       equippedSkin: parsed.equippedSkin ?? DEFAULT_SKIN,
       avatar: isValidAvatar(parsed.avatar) ? parsed.avatar : null,
+      avatarPending: parsed.avatarPending === true,
       unlockedAvatarPacks: parseAvatarPacks(parsed.unlockedAvatarPacks),
       dailyBest,
       dailyRecord: betterDaily(dailyRecord, dailyBest),
@@ -500,7 +502,29 @@ export async function setAvatar(
     const pack = packOfEmoji(avatar.emoji);
     if (!isValidAvatar(avatar) || !pack) return null;
     if (!prev.unlockedAvatarPacks.includes(pack.id)) return null;
-    const next = { ...prev, avatar: { ...avatar } };
+    const next = { ...prev, avatar: { ...avatar }, avatarPending: true };
+    await savePersist(next);
+    return next;
+  });
+}
+
+/**
+ * Clears the pending pick once Game Center has `published`, unless the player
+ * picked again while it was uploading.
+ */
+export async function markAvatarPublished(
+  published: PlayerAvatar,
+): Promise<PersistState> {
+  return withPersistLock(async () => {
+    const prev = await loadPersist();
+    if (
+      !prev.avatarPending ||
+      prev.avatar?.emoji !== published.emoji ||
+      prev.avatar.color !== published.color
+    ) {
+      return prev;
+    }
+    const next = { ...prev, avatarPending: false };
     await savePersist(next);
     return next;
   });

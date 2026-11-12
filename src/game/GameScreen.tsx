@@ -103,6 +103,7 @@ import {
 } from '@/game/ResultScreen';
 import { useDailyReward } from '@/game/useDailyReward';
 import { useAchievements } from '@/game/useAchievements';
+import { useAvatarSync } from '@/game/useAvatarSync';
 import { usePersistState } from '@/game/usePersistState';
 import { useSounds } from '@/game/useSounds';
 import { useTapCoach } from '@/game/useTapCoach';
@@ -389,6 +390,7 @@ export function GameScreen() {
 
   const dailyReward = useDailyReward(rankingSignInDone, applyPersist);
   useAchievements(persist, rankingSignInDone);
+  useAvatarSync(persist, rankingSignInDone);
 
   useEffect(() => {
     return () => {
@@ -975,11 +977,13 @@ export function GameScreen() {
   // Dev-menu shortcuts (Cmd+D in the simulator) to open the cards that
   // otherwise need a real top-ten finish or a run of good games.
   const previewDailyReward = dailyReward.preview;
-  const openSampleRanking = useEffectEvent((players: number, you: number) => {
-    previewSampleRanking(players, you);
-    setMenuInitialView('ranking');
-    openMenu();
-  });
+  const openSampleRanking = useEffectEvent(
+    (players: number, you: number, avatars = false) => {
+      previewSampleRanking(players, you, avatars);
+      setMenuInitialView('ranking');
+      openMenu();
+    },
+  );
   const openBestScores = useEffectEvent(() => {
     setMenuInitialView('highscores');
     openMenu();
@@ -1045,6 +1049,11 @@ export function GameScreen() {
       {
         name: 'Ranking · 8 players, you #5',
         callback: () => openSampleRanking(8, 5),
+        shouldCollapse: true,
+      },
+      {
+        name: 'Ranking · avatar edge cases, you #12',
+        callback: () => openSampleRanking(14, 12, true),
         shouldCollapse: true,
       },
       {
