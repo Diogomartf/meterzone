@@ -39,7 +39,7 @@ import { MainButton } from '@/game/MainButton';
 import { RankBadge } from '@/game/RankBadge';
 import { MARKETING_URL } from '@/game/review';
 import { captureAndShare } from '@/game/share';
-import { avatarFor } from '@/game/avatars';
+import { avatarFor, encodeAvatar } from '@/game/avatars';
 import { styles } from '@/game/menuSheetStyles';
 import { TabSwitch } from '@/game/menuRows';
 import { todayKey } from '@/game/storage';
@@ -52,6 +52,7 @@ import {
   msUntilDailyReset,
   openRanking,
   pointsToPass,
+  rankEntryFrom,
   RANKING_SIZE,
   refreshRankingSignIn,
   signInToRankingInteractive,
@@ -139,21 +140,65 @@ const SAMPLE_NAMES = [
 ];
 
 /**
+ * What Game Center may hand back for a player's avatar, in rank order for the
+ * edge-case board: the avatar board's code (their current pick), the code a
+ * best score was sent with, or neither.
+ */
+const SAMPLE_AVATARS: { avatar?: number; context?: number; name?: string }[] = [
+  // Current pick from a pack the viewer hasn't bought; the best's older
+  // code must lose to it.
+  {
+    avatar: encodeAvatar({ emoji: '👑', color: '#FFC800' }),
+    context: encodeAvatar({ emoji: '🍕', color: '#FF6A6A' }),
+  },
+  // Best set before avatars were shared: the name's stand-in.
+  { name: 'NoAvatarYet' },
+  // Only on the score: the avatar board couldn't be read.
+  { context: encodeAvatar({ emoji: '🚀', color: '#8B5CF6' }) },
+  // A code from a newer build this one doesn't know: falls back to the score's.
+  {
+    avatar: 2 ** 24 + 9999 * 2 ** 8,
+    context: encodeAvatar({ emoji: '⚽', color: '#5CDE70' }),
+  },
+  // A blank Game Center name, with only the nickname to show.
+  { avatar: encodeAvatar({ emoji: '🍩', color: '#FF8FC8' }), name: '' },
+  {
+    avatar: encodeAvatar({ emoji: '🐉', color: '#3D5AFE' }),
+    name: 'AVeryLongNicknameThatShouldTruncate',
+  },
+];
+
+/**
  * Dev only: the next ranking page shows a made-up board of `players` people
  * with the player at `youRank`, instead of asking Game Center, so the
  * signed-in layout can be checked in the simulator. Like the real board it
- * lists the top ten, plus the player's own row when they're below it.
+ * lists the top ten, plus the player's own row when they're below it. With
+ * `avatars`, entries carry the avatar edge cases in `SAMPLE_AVATARS`, read
+ * the same way as a real board.
  */
-export function previewSampleRanking(players: number, youRank: number) {
+export function previewSampleRanking(
+  players: number,
+  youRank: number,
+  avatars = false,
+) {
   if (!__DEV__) return;
-  const entries = Array.from({ length: players }, (_, i) => ({
-    rank: i + 1,
-    name: i + 1 === youRank ? 'You' : SAMPLE_NAMES[i % SAMPLE_NAMES.length],
-    // Gaps that shrink down the board, like real scores bunching up.
-    score: Math.round(1240 - i * 38 + i * i * 0.6),
-    isYou: i + 1 === youRank,
-    avatar: null,
-  }));
+  const entries = Array.from({ length: players }, (_, i) => {
+    const sample = avatars ? SAMPLE_AVATARS[i] : undefined;
+    const name =
+      i + 1 === youRank
+        ? 'You'
+        : (sample?.name ?? SAMPLE_NAMES[i % SAMPLE_NAMES.length]);
+    return rankEntryFrom({
+      rank: i + 1,
+      name,
+      alias: name === '' ? 'nickname_only' : undefined,
+      // Gaps that shrink down the board, like real scores bunching up.
+      score: Math.round(1240 - i * 38 + i * i * 0.6),
+      isYou: i + 1 === youRank,
+      avatar: sample?.avatar,
+      context: sample?.context,
+    });
+  });
   sampleBoard = {
     top: entries.slice(0, RANKING_SIZE),
     you: entries[youRank - 1] ?? null,

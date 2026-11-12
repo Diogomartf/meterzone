@@ -147,14 +147,17 @@ export async function loadRanking(kind: RankingKind): Promise<RankBoard> {
     LEADERBOARD_IDS.avatar,
   );
   return {
-    top: board.top.map(withName),
-    you: board.you ? withName(board.you) : null,
-    above: board.above ? withName(board.above) : null,
+    top: board.top.map(rankEntryFrom),
+    you: board.you ? rankEntryFrom(board.you) : null,
+    above: board.above ? rankEntryFrom(board.above) : null,
   };
 }
 
-/** Display name, falling back to the player's nickname when it's blank. */
-function withName(entry: NativeRankEntry): RankEntry {
+/**
+ * A board entry as the screen shows it: the display name (or the nickname
+ * when it's blank) and the avatar the player last shared.
+ */
+export function rankEntryFrom(entry: NativeRankEntry): RankEntry {
   const name = entry.name?.trim() || entry.alias?.trim() || '';
   return {
     rank: entry.rank,
