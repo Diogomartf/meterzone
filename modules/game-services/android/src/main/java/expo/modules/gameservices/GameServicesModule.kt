@@ -55,11 +55,12 @@ class GameServicesModule : Module() {
     }
 
     /** Play Games keeps each player's best, so lower scores are ignored. */
-    AsyncFunction("submitScoreAsync") { score: Long, leaderboardIds: List<String> ->
+    AsyncFunction("submitScoreAsync") { score: Long, leaderboardIds: List<String>, context: Long ->
       if (!authenticated) return@AsyncFunction
       val activity = appContext.currentActivity ?: throw Exceptions.MissingActivity()
       val client = PlayGames.getLeaderboardsClient(activity)
-      leaderboardIds.forEach { client.submitScore(it, score) }
+      // Play Games has no numeric context; its score tag carries the same code.
+      leaderboardIds.forEach { client.submitScore(it, score, context.toString()) }
     }
 
     /**
@@ -120,6 +121,7 @@ class GameServicesModule : Module() {
       "rank" to score.rank,
       "name" to score.scoreHolderDisplayName,
       "score" to score.rawScore,
+      "context" to (score.scoreTag?.toLongOrNull() ?: 0L),
       "playerId" to playerId,
       "isYou" to (playerId != null && playerId == youId),
     )

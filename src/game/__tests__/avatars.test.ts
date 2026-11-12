@@ -5,6 +5,8 @@ import {
   AVATAR_PACKS,
   avatarPack,
   avatarPackAction,
+  decodeAvatar,
+  encodeAvatar,
   isValidAvatar,
   packOfEmoji,
   randomAvatar,
@@ -54,5 +56,37 @@ describe('isValidAvatar', () => {
     expect(isValidAvatar({ emoji: '🫠', color: AVATAR_COLORS[0] })).toBe(false);
     expect(isValidAvatar({ emoji: '🦊', color: '#000000' })).toBe(false);
     expect(isValidAvatar(null)).toBe(false);
+  });
+});
+
+describe('avatar codes', () => {
+  test('every offered avatar survives the round trip', () => {
+    for (const pack of AVATAR_PACKS) {
+      for (const emoji of pack.emojis) {
+        for (const color of AVATAR_COLORS) {
+          expect(decodeAvatar(encodeAvatar({ emoji, color }))).toEqual({
+            emoji,
+            color,
+          });
+        }
+      }
+    }
+  });
+
+  // Codes already sit on Game Center: reordering the emoji or colors would
+  // show other players the wrong avatar. Append only.
+  test('codes never change', () => {
+    expect(encodeAvatar({ emoji: '🦊', color: '#FF8A3D' })).toBe(16777216);
+    expect(encodeAvatar({ emoji: '🍕', color: '#FFC800' })).toBe(16781825);
+    expect(encodeAvatar({ emoji: '🔮', color: '#C68B59' })).toBe(16800013);
+  });
+
+  test('no avatar, unknown picks and old scores carry none', () => {
+    expect(encodeAvatar(null)).toBe(0);
+    expect(encodeAvatar({ emoji: '🙂', color: '#FF8A3D' })).toBe(0);
+    expect(decodeAvatar(0)).toBeNull();
+    expect(decodeAvatar(undefined)).toBeNull();
+    expect(decodeAvatar(12345)).toBeNull();
+    expect(decodeAvatar(2 ** 24 + 9999 * 2 ** 8)).toBeNull();
   });
 });

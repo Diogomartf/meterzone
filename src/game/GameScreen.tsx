@@ -533,6 +533,7 @@ export function GameScreen() {
       finalScore,
       stateRef.current.dailyMode,
       runDayRef.current,
+      next.avatar,
     );
     void showDailyRank(submitted);
     const beatBest = finalScore > 0 && finalScore >= runBestBaselineRef.current;

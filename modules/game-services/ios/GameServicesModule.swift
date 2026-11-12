@@ -65,11 +65,11 @@ public class GameServicesModule: Module {
       }
     }.runOnQueue(.main)
 
-    AsyncFunction("submitScoreAsync") { (score: Int, leaderboardIds: [String]) async throws in
+    AsyncFunction("submitScoreAsync") { (score: Int, leaderboardIds: [String], context: Int) async throws in
       guard GKLocalPlayer.local.isAuthenticated else { return }
       try await GKLeaderboard.submitScore(
         score,
-        context: 0,
+        context: context,
         player: GKLocalPlayer.local,
         leaderboardIDs: leaderboardIds
       )
@@ -163,6 +163,7 @@ public class GameServicesModule: Module {
       "name": entry.player.displayName,
       "alias": entry.player.alias,
       "score": entry.score,
+      "context": entry.context,
       "isYou": entry.player.gamePlayerID == GKLocalPlayer.local.gamePlayerID,
     ]
   }

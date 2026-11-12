@@ -4,8 +4,9 @@ import GameServices, {
   type NativeRankEntry,
 } from '../../modules/game-services/src/GameServicesModule';
 import { trackGameCenter } from '@/analytics';
+import { decodeAvatar, encodeAvatar } from '@/game/avatars';
 import { todayKey } from '@/game/storage';
-import type { PersistState } from '@/game/types';
+import type { PersistState, PlayerAvatar } from '@/game/types';
 
 /**
  * Leaderboard IDs per platform. iOS IDs are the vendor IDs from App Store
@@ -27,7 +28,12 @@ export const rankingAvailable =
   (GameServices.isAvailable?.() ?? true);
 
 /** Scores already saved on this device, re-submitted after each sign-in. */
-type SavedBests = { highScore: number; dailyTodayScore: number };
+type SavedBests = {
+  highScore: number;
+  dailyTodayScore: number;
+  /** Sent with each score so other players see it on the board. */
+  avatar: PlayerAvatar | null;
+};
 
 /**
  * Signs in silently with the device's account, then re-submits the bests
@@ -44,6 +50,7 @@ export async function signInToRanking(persist: PersistState): Promise<void> {
       highScore: persist.highScore,
       dailyTodayScore:
         persist.dailyBest.date === todayKey() ? persist.dailyBest.score : 0,
+      avatar: persist.avatar,
     });
   } catch {
     // Offline or sign-in restricted — try again next launch.
@@ -108,6 +115,8 @@ export type RankEntry = {
   name: string;
   score: number;
   isYou: boolean;
+  /** The avatar sent with this score; null when it carried none. */
+  avatar: PlayerAvatar | null;
 };
 
 export type RankBoard = {
@@ -142,7 +151,13 @@ export async function loadRanking(kind: RankingKind): Promise<RankBoard> {
 /** Display name, falling back to the player's nickname when it's blank. */
 function withName(entry: NativeRankEntry): RankEntry {
   const name = entry.name?.trim() || entry.alias?.trim() || '';
-  return { rank: entry.rank, name, score: entry.score, isYou: entry.isYou };
+  return {
+    rank: entry.rank,
+    name,
+    score: entry.score,
+    isYou: entry.isYou,
+    avatar: decodeAvatar(entry.context),
+  };
 }
 
 /** Time left until the daily board resets at 00:00 UTC, matching `todayKey`. */
@@ -189,12 +204,14 @@ export async function submitRunToRanking(
   score: number,
   isDaily: boolean,
   runDay: string,
+  avatar: PlayerAvatar | null,
 ): Promise<void> {
   if (isDaily && runDay !== todayKey()) return;
   try {
     await submitBest(
       isDaily ? LEADERBOARD_IDS.daily : LEADERBOARD_IDS.normal,
       score,
+      avatar,
     );
   } catch {
     // A failed submit is not retried, but the next sign-in re-submits bests.
@@ -202,13 +219,25 @@ export async function submitRunToRanking(
 }
 
 async function submitBests(bests: SavedBests) {
-  await submitBest(LEADERBOARD_IDS.normal, bests.highScore);
-  await submitBest(LEADERBOARD_IDS.daily, bests.dailyTodayScore);
+  await submitBest(LEADERBOARD_IDS.normal, bests.highScore, bests.avatar);
+  await submitBest(LEADERBOARD_IDS.daily, bests.dailyTodayScore, bests.avatar);
 }
 
-async function submitBest(leaderboardId: string, score: number) {
+/**
+ * Game Center keeps only a player's best, with the context sent with it, so a
+ * new avatar reaches the board with the next best (daily boards reset daily).
+ */
+async function submitBest(
+  leaderboardId: string,
+  score: number,
+  avatar: PlayerAvatar | null,
+) {
   if (!rankingAvailable || !GameServices || score <= 0) return;
-  await GameServices.submitScoreAsync(score, [leaderboardId]);
+  await GameServices.submitScoreAsync(
+    score,
+    [leaderboardId],
+    encodeAvatar(avatar),
+  );
 }
 
 /**
