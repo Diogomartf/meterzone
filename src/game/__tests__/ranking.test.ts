@@ -10,7 +10,7 @@ import {
 } from '@/game/ranking';
 
 function entry(rank: number, score: number, isYou = false): RankEntry {
-  return { rank, name: `P${rank}`, score, isYou };
+  return { rank, name: `P${rank}`, score, isYou, avatar: null };
 }
 
 describe('pointsToPass', () => {

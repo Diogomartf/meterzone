@@ -152,6 +152,7 @@ export function previewSampleRanking(players: number, youRank: number) {
     // Gaps that shrink down the board, like real scores bunching up.
     score: Math.round(1240 - i * 38 + i * i * 0.6),
     isYou: i + 1 === youRank,
+    avatar: null,
   }));
   sampleBoard = {
     top: entries.slice(0, RANKING_SIZE),
@@ -165,12 +166,12 @@ export function previewSampleRanking(players: number, youRank: number) {
  * give the board its shape and invite a sign-in to see who's really there.
  */
 const PREVIEW: RankEntry[] = [
-  { rank: 1, name: 'TapKing', score: 1240, isYou: false },
-  { rank: 2, name: 'Luna', score: 990, isYou: false },
-  { rank: 3, name: 'Mia', score: 870, isYou: false },
-  { rank: 4, name: 'Kai', score: 760, isYou: false },
-  { rank: 5, name: 'Ana', score: 690, isYou: false },
-  { rank: 6, name: 'FastThumb', score: 650, isYou: false },
+  { rank: 1, name: 'TapKing', score: 1240, isYou: false, avatar: null },
+  { rank: 2, name: 'Luna', score: 990, isYou: false, avatar: null },
+  { rank: 3, name: 'Mia', score: 870, isYou: false, avatar: null },
+  { rank: 4, name: 'Kai', score: 760, isYou: false, avatar: null },
+  { rank: 5, name: 'Ana', score: 690, isYou: false, avatar: null },
+  { rank: 6, name: 'FastThumb', score: 650, isYou: false, avatar: null },
 ];
 
 type LoadState =
@@ -269,6 +270,7 @@ export function RankingScreen({
     const ok = await signInToRankingInteractive({
       highScore,
       dailyTodayScore,
+      avatar: myAvatar,
     });
     setSigningIn(false);
     setSignInFailed(!ok);
@@ -585,7 +587,7 @@ function YourSpotCard({
       <View style={[styles.card, styles.rankYouCard]}>
         <View style={styles.rankYouRow}>
           <RankBadge rank={you.rank} size={44} />
-          <Avatar name={you.name} isYou size={42} />
+          <Avatar name={you.name} isYou avatar={you.avatar} size={42} />
           <View style={styles.rankYouText}>
             <Text style={styles.rankYouLabel}>
               {sharing
@@ -755,6 +757,7 @@ function PodiumSpot({
       <Avatar
         name={entry?.name}
         isYou={entry?.isYou}
+        avatar={entry?.avatar}
         size={avatar}
         ring={ring}
       />
@@ -796,17 +799,23 @@ const MyAvatarContext = createContext<PlayerAvatar | null>(null);
 function Avatar({
   name,
   isYou,
+  avatar: sent,
   size,
   ring,
 }: {
   name: string | undefined;
   isYou?: boolean;
+  /** The avatar the player sent with their score, when there was one. */
+  avatar?: PlayerAvatar | null;
   size: number;
   /** Colour of the ring around the face; white when unset. */
   ring?: string;
 }) {
   const mine = use(MyAvatarContext);
-  const avatar = isYou && mine ? mine : name != null ? avatarFor(name) : null;
+  // Your own entry shows your current pick, which may be newer than the one
+  // your best was sent with.
+  const avatar =
+    isYou && mine ? mine : (sent ?? (name != null ? avatarFor(name) : null));
   return (
     <View
       style={[
@@ -860,7 +869,12 @@ function RankRow({ entry, last }: { entry: RankEntry; last: boolean }) {
       ]}
     >
       <Text style={styles.rankPos}>{formatScore(entry.rank)}</Text>
-      <Avatar name={entry.name} isYou={entry.isYou} size={34} />
+      <Avatar
+        name={entry.name}
+        isYou={entry.isYou}
+        avatar={entry.avatar}
+        size={34}
+      />
       <View style={styles.rankNameCell}>
         <PlayerName entry={entry} style={styles.rankNameLabel} />
       </View>

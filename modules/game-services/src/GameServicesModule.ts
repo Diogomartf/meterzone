@@ -7,6 +7,8 @@ export type NativeRankEntry = {
   alias?: string;
   score: number;
   isYou: boolean;
+  /** The number sent with the score (the player's avatar code); 0 for none. */
+  context?: number;
 };
 
 type GameServicesEvents = {
@@ -25,8 +27,15 @@ declare class GameServicesModule extends NativeModule<GameServicesEvents> {
    * again on iOS, which may still refuse after the player cancels repeatedly.
    */
   authenticateAsync(interactive: boolean): Promise<boolean>;
-  /** The platform keeps each player's best, so lower scores are ignored. */
-  submitScoreAsync(score: number, leaderboardIds: string[]): Promise<void>;
+  /**
+   * The platform keeps each player's best, so lower scores are ignored, and
+   * so is their `context` (stored as the score tag on Android).
+   */
+  submitScoreAsync(
+    score: number,
+    leaderboardIds: string[],
+    context: number,
+  ): Promise<void>;
   /**
    * The top `count` entries, plus the player's own entry and the one just
    * above it when the player is on the board. `daily` reads today's slice on

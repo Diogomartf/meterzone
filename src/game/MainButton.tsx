@@ -157,6 +157,9 @@ export function MainButton({
         styles.pressable,
         (size === 'small' || square) && styles.pressableSmall,
         { paddingBottom: lip },
+        // The ring is drawn outside the pill: keep it inside the button's
+        // box, or a parent that clips (like a ScrollView) cuts its sides.
+        'outerOutline' in colors && { marginHorizontal: OUTER_OUTLINE },
         style,
       ]}
       accessibilityRole="button"

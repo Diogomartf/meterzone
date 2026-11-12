@@ -211,8 +211,43 @@ export function avatarPackAction(
 }
 
 /**
- * Other players' avatars on the leaderboard. Their own picks never reach this
- * device, so each name maps to a stable free-pack avatar instead.
+ * Every offered emoji, pack by pack: an avatar's code on the leaderboard is its
+ * place here. Codes already live on Game Center, so only ever append emoji and
+ * colors, and add packs at the end; never reorder or remove (tests pin this).
+ */
+const ALL_EMOJIS: readonly string[] = AVATAR_PACKS.flatMap(
+  (pack) => pack.emojis,
+);
+
+/** Marks a context as an avatar code; 0 (old builds) means none. */
+const AVATAR_CODE_VERSION = 1;
+
+/**
+ * Packs an avatar into the 64-bit context Game Center stores with each score,
+ * so other players see the avatar picked by whoever set it. 0 when there's none.
+ */
+export function encodeAvatar(avatar: PlayerAvatar | null | undefined): number {
+  if (!avatar) return 0;
+  const emoji = ALL_EMOJIS.indexOf(avatar.emoji);
+  const color = AVATAR_COLORS.indexOf(avatar.color);
+  if (emoji < 0 || color < 0) return 0;
+  return AVATAR_CODE_VERSION * 2 ** 24 + emoji * 2 ** 8 + color;
+}
+
+/** The avatar a score's context carries, or null for none or an unknown code. */
+export function decodeAvatar(
+  context: number | null | undefined,
+): PlayerAvatar | null {
+  if (!context || !Number.isSafeInteger(context) || context < 0) return null;
+  if (Math.floor(context / 2 ** 24) !== AVATAR_CODE_VERSION) return null;
+  const emoji = ALL_EMOJIS[Math.floor(context / 2 ** 8) % 2 ** 16];
+  const color = AVATAR_COLORS[context % 2 ** 8];
+  return emoji && color ? { emoji, color } : null;
+}
+
+/**
+ * A stand-in avatar for players whose score carries none (submitted before
+ * avatars were shared, or from an older build): stable per name, free pack.
  */
 export function avatarFor(name: string): PlayerAvatar {
   let hash = 0;
