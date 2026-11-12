@@ -15,10 +15,14 @@ import type { PersistState, PlayerAvatar } from '@/game/types';
  * daily sequence.
  */
 const LEADERBOARD_IDS = Platform.select({
-  ios: { normal: 'meterzone.normal.best', daily: 'meterzone.daily.best' },
+  ios: {
+    normal: 'meterzone.normal.best',
+    daily: 'meterzone.daily.best',
+    avatar: 'meterzone.avatar',
+  },
   // Filled in once the leaderboards exist in Play Console.
-  android: { normal: '', daily: '' },
-  default: { normal: '', daily: '' },
+  android: { normal: '', daily: '', avatar: '' },
+  default: { normal: '', daily: '', avatar: '' },
 });
 
 /** True when this build can show rankings. */
@@ -140,6 +144,7 @@ export async function loadRanking(kind: RankingKind): Promise<RankBoard> {
     kind === 'daily' ? LEADERBOARD_IDS.daily : LEADERBOARD_IDS.normal,
     RANKING_SIZE,
     kind === 'daily',
+    LEADERBOARD_IDS.avatar,
   );
   return {
     top: board.top.map(withName),
@@ -156,7 +161,9 @@ function withName(entry: NativeRankEntry): RankEntry {
     name,
     score: entry.score,
     isYou: entry.isYou,
-    avatar: decodeAvatar(entry.context),
+    // The avatar board holds the current pick; a score's context only the one
+    // from when that best was set.
+    avatar: decodeAvatar(entry.avatar) ?? decodeAvatar(entry.context),
   };
 }
 
@@ -221,6 +228,25 @@ export async function submitRunToRanking(
 async function submitBests(bests: SavedBests) {
   await submitBest(LEADERBOARD_IDS.normal, bests.highScore, bests.avatar);
   await submitBest(LEADERBOARD_IDS.daily, bests.dailyTodayScore, bests.avatar);
+  await submitAvatar(bests.avatar);
+}
+
+/**
+ * Publishes the player's avatar so other players see their current pick. The
+ * hidden avatar board keeps each player's most recent score, which is their
+ * avatar code, so a new pick replaces the old one right away. Never throws.
+ */
+export async function submitAvatarToRanking(
+  avatar: PlayerAvatar | null,
+): Promise<void> {
+  if (!isSignedInToRanking()) return;
+  await submitAvatar(avatar).catch(() => undefined);
+}
+
+async function submitAvatar(avatar: PlayerAvatar | null) {
+  const code = encodeAvatar(avatar);
+  if (!LEADERBOARD_IDS.avatar || code === 0) return;
+  await submitBest(LEADERBOARD_IDS.avatar, code, null);
 }
 
 /**

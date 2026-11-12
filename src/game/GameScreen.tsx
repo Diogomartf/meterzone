@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { msg, useGT, useLocale, useMessages } from 'gt-react-native';
 
 import { setAnalyticsLanguage, track, trackScreen } from '@/analytics';
+import { decodeAvatar, encodeAvatar } from '@/game/avatars';
 import { styles } from '@/game/gameScreenStyles';
 import { CountdownBurst } from '@/game/CountdownBurst';
 import { DailyCard } from '@/game/DailyCard';
@@ -91,6 +92,7 @@ import {
   pointsToPass,
   rankingAvailable,
   signInToRanking,
+  submitAvatarToRanking,
   submitRunToRanking,
 } from '@/game/ranking';
 import { useRunState } from '@/game/useRunState';
@@ -386,6 +388,14 @@ export function GameScreen() {
     rankingSignInStarted.current = true;
     void signInToRanking(persist).then(() => setRankingSignInDone(true));
   }, [persist]);
+
+  // Publish the avatar once signed in, and again whenever the player picks a
+  // new one (or a data reset draws a fresh one), so other players see it.
+  const avatarCode = encodeAvatar(persist?.avatar);
+  useEffect(() => {
+    if (!rankingSignInDone || avatarCode === 0) return;
+    void submitAvatarToRanking(decodeAvatar(avatarCode));
+  }, [rankingSignInDone, avatarCode]);
 
   const dailyReward = useDailyReward(rankingSignInDone, applyPersist);
   useAchievements(persist, rankingSignInDone);
