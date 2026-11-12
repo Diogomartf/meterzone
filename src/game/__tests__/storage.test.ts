@@ -10,6 +10,7 @@ import {
   equipSkin,
   loadPersist,
   markAchievementsReported,
+  markAvatarPublished,
   markReviewAccepted,
   recordReviewPromptDecline,
   recordTapHintPlay,
@@ -581,6 +582,21 @@ describe('avatars', () => {
     seed({ coins: avatarPack('space').cost - 1 });
     expect(await unlockAvatarPack('space')).toBeNull();
     expect((await loadPersist()).unlockedAvatarPacks).toEqual(['animals']);
+  });
+
+  test('a picked avatar stays pending until published', async () => {
+    const random = await ensureAvatar(() => 0);
+    expect(random.avatarPending).toBe(false);
+    const panda = { emoji: '🐼', color: AVATAR_COLORS[1] };
+    expect((await setAvatar(panda))!.avatarPending).toBe(true);
+    expect((await markAvatarPublished(panda)).avatarPending).toBe(false);
+  });
+
+  test('a newer pick stays pending when an older upload lands', async () => {
+    const panda = { emoji: '🐼', color: AVATAR_COLORS[1] };
+    await setAvatar(panda);
+    await setAvatar({ emoji: '🐸', color: AVATAR_COLORS[1] });
+    expect((await markAvatarPublished(panda)).avatarPending).toBe(true);
   });
 
   test('drops unknown packs and invalid avatars from old saves', async () => {

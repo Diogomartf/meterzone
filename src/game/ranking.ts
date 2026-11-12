@@ -228,30 +228,11 @@ export async function submitRunToRanking(
 async function submitBests(bests: SavedBests) {
   await submitBest(LEADERBOARD_IDS.normal, bests.highScore, bests.avatar);
   await submitBest(LEADERBOARD_IDS.daily, bests.dailyTodayScore, bests.avatar);
-  await submitAvatar(bests.avatar);
-}
-
-/**
- * Publishes the player's avatar so other players see their current pick. The
- * hidden avatar board keeps each player's most recent score, which is their
- * avatar code, so a new pick replaces the old one right away. Never throws.
- */
-export async function submitAvatarToRanking(
-  avatar: PlayerAvatar | null,
-): Promise<void> {
-  if (!isSignedInToRanking()) return;
-  await submitAvatar(avatar).catch(() => undefined);
-}
-
-async function submitAvatar(avatar: PlayerAvatar | null) {
-  const code = encodeAvatar(avatar);
-  if (!LEADERBOARD_IDS.avatar || code === 0) return;
-  await submitBest(LEADERBOARD_IDS.avatar, code, null);
 }
 
 /**
  * Game Center keeps only a player's best, with the context sent with it, so a
- * new avatar reaches the board with the next best (daily boards reset daily).
+ * score carries the avatar from when that best was set.
  */
 async function submitBest(
   leaderboardId: string,
@@ -264,6 +245,34 @@ async function submitBest(
     [leaderboardId],
     encodeAvatar(avatar),
   );
+}
+
+/**
+ * Puts the player's avatar on the hidden avatar board, which keeps each
+ * player's most recent score (their avatar code), so other players see it.
+ * A `pending` pick replaces what's there; otherwise the avatar only fills a
+ * missing entry, so an older save on another device never undoes a newer
+ * pick. True once the board holds a pick for the player. Never throws.
+ */
+export async function publishAvatar(
+  avatar: PlayerAvatar | null,
+  pending: boolean,
+): Promise<boolean> {
+  const id = LEADERBOARD_IDS.avatar;
+  const code = encodeAvatar(avatar);
+  if (!id || code === 0 || !isSignedInToRanking() || !GameServices) {
+    return false;
+  }
+  try {
+    if (!pending) {
+      const board = await GameServices.loadLeaderboardAsync(id, 1, false, '');
+      if (board.you) return true;
+    }
+    await GameServices.submitScoreAsync(code, [id], 0);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**

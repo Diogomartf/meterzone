@@ -75,6 +75,12 @@ export type PersistState = {
   equippedSkin: SkinId;
   /** Chosen leaderboard avatar — null until the first load picks a random one. */
   avatar: PlayerAvatar | null;
+  /**
+   * True from picking an avatar on this device until Game Center has it. Only
+   * a pending pick replaces the one on the avatar board, so an older save on
+   * another device never undoes a newer pick.
+   */
+  avatarPending: boolean;
   /** Emoji packs bought with coins; the free pack is always included. */
   unlockedAvatarPacks: AvatarPackId[];
   bestComboAllTime: number;
