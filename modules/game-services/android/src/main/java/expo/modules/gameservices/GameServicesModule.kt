@@ -15,6 +15,8 @@ import expo.modules.kotlin.modules.ModuleDefinition
 private const val APP_ID_KEY = "com.google.android.gms.games.APP_ID"
 private const val LEADERBOARDS_REQUEST = 9004
 private const val COLLECTION = LeaderboardVariant.COLLECTION_PUBLIC
+/** The most entries Play Games returns in one page. */
+private const val MAX_PAGE = 25
 
 class GameServicesModule : Module() {
   private val context: Context
@@ -68,32 +70,53 @@ class GameServicesModule : Module() {
      * theirs (for "N points to #2"). Runs off the main thread, so the Play
      * Games tasks can be awaited in order. Play Games has no daily-reset
      * boards, so `daily` reads today's slice of the leaderboard instead.
+     *
+     * That slice resets at midnight UTC-7, but the daily sequence changes at
+     * 00:00 UTC (`todayKey`). For the 7 hours in between, the slice still
+     * holds scores from yesterday's sequence, so they're dropped and the
+     * ranks closed up. Only the first page is checked, so a rank further down
+     * can be a few places high in that window.
      */
     AsyncFunction("loadLeaderboardAsync") { leaderboardId: String, count: Int, daily: Boolean, _avatarLeaderboardId: String ->
       val span = if (daily) LeaderboardVariant.TIME_SPAN_DAILY else LeaderboardVariant.TIME_SPAN_ALL_TIME
+      val since = if (daily) utcMidnight() else Long.MIN_VALUE
       val activity = appContext.currentActivity ?: throw Exceptions.MissingActivity()
       val client = PlayGames.getLeaderboardsClient(activity)
 
-      val you = Tasks.await(
+      val yourScore = Tasks.await(
         client.loadCurrentPlayerLeaderboardScore(leaderboardId, span, COLLECTION)
-      ).get()?.let { serialize(it, it.scoreHolder?.playerId) }
-      val youId = you?.get("playerId") as String?
+      ).get()
+      val youId = yourScore?.scoreHolder?.playerId
 
       val topScores = Tasks.await(
-        client.loadTopScores(leaderboardId, span, COLLECTION, count)
+        client.loadTopScores(leaderboardId, span, COLLECTION, if (daily) MAX_PAGE else count)
       ).get()
-      val top = topScores?.scores?.map { serialize(it, youId) } ?: emptyList()
+      val loaded = topScores?.scores?.map { serialize(it, youId) } ?: emptyList()
       topScores?.release()
 
-      val youRank = (you?.get("rank") as Long?) ?: 0L
-      var above = top.firstOrNull { it["rank"] == youRank - 1 }
+      // Ranks of yesterday's entries, to close up the ranks below them.
+      val stale = loaded.filter { it.timestamp < since }.map { it.rank }
+      fun fresh(entry: Map<String, Any?>): Map<String, Any?> {
+        val rank = entry.rank
+        return if (rank <= 0) entry else entry + ("rank" to rank - stale.count { it < rank })
+      }
+
+      val top = loaded.filter { it.timestamp >= since }.map(::fresh).take(count)
+      val you = yourScore
+        ?.takeIf { it.timestampMillis >= since }
+        ?.let { fresh(serialize(it, youId)) }
+
+      val youRank = you?.rank ?: 0L
+      var above = top.firstOrNull { it.rank == youRank - 1 }
       if (above == null && youRank > 1) {
         val around = Tasks.await(
           client.loadPlayerCenteredScores(leaderboardId, span, COLLECTION, 5)
         ).get()
         above = around?.scores
+          ?.map { serialize(it, youId) }
+          ?.filter { it.timestamp >= since }
+          ?.map(::fresh)
           ?.firstOrNull { it.rank == youRank - 1 }
-          ?.let { serialize(it, youId) }
         around?.release()
       }
 
@@ -124,7 +147,17 @@ class GameServicesModule : Module() {
       "context" to (score.scoreTag?.toLongOrNull() ?: 0L),
       "playerId" to playerId,
       "isYou" to (playerId != null && playerId == youId),
+      "timestamp" to score.timestampMillis,
     )
+  }
+
+  private val Map<String, Any?>.rank: Long get() = this["rank"] as Long
+  private val Map<String, Any?>.timestamp: Long get() = this["timestamp"] as Long
+
+  /** Today's 00:00 UTC in ms, when the daily sequence changes. */
+  private fun utcMidnight(): Long {
+    val day = 24 * 60 * 60 * 1000L
+    return System.currentTimeMillis() / day * day
   }
 
   private fun hasAppId(): Boolean {

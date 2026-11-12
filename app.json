@@ -76,7 +76,7 @@
       [
         "./modules/game-services/app.plugin.js",
         {
-          "playGamesAppId": ""
+          "playGamesAppId": "61678258615"
         }
       ],
       "./plugins/withSceneLifecycle.js",
