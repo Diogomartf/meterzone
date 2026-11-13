@@ -9,7 +9,7 @@ import { Image, type ImageRef } from 'expo-image';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -55,19 +55,18 @@ type SplashArt = {
   imageWidth: number | null;
 };
 
-/** Mirrors the expo-splash-screen config in app.json so the handoff is invisible. */
-const NATIVE_SPLASH: SplashArt =
-  Platform.OS === 'android'
-    ? {
-        source: require('@/assets/images/splash-android.png'),
-        backgroundColor: '#214A7C',
-        imageWidth: 200,
-      }
-    : {
-        source: require('@/assets/images/splash.png'),
-        backgroundColor: '#0008BF',
-        imageWidth: null,
-      };
+/**
+ * The branded splash the app paints over the native one. On iOS it mirrors
+ * the expo-splash-screen config in app.json, so the handoff is invisible.
+ * Android 12+ always shows a system splash with a small centered icon, so
+ * there it gets a transparent icon on the same blue, and the full-screen art
+ * fades in over plain blue.
+ */
+const NATIVE_SPLASH: SplashArt = {
+  source: require('@/assets/images/splash.png'),
+  backgroundColor: '#0008BF',
+  imageWidth: null,
+};
 
 /** Everything the first screen paints — warmed while the splash is up. */
 const FIRST_SCREEN_IMAGES: number[] = [

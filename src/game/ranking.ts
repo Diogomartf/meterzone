@@ -150,11 +150,35 @@ export async function loadRanking(kind: RankingKind): Promise<RankBoard> {
     kind === 'daily',
     LEADERBOARD_IDS.avatar,
   );
-  return {
+  return settleRanks({
     top: board.top.map(rankEntryFrom),
     you: board.you ? rankEntryFrom(board.you) : null,
     above: board.above ? rankEntryFrom(board.above) : null,
-  };
+  });
+}
+
+/**
+ * Fills in ranks the platform doesn't know yet. Play Games returns -1 (and
+ * sometimes 0) until it has ranked a score, for a while after a submit and on
+ * new boards, so the top list falls back to its order, which is already by
+ * score. A player whose own rank is unknown and who isn't on the top list
+ * shows as unranked rather than as #-1.
+ */
+export function settleRanks(board: RankBoard): RankBoard {
+  const known = (entry: RankEntry) => entry.rank >= 1;
+  const top = board.top.every(known)
+    ? board.top
+    : board.top.map((entry, i) => ({ ...entry, rank: i + 1 }));
+
+  const listed = top.find((entry) => entry.isYou);
+  const you = listed ?? (board.you && known(board.you) ? board.you : null);
+  if (!you) return { top, you: null, above: null };
+
+  const above =
+    board.above && known(board.above) && board.you && known(board.you)
+      ? board.above
+      : (top.find((entry) => entry.rank === you.rank - 1) ?? null);
+  return { top, you, above };
 }
 
 /**

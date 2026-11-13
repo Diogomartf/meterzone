@@ -25,8 +25,8 @@
       "package": "com.diogomartf.meterzone",
       "icon": "./assets/images/icon.png",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
-        "backgroundColor": "#0053ED"
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundColor": "#0050EE"
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
@@ -56,10 +56,10 @@
             "backgroundColor": "#0008BF"
           },
           "android": {
-            "image": "./assets/images/splash-android.png",
+            "image": "./assets/images/splash-android-blank.png",
             "imageWidth": 200,
             "resizeMode": "contain",
-            "backgroundColor": "#214A7C"
+            "backgroundColor": "#0008BF"
           }
         }
       ],
@@ -84,7 +84,16 @@
       "expo-image",
       "expo-web-browser",
       "expo-localization",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

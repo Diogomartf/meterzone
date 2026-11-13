@@ -7,6 +7,7 @@ import {
   msUntilDailyReset,
   pointsToPass,
   rankEntryFrom,
+  settleRanks,
   type RankEntry,
 } from '@/game/ranking';
 
@@ -26,6 +27,38 @@ describe('pointsToPass', () => {
   test('nothing to chase at #1 or off the board', () => {
     expect(pointsToPass(entry(1, 900, true), null)).toBeNull();
     expect(pointsToPass(null, entry(5, 100))).toBeNull();
+  });
+});
+
+describe('settleRanks', () => {
+  test('keeps ranks the platform knows', () => {
+    const top = [entry(1, 900), entry(2, 800, true)];
+    const board = settleRanks({ top, you: top[1], above: top[0] });
+    expect(board.top.map((e) => e.rank)).toEqual([1, 2]);
+    expect(board.you?.rank).toBe(2);
+    expect(board.above?.rank).toBe(1);
+  });
+
+  test('numbers an unranked top list by its order', () => {
+    const top = [entry(0, 900, true), entry(-1, 800)];
+    const board = settleRanks({ top, you: entry(-1, 900, true), above: null });
+    expect(board.top.map((e) => e.rank)).toEqual([1, 2]);
+    expect(board.you?.rank).toBe(1);
+    expect(board.above).toBeNull();
+  });
+
+  test('finds the entry above when the platform left it out', () => {
+    const top = [entry(-1, 900), entry(-1, 800, true)];
+    const board = settleRanks({ top, you: entry(-1, 800, true), above: null });
+    expect(board.you?.rank).toBe(2);
+    expect(board.above?.score).toBe(900);
+  });
+
+  test('an unknown rank off the top list counts as unranked', () => {
+    const top = [entry(1, 900)];
+    const board = settleRanks({ top, you: entry(-1, 50, true), above: null });
+    expect(board.you).toBeNull();
+    expect(board.above).toBeNull();
   });
 });
 
