@@ -2,7 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { APP_NAME, CONTACT_EMAIL, SITE_URL } from '../site';
 
-const lastUpdated = 'November 6, 2026';
+const lastUpdated = 'November 12, 2026';
 
 const privacyDescription = `${APP_NAME} privacy policy — a free one-tap timing game that keeps scores on your device. No accounts, no tracking ads. Contact ${CONTACT_EMAIL} with questions.`;
 
@@ -44,7 +44,7 @@ const jsonLd = [
       <p>
         {APP_NAME} is a casual mobile game. We designed it to work without accounts
         and to keep data collection to a minimum. Leaderboards are optional and run
-        on Apple Game Center.
+        on Apple Game Center (iPhone) or Google Play Games (Android).
       </p>
     </section>
 
@@ -71,17 +71,25 @@ const jsonLd = [
     </section>
 
     <section>
-      <h2>Leaderboards and achievements (Game Center)</h2>
+      <h2>Leaderboards and achievements (Game Center and Play Games)</h2>
       <p>
-        If you sign in to Game Center, your scores are submitted to Apple’s
-        leaderboards and shown to other players with your Game Center nickname.
-        The achievements you earn are saved to your Game Center profile too.
-        The game reads the leaderboards to show rankings and to pay daily rewards.
-        Apple runs Game Center under its own privacy policy; we do not receive
-        your Apple account details and run no server of our own for rankings.
-        The avatar you pick (an emoji and a colour) is sent along with your
-        scores, so other players see it next to your nickname.
+        On iPhone, if you sign in to Game Center, your scores are submitted to
+        Apple’s leaderboards and shown to other players with your Game Center
+        nickname. The achievements you earn are saved to your Game Center profile
+        too. The game reads the leaderboards to show rankings and to pay daily
+        rewards. Apple runs Game Center under its own privacy policy.
         You can sign out of Game Center in the Settings app at any time.
+      </p>
+      <p>
+        On Android, if you sign in to Google Play Games, your scores are submitted
+        to Google’s leaderboards and shown to other players with your Play Games
+        profile name. Google runs Play Games under its own privacy policy, and you
+        can manage your Play Games profile in the Google Play Games settings.
+      </p>
+      <p>
+        We do not receive your Apple or Google account details and run no server
+        of our own for rankings. The avatar you pick (an emoji and a colour) is
+        sent along with your scores, so other players see it next to your name.
       </p>
     </section>
 
@@ -105,8 +113,8 @@ const jsonLd = [
       </p>
       <p>
         Events are linked to a random identifier stored on your device, not to your
-        name, email, or Game Center account. They also include whether you are
-        connected to Game Center (yes or no), your app language, app version, operating system, device model, and time zone. We have asked
+        name, email, Game Center or Play Games account. They also include whether you are
+        connected to Game Center or Play Games (yes or no), your app language, app version, operating system, device model, and time zone. We have asked
         PostHog not to look up your location from your IP address. We do not use
         this data for advertising, and we do not share it with data brokers.
       </p>

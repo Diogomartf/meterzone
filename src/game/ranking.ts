@@ -20,8 +20,12 @@ const LEADERBOARD_IDS = Platform.select({
     daily: 'meterzone.daily.best',
     avatar: 'meterzone.avatar',
   },
-  // Filled in once the leaderboards exist in Play Console.
-  android: { normal: '', daily: '', avatar: '' },
+  // Android sends the avatar as each score's tag instead of a separate board.
+  android: {
+    normal: 'CgkIt5O-4uUBEAIQAQ',
+    daily: 'CgkIt5O-4uUBEAIQAg',
+    avatar: '',
+  },
   default: { normal: '', daily: '', avatar: '' },
 });
 
