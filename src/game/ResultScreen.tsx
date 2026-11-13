@@ -1,8 +1,10 @@
-import { Image } from 'expo-image';
+import { Image, type ImageContentFit } from 'expo-image';
 import { useGT, useLocale } from 'gt-react-native';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import {
+  Image as NativeImage,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -41,6 +43,29 @@ const HOME_ICON = {
 const TROPHY = require('../../assets/images/trophy-record.webp');
 const CALENDAR = require('../../assets/images/daily-calendar.webp');
 const COINS = require('../../assets/images/coins-stack.webp');
+/**
+ * Art that appears in the shared score image. On Android, expo-image keeps
+ * decoded images as hardware bitmaps, which react-native-view-shot can't copy,
+ * so the logo, trophy and coins came out blank in the share. React Native's
+ * own Image draws into the capture, so Android uses it for these.
+ */
+function ShotImage({
+  source,
+  style,
+  contentFit,
+}: {
+  source: number;
+  style: React.ComponentProps<typeof NativeImage>['style'];
+  contentFit: Extract<ImageContentFit, 'contain' | 'cover'>;
+}) {
+  if (Platform.OS === 'android') {
+    return (
+      <NativeImage source={source} style={style} resizeMode={contentFit} />
+    );
+  }
+  return <Image source={source} style={style} contentFit={contentFit} />;
+}
+
 /** Width over height of the trophy art, confetti included. */
 const TROPHY_ASPECT = 600 / 416;
 
@@ -257,7 +282,7 @@ export function ResultScreen({
         style={[styles.header, { paddingTop: insets.top + 8 }]}
         pointerEvents="box-none"
       >
-        <Image
+        <ShotImage
           source={LOGO}
           style={[styles.logo, snug && styles.logoCompact]}
           contentFit="contain"
@@ -299,7 +324,7 @@ export function ResultScreen({
           {record.daily ? (
             <>
               <View style={styles.titleRow}>
-                <Image
+                <ShotImage
                   source={CALENDAR}
                   style={compact ? styles.calendarCompact : styles.calendar}
                   contentFit="contain"
@@ -319,7 +344,7 @@ export function ResultScreen({
           {record.isNewBest ? (
             <>
               <Animated.View entering={trophyEntering}>
-                <Image
+                <ShotImage
                   source={TROPHY}
                   style={{
                     width: trophySize * TROPHY_ASPECT,
@@ -424,7 +449,11 @@ export function ResultScreen({
                 earned: record.coinsEarned,
               })}
             >
-              <Image source={COINS} style={styles.coins} contentFit="contain" />
+              <ShotImage
+                source={COINS}
+                style={styles.coins}
+                contentFit="contain"
+              />
               {/* Only the amount moves: it rolls up after the score's turn. */}
               <CoinCountUp
                 value={record.coinsEarned}
