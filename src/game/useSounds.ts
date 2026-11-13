@@ -88,8 +88,12 @@ export function useSounds(muted: boolean, buttonSounds = true) {
           // Rewind as soon as the clip ends, so the next `play()` is a single
           // synchronous call. Seeking on the tap itself cost a native
           // round-trip before the sound could start.
+          // Pause first: on Android a finished ExoPlayer is still set to play,
+          // so seeking back to 0 alone restarts the clip and loops it forever.
           const sub = player.addListener('playbackStatusUpdate', (status) => {
-            if (status.didJustFinish) void player.seekTo(0);
+            if (!status.didJustFinish) return;
+            player.pause();
+            void player.seekTo(0);
           });
           return { player, remove: () => sub.remove() };
         });
