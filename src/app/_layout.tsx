@@ -58,8 +58,9 @@ type SplashArt = {
 /**
  * The branded splash the app paints over the native one. On iOS it mirrors
  * the expo-splash-screen config in app.json, so the handoff is invisible.
- * Android 12+ only allows a small icon on the native splash, so there the app
- * icon fades into the same full-screen art as iOS.
+ * Android 12+ always shows a system splash with a small centered icon, so
+ * there it gets a transparent icon on the same blue, and the full-screen art
+ * fades in over plain blue.
  */
 const NATIVE_SPLASH: SplashArt = {
   source: require('@/assets/images/splash.png'),
