@@ -9,7 +9,7 @@ import { Image, type ImageRef } from 'expo-image';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -58,10 +58,12 @@ type SplashArt = {
 /**
  * The branded splash the app paints over the native one. On iOS it mirrors
  * the expo-splash-screen config in app.json, so the handoff is invisible.
- * Android 12+ always shows a system splash with a small centered icon, so
- * there it gets a transparent icon on the same blue, and the full-screen art
- * fades in over plain blue.
+ * Android 12+ can only show a centered icon on its system splash, so there
+ * the app icon stays up until the first screen is ready and the app opens
+ * straight into the game, with no full-screen art in between.
  */
+const SHOW_SPLASH_ART = Platform.OS !== 'android';
+
 const NATIVE_SPLASH: SplashArt = {
   source: require('@/assets/images/splash.png'),
   backgroundColor: '#0008BF',
@@ -79,16 +81,17 @@ const FIRST_SCREEN_IMAGES: number[] = [
 ];
 
 /** Decodes an image up front so it paints on its very first frame. */
-function useDecodedImage(source: number) {
+function useDecodedImage(source: number | null) {
   const [state, setState] = useState<{
     image: ImageRef | null;
     settled: boolean;
   }>({
     image: null,
-    settled: false,
+    settled: source == null,
   });
 
   useEffect(() => {
+    if (source == null) return;
     let cancelled = false;
     // Settles on failure too, so a broken asset can never strand the splash.
     const settle = (image: ImageRef | null) => {
@@ -129,20 +132,29 @@ function RootLayout() {
     Fredoka_700Bold,
     LilitaOne_400Regular,
   });
-  const splashArt = useDecodedImage(NATIVE_SPLASH.source);
+  const splashArt = useDecodedImage(
+    SHOW_SPLASH_ART ? NATIVE_SPLASH.source : null,
+  );
   const firstScreenWarmed = useWarmedImages(FIRST_SCREEN_IMAGES);
   const [handedOff, setHandedOff] = useState(false);
   const [holdElapsed, setHoldElapsed] = useState(false);
-  const [overlayMounted, setOverlayMounted] = useState(true);
+  const [overlayMounted, setOverlayMounted] = useState(SHOW_SPLASH_ART);
   const overlayOpacity = useSharedValue(1);
 
   const fontsReady = fontsLoaded || fontError != null;
 
-  useEffect(() => {
-    if (!fontsReady || !splashArt.settled || handedOff) return;
+  // Without the art overlay, the native splash itself covers the first
+  // screen while its images decode.
+  const readyToHandOff = SHOW_SPLASH_ART
+    ? splashArt.settled
+    : firstScreenWarmed;
 
-    // Dismiss the native splash only once our overlay has reached the screen —
-    // its cross-fade would otherwise uncover the app rendering behind it.
+  useEffect(() => {
+    if (!fontsReady || !readyToHandOff || handedOff) return;
+
+    // Dismiss the native splash only once what replaces it (our overlay, or on
+    // Android the first screen) has reached the screen — its cross-fade would
+    // otherwise uncover a half-drawn frame.
     let second: number | undefined;
     const first = requestAnimationFrame(() => {
       second = requestAnimationFrame(() => {
@@ -155,10 +167,10 @@ function RootLayout() {
       cancelAnimationFrame(first);
       if (second != null) cancelAnimationFrame(second);
     };
-  }, [fontsReady, handedOff, splashArt.settled]);
+  }, [fontsReady, handedOff, readyToHandOff]);
 
   useEffect(() => {
-    if (!handedOff) return;
+    if (!handedOff || !SHOW_SPLASH_ART) return;
     const timer = setTimeout(() => setHoldElapsed(true), SPLASH_HOLD_MS);
     return () => clearTimeout(timer);
   }, [handedOff]);
