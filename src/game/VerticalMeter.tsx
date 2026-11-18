@@ -130,7 +130,6 @@ function VerticalMeterComponent({
 
   const greatPx = 2 * greatHalf * innerH;
   const perfectPx = Math.max(MIN_PERFECT_PX, 2 * perfectHalf * innerH);
-  const lineH = Math.min(perfectPx, Math.max(2, 2 * scale));
 
   useEffect(() => {
     if (active) {
@@ -167,11 +166,8 @@ function VerticalMeterComponent({
     transform: [{ translateY: (wobble.value - 0.5) * 2 }],
   }));
 
-  // Each zone layer is a full-height box centred on the target.
+  // The zone layer is a full-height box centred on the target.
   const zoneUnderStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: (0.5 - zoneTarget.value) * innerH }],
-  }));
-  const zoneOverStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: (0.5 - zoneTarget.value) * innerH }],
   }));
   // Nice tracks zoneHalf live, since a shrinking zone narrows it mid-fill.
@@ -367,19 +363,6 @@ function VerticalMeterComponent({
             {skin.burning ? <LavaFlames scale={scale} active={active} /> : null}
           </Animated.View>
 
-          {/* The one mark over the liquid: the centre, the most perfect tap */}
-          <Animated.View
-            style={[
-              styles.zone,
-              styles.zoneOver,
-              { height: innerH },
-              zoneOverStyle,
-            ]}
-            pointerEvents="none"
-          >
-            <View style={[styles.band, styles.perfectLine, centred(lineH)]} />
-          </Animated.View>
-
           <View style={styles.ticks} pointerEvents="none">
             {ticks.map(({ at, long }) => (
               <View
@@ -468,9 +451,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 1,
   },
-  zoneOver: {
-    zIndex: 4,
-  },
   zoneFull: {
     ...StyleSheet.absoluteFill,
   },
@@ -478,10 +458,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-  },
-  // The Perfect band's own colour, so it only shows where liquid covers the band.
-  perfectLine: {
-    backgroundColor: EYE.perfect,
   },
   perfect: {
     backgroundColor: EYE.perfect,
