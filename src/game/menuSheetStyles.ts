@@ -72,6 +72,15 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Mid-run the header also holds restart, so the pill follows the title.
+  coinPillInline: {
+    flex: 1,
+    alignItems: 'flex-start',
+    marginLeft: 4,
+  },
+  titleShrink: {
+    flex: 0,
+  },
   coinPill: {
     flexDirection: 'row',
     alignItems: 'center',

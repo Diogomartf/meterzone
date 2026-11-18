@@ -15,7 +15,8 @@ import { GameColors, GameFonts } from '@/constants/gameTheme';
  * `white` and `blue` sit on light or busy backgrounds with an ink outline;
  * `glass` is a see-through white for coloured cards like the support card;
  * `sky` a see-through blue over the game art (the daily record's Share);
- * `soft` a pale blue with a light outline for sheet headers (home, close, back).
+ * `soft` a pale blue with a light outline for sheet headers (home, close, back);
+ * `softTint` a pale cyan, for the one header action that should stand out.
  */
 const TONES = {
   white: {
@@ -52,6 +53,13 @@ const TONES = {
     text: GameColors.ink,
     pressed: '#E3F1FC',
   },
+  /** A pale cyan beside `soft`, to set one header action apart (restart). */
+  softTint: {
+    face: '#D4F4FB',
+    outline: '#7FD3E6',
+    text: GameColors.ink,
+    pressed: '#C0ECF6',
+  },
 } as const;
 
 type Tone = {
@@ -66,6 +74,8 @@ type FlatButtonProps = {
   onPress: () => void;
   /** Analytics name for taps. */
   track: TapTarget;
+  /** Extra properties sent with the tap. */
+  trackProps?: Record<string, string>;
   /** Read out by screen readers; also the visible text unless icon-only. */
   accessibilityLabel: string;
   /** Visible text. Leave out for an icon-only square button. */
@@ -92,6 +102,7 @@ type FlatButtonProps = {
 export function FlatButton({
   onPress,
   track,
+  trackProps,
   accessibilityLabel,
   label,
   icon,
@@ -108,7 +119,7 @@ export function FlatButton({
   return (
     <Pressable
       onPress={() => {
-        trackTap(track);
+        trackTap(track, trackProps);
         onPress();
       }}
       hitSlop={hitSlop}

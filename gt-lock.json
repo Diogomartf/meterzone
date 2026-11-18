@@ -4,22 +4,22 @@
   "entries": [
     {
       "fileId": "879f3a5f954ee8b75bf1e91f4ea9916b41c933e5beba7eb6362647a637c9c66d",
-      "versionId": "7ddb67d06de976d2513f30e3ec0a765525c7ea69489f394591b242c29d949a88",
+      "versionId": "2546994d523f4211e3efa410b6ed5889290904a54017d682fc206ab2e272c956",
       "translations": {
         "pt": {
-          "updatedAt": "2026-11-05T23:25:55.144Z",
+          "updatedAt": "2026-11-18T12:27:34.628Z",
           "fileName": "src/_gt/pt.json",
-          "postProcessHash": "12b81633d91f05c241b45178c41158552969ce8a378cfb737825557e29aec092"
+          "postProcessHash": "b05808cbc55e45ba82663c436e95eb2da31dfea4a84537b32afeeee407d27cb0"
         },
         "pt-PT": {
-          "updatedAt": "2026-11-05T23:25:55.148Z",
+          "updatedAt": "2026-11-18T12:27:34.635Z",
           "fileName": "src/_gt/pt-PT.json",
-          "postProcessHash": "fdf69485dd5bc931c565d9bace9c56939325cd2e86cc3f1f0e4ebca3efe2f332"
+          "postProcessHash": "9de7e51fb794f8ba2f63fc10920e608f810ba228e866efedd08c86cc8b4f4f7b"
         },
         "es": {
-          "updatedAt": "2026-11-05T23:25:55.149Z",
+          "updatedAt": "2026-11-18T12:27:34.636Z",
           "fileName": "src/_gt/es.json",
-          "postProcessHash": "6db42a5a1abcd26bbe9aedb27f5dc9ac381e2b5476e1e5caeae07efd1e6c578d"
+          "postProcessHash": "b013d25e3084fed1858dd001bbe837c35bef5b835521628e0bdd0469e1029424"
         }
       },
       "fileName": "__INTERNAL_GT_TEMPLATE_NAME__"

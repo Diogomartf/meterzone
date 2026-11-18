@@ -78,6 +78,11 @@ const BACK_ICON = {
 } as const;
 const CLOSE_ICON = { ios: 'xmark', android: 'close', web: 'close' } as const;
 const HOME_ICON = { ios: 'house', android: 'home', web: 'home' } as const;
+const RESTART_ICON = {
+  ios: 'arrow.clockwise',
+  android: 'refresh',
+  web: 'refresh',
+} as const;
 const SETTINGS_ICON = {
   ios: 'gearshape',
   android: 'settings',
@@ -167,6 +172,8 @@ type MenuSheetProps = {
   onToggleButtonSounds: () => void;
   onToggleHaptics: () => void;
   onGoBack: () => void;
+  /** Starts the current mode over; shown only mid-run. */
+  onRestart: () => void;
   onStartMode: (daily: boolean) => void;
   onSendFeedback: () => void;
   onDeleteData: () => void;
@@ -202,6 +209,7 @@ export function MenuSheet({
   onToggleButtonSounds,
   onToggleHaptics,
   onGoBack,
+  onRestart,
   onStartMode,
   onSendFeedback,
   onDeleteData,
@@ -479,12 +487,21 @@ export function MenuSheet({
                     />
                   ) : null}
                   <Text
-                    style={[styles.title, view === 'menu' && styles.titleRoot]}
+                    style={[
+                      styles.title,
+                      view === 'menu' && styles.titleRoot,
+                      view === 'menu' && canGoBack && styles.titleShrink,
+                    ]}
                   >
                     {title}
                   </Text>
                   {view === 'menu' ? (
-                    <View style={styles.coinPillSlot} pointerEvents="box-none">
+                    <View
+                      style={
+                        canGoBack ? styles.coinPillInline : styles.coinPillSlot
+                      }
+                      pointerEvents="box-none"
+                    >
                       <Pressable
                         onPress={() => {
                           trackTap('menu.coins');
@@ -517,6 +534,17 @@ export function MenuSheet({
                   ) : null}
                   {view === 'menu' ? (
                     <View style={styles.headerActions}>
+                      {canGoBack ? (
+                        <FlatButton
+                          tone="softTint"
+                          track="menu.restart"
+                          trackProps={{ mode: dailyMode ? 'daily' : 'normal' }}
+                          onPress={onRestart}
+                          icon={RESTART_ICON}
+                          hitSlop={6}
+                          accessibilityLabel={gt('Restart')}
+                        />
+                      ) : null}
                       {canGoBack ? (
                         <FlatButton
                           tone="soft"

@@ -1772,6 +1772,7 @@ export function GameScreen() {
         onToggleButtonSounds={() => void toggleButtonSounds()}
         onToggleHaptics={() => void toggleHaptics()}
         onGoBack={goBackFromMenu}
+        onRestart={() => startModeFromMenu(dailyMode)}
         onStartMode={startModeFromMenu}
         onSendFeedback={() => void sendFeedback()}
         onDeleteData={() => void deleteData()}
