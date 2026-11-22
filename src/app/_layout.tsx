@@ -12,6 +12,8 @@ import { useEffect, useState } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
+  ReducedMotionConfig,
+  ReduceMotion,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
@@ -211,6 +213,14 @@ function RootLayout() {
       style={[styles.root, { backgroundColor: NATIVE_SPLASH.backgroundColor }]}
     >
       <StatusBar style="dark" />
+      {/*
+        With iOS Reduce Motion on, Reanimated's default jumps every animation
+        to its end value, and every pop-and-fade callout (NICE/GREAT, Perfect,
+        Miss, the countdown) ends at opacity 0, so none of them showed. Screens
+        that should calm down read `useReducedMotion()`, which still reports
+        the system setting.
+      */}
+      <ReducedMotionConfig mode={ReduceMotion.Never} />
       {fontsReady ? (
         <GTProvider>
           <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
