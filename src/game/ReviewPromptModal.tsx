@@ -88,6 +88,7 @@ export function ReviewPromptModal({
               />
               <FlatButton
                 tone="glass"
+                pill
                 label={gt('Not now')}
                 accessibilityLabel={gt('Not now')}
                 track="review_prompt.not_now"

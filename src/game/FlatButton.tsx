@@ -87,6 +87,8 @@ type FlatButtonProps = {
   tone?: keyof typeof TONES;
   /** Bigger, bolder label and icon, for a screen's second action under a MainButton. */
   big?: boolean;
+  /** Fully rounded ends, to match a MainButton pill beside it (review prompt). */
+  pill?: boolean;
   /** Side of an icon-only button. */
   size?: number;
   hitSlop?: number;
@@ -109,6 +111,7 @@ export function FlatButton({
   children,
   tone = 'white',
   big = false,
+  pill = false,
   size = 44,
   hitSlop,
   style,
@@ -135,6 +138,7 @@ export function FlatButton({
             }
           : styles.labelled,
         big && styles.labelledBig,
+        pill && styles.pill,
         {
           backgroundColor: pressed ? colors.pressed : colors.face,
           borderColor: colors.outline,
@@ -182,6 +186,9 @@ const styles = StyleSheet.create({
   labelledBig: {
     gap: 10,
     paddingVertical: 12,
+  },
+  pill: {
+    borderRadius: 999,
   },
   glow: {
     // The halo is a shadow, which `overflow: hidden` would clip on iOS.
