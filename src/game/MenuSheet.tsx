@@ -487,21 +487,13 @@ export function MenuSheet({
                     />
                   ) : null}
                   <Text
-                    style={[
-                      styles.title,
-                      view === 'menu' && styles.titleRoot,
-                      view === 'menu' && canGoBack && styles.titleShrink,
-                    ]}
+                    style={[styles.title, view === 'menu' && styles.titleRoot]}
                   >
                     {title}
                   </Text>
-                  {view === 'menu' ? (
-                    <View
-                      style={
-                        canGoBack ? styles.coinPillInline : styles.coinPillSlot
-                      }
-                      pointerEvents="box-none"
-                    >
+                  {/* Mid-run the header holds restart and home; coins can wait. */}
+                  {view === 'menu' && !canGoBack ? (
+                    <View style={styles.coinPillSlot} pointerEvents="box-none">
                       <Pressable
                         onPress={() => {
                           trackTap('menu.coins');
