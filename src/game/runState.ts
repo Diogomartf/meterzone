@@ -1,9 +1,10 @@
-import { makeRound } from '@/game/levels';
+import { levelBand, makeRound, roundKind } from '@/game/levels';
 import { STARTING_LIVES } from '@/game/scoring';
 import type {
   RoundConfig,
   RoundLabel,
   RoundOutcome,
+  RoundTallyKey,
   SessionStats,
 } from '@/game/types';
 
@@ -94,10 +95,7 @@ export function emptyStats(): SessionStats {
     cleanRounds: 0,
     bestCombo: 0,
     coinsEarned: 0,
-    movingRounds: 0,
-    movingMisses: 0,
-    shrinkingRounds: 0,
-    shrinkingMisses: 0,
+    roundTally: {},
   };
 }
 
@@ -105,9 +103,10 @@ export function emptyStats(): SessionStats {
 export function tallyRound(
   prev: SessionStats,
   result: RoundOutcome,
-  round: Pick<RoundConfig, 'moving' | 'shrinking'>,
+  round: Pick<RoundConfig, 'level' | 'moving' | 'shrinking'>,
 ): SessionStats {
-  const missed = result.costsLife ? 1 : 0;
+  const key: RoundTallyKey = `${roundKind(round)}_${levelBand(round.level)}`;
+  const tally = prev.roundTally[key] ?? { rounds: 0, misses: 0 };
   return {
     attempts: prev.attempts + 1,
     hits: result.result === 'miss' ? prev.hits : prev.hits + 1,
@@ -119,11 +118,28 @@ export function tallyRound(
         : prev.cleanRounds,
     bestCombo: Math.max(prev.bestCombo, result.combo),
     coinsEarned: prev.coinsEarned + result.coins,
-    movingRounds: prev.movingRounds + (round.moving ? 1 : 0),
-    movingMisses: prev.movingMisses + (round.moving ? missed : 0),
-    shrinkingRounds: prev.shrinkingRounds + (round.shrinking ? 1 : 0),
-    shrinkingMisses: prev.shrinkingMisses + (round.shrinking ? missed : 0),
+    roundTally: {
+      ...prev.roundTally,
+      [key]: {
+        rounds: tally.rounds + 1,
+        misses: tally.misses + (result.costsLife ? 1 : 0),
+      },
+    },
   };
+}
+
+/**
+ * Flatten the tally into `game_ended` properties: `rounds_moving_l20_29` and
+ * `misses_moving_l20_29`. Kinds and bands that never came up are left out.
+ */
+export function roundTallyProperties(tally: SessionStats['roundTally']) {
+  const props: Record<string, number> = {};
+  for (const [key, t] of Object.entries(tally)) {
+    if (!t) continue;
+    props[`rounds_${key}`] = t.rounds;
+    props[`misses_${key}`] = t.misses;
+  }
+  return props;
 }
 
 export function initialRunState(round: RoundConfig = makeRound(1)): RunState {

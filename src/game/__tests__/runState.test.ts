@@ -7,6 +7,7 @@ import {
   feedbackSlotFor,
   INITIAL_COUNTDOWN,
   initialRunState,
+  roundTallyProperties,
   runReducer,
   type Feedback,
   type RunAction,
@@ -147,26 +148,49 @@ describe('scoring a round', () => {
     expect(s.stats.bestCombo).toBe(4);
   });
 
-  test('moving and shrinking rounds are tallied with their misses', () => {
-    const withRound = (r: RoundConfig) =>
-      run(initialRunState(r), { type: 'startRun', daily: false });
-    // `startRun` may swap the round, so set the kind after starting.
-    const kind = (s: RunState, over: Partial<RoundConfig>): RunState => ({
+  test('each round is tallied once, under its kind and level band', () => {
+    // Set the round after `startRun`, which may swap it.
+    const on = (s: RunState, over: Partial<RoundConfig>): RunState => ({
       ...s,
-      round: { ...s.round, ...over },
+      round: round(over),
     });
+    const both = { level: 25, moving: true, shrinking: true };
 
-    let s = kind(withRound(round()), { moving: true });
-    s = tap(s, s.round.target); // moving hit
-    s = tap(kind(s, { moving: true }), 0.999); // moving miss
-    s = tap(kind(s, { moving: false, shrinking: true }), 0.999); // shrinking miss
-    s = tap(kind(s, { moving: false, shrinking: false }), 0.999); // static miss
+    let s = started();
+    s = tap(on(s, both), 0.999); // combined miss
+    s = tap(on(s, both), 0.5); // combined hit
+    s = tap(on(s, { level: 25, moving: true }), 0.999); // moving miss
+    s = tap(on(s, { level: 25 }), 0.5); // static hit
+    s = tap(on(s, { level: 5 }), 0.999); // warm-up static miss
 
-    expect(s.stats.movingRounds).toBe(2);
-    expect(s.stats.movingMisses).toBe(1);
-    expect(s.stats.shrinkingRounds).toBe(1);
-    expect(s.stats.shrinkingMisses).toBe(1);
-    expect(s.stats.misses).toBe(3);
+    expect(s.stats.roundTally).toEqual({
+      moving_shrinking_l20_29: { rounds: 2, misses: 1 },
+      moving_l20_29: { rounds: 1, misses: 1 },
+      static_l20_29: { rounds: 1, misses: 0 },
+      static_l1_9: { rounds: 1, misses: 1 },
+    });
+    // A combined miss counts once, so the kinds add up to the run's totals.
+    const tallies = Object.values(s.stats.roundTally);
+    expect(tallies.reduce((n, t) => n + (t?.rounds ?? 0), 0)).toBe(
+      s.stats.attempts,
+    );
+    expect(tallies.reduce((n, t) => n + (t?.misses ?? 0), 0)).toBe(
+      s.stats.misses,
+    );
+  });
+
+  test('the tally flattens into game_ended properties', () => {
+    expect(
+      roundTallyProperties({
+        moving_l20_29: { rounds: 3, misses: 1 },
+        static_l10_19: { rounds: 7, misses: 0 },
+      }),
+    ).toEqual({
+      rounds_moving_l20_29: 3,
+      misses_moving_l20_29: 1,
+      rounds_static_l10_19: 7,
+      misses_static_l10_19: 0,
+    });
   });
 
   test('the feedback chip is carried into state for the callout', () => {

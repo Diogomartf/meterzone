@@ -1,3 +1,4 @@
+import type { LevelBand, RoundKind } from '@/game/levels';
 import type { AchievementId } from '@/game/achievements';
 
 export type RoundResult = 'perfect' | 'zone' | 'near' | 'miss';
@@ -53,12 +54,16 @@ export type SessionStats = {
   cleanRounds: number;
   bestCombo: number;
   coinsEarned: number;
-  /** Rounds with a moving / shrinking zone, and how many of each cost a life. */
-  movingRounds: number;
-  movingMisses: number;
-  shrinkingRounds: number;
-  shrinkingMisses: number;
+  /**
+   * Rounds played and lives lost, per round kind and level band, keyed
+   * `moving_l20_29`. Only kinds and bands that came up are present.
+   */
+  roundTally: Partial<
+    Record<RoundTallyKey, { rounds: number; misses: number }>
+  >;
 };
+
+export type RoundTallyKey = `${RoundKind}_${LevelBand}`;
 
 export type SkinId = 'toxic' | 'lava' | 'ice' | 'gold';
 

@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   createRng,
+  levelBand,
   makeRound,
   MOVING_FROM,
   roundKind,
@@ -11,7 +12,7 @@ import {
   zoneAt,
 } from '@/game/levels';
 
-const LEVELS = Array.from({ length: 200 }, (_, i) => i + 1);
+const LEVELS = Array.from({ length: 600 }, (_, i) => i + 1);
 
 describe('createRng', () => {
   test('is deterministic for a given seed', () => {
@@ -211,6 +212,35 @@ describe('zoneAt', () => {
       greatHalf: 0.01,
     };
     expect(zoneAt(r, 1).zoneHalf).toBeGreaterThan(r.greatHalf);
+  });
+});
+
+describe('makeRound deep levels', () => {
+  test('a shrinking zone never widens, however deep the run', () => {
+    const rng = createRng(1);
+    for (let level = SHRINKING_FROM; level <= 600; level++) {
+      for (let i = 0; i < 20; i++) {
+        const r = makeRound(level, { rng });
+        if (!r.shrinking) continue;
+        expect(r.zoneHalfEnd).toBeLessThanOrEqual(r.zoneHalf);
+        expect(zoneAt(r, 1).zoneHalf).toBeLessThanOrEqual(r.zoneHalf);
+      }
+    }
+  });
+});
+
+describe('levelBand', () => {
+  test('splits at the step-ups and at 30', () => {
+    expect([1, 9, 10, 19, 20, 29, 30, 300].map(levelBand)).toEqual([
+      'l1_9',
+      'l1_9',
+      'l10_19',
+      'l10_19',
+      'l20_29',
+      'l20_29',
+      'l30p',
+      'l30p',
+    ]);
   });
 });
 

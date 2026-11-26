@@ -145,11 +145,12 @@ export function makeRound(
     }
   }
 
+  // Never wider than the start: deep in a run the zone can already sit
+  // below the Great + 0.004 floor, and a "shrink" must not widen it
   const zoneHalfEnd = shrinking
-    ? clamp(
-        Math.max(greatHalf + 0.004, zoneHalf * lerp(0.85, 0.7, ramp(n, 40))),
-        greatHalf + 0.004,
+    ? Math.min(
         zoneHalf,
+        Math.max(greatHalf + 0.004, zoneHalf * lerp(0.85, 0.7, ramp(n, 40))),
       )
     : undefined;
 
@@ -180,12 +181,29 @@ export function makeRound(
   };
 }
 
-/** What kind of zone a round has, for analytics. */
-export function roundKind(round: Pick<RoundConfig, 'moving' | 'shrinking'>) {
+export type RoundKind = 'static' | 'moving' | 'shrinking' | 'moving_shrinking';
+
+/** What kind of zone a round has, for analytics. Exactly one per round. */
+export function roundKind(
+  round: Pick<RoundConfig, 'moving' | 'shrinking'>,
+): RoundKind {
   if (round.moving && round.shrinking) return 'moving_shrinking';
   if (round.moving) return 'moving';
   if (round.shrinking) return 'shrinking';
   return 'static';
+}
+
+export type LevelBand = 'l1_9' | 'l10_19' | 'l20_29' | 'l30p';
+
+/**
+ * Level bands for analytics, split at the step-ups so a band's rounds share
+ * roughly one speed and zone size. Miss rates are only comparable within one.
+ */
+export function levelBand(level: number): LevelBand {
+  if (level < STEP_LEVELS[0]) return 'l1_9';
+  if (level < STEP_LEVELS[1]) return 'l10_19';
+  if (level < 30) return 'l20_29';
+  return 'l30p';
 }
 
 /** Resolve live zone position/size at fill progress t (0–1). */

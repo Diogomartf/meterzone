@@ -60,6 +60,7 @@ import {
 import {
   feedbackSlotFor,
   INITIAL_COUNTDOWN,
+  roundTallyProperties,
   type Feedback,
   type FeedbackSlot,
 } from '@/game/runState';
@@ -549,16 +550,13 @@ export function GameScreen() {
       mode: stateRef.current.dailyMode ? 'daily' : 'normal',
       score: finalScore,
       level: stateRef.current.round.level,
-      // Is a moving or shrinking zone a wall? Compare their miss rate with
-      // the rest of the run's rounds.
+      // Is a moving or shrinking zone a wall? Compare miss rates per round
+      // kind within one level band (`rounds_moving_l20_29`, …).
       difficulty_version: DIFFICULTY_VERSION,
       final_round_kind: roundKind(stateRef.current.round),
       rounds_played: session.attempts,
       misses: session.misses,
-      moving_rounds: session.movingRounds,
-      moving_misses: session.movingMisses,
-      shrinking_rounds: session.shrinkingRounds,
-      shrinking_misses: session.shrinkingMisses,
+      ...roundTallyProperties(session.roundTally),
       coins_earned: session.coinsEarned,
       best_combo: session.bestCombo,
       is_new_best: beatBest,
