@@ -133,7 +133,7 @@ export function makeRound(
   const moving =
     n >= MOVING_FROM &&
     rand() < clamp(0.08 + (n - MOVING_FROM) * 0.008, 0.08, 0.35);
-  const shrinking =
+  const shrinkRolled =
     n >= SHRINKING_FROM &&
     rand() < clamp(0.06 + (n - SHRINKING_FROM) * 0.006, 0.06, 0.28);
 
@@ -146,13 +146,14 @@ export function makeRound(
   }
 
   // Never wider than the start: deep in a run the zone can already sit
-  // below the Great + 0.004 floor, and a "shrink" must not widen it
-  const zoneHalfEnd = shrinking
-    ? Math.min(
-        zoneHalf,
-        Math.max(greatHalf + 0.004, zoneHalf * lerp(0.85, 0.7, ramp(n, 40))),
-      )
-    : undefined;
+  // below the Great + 0.004 floor. Then there's nothing left to shrink, so
+  // the round is a plain one (and analytics doesn't count it as shrinking).
+  const shrinkEnd = Math.min(
+    zoneHalf,
+    Math.max(greatHalf + 0.004, zoneHalf * lerp(0.85, 0.7, ramp(n, 40))),
+  );
+  const shrinking = shrinkRolled && shrinkEnd < zoneHalf;
+  const zoneHalfEnd = shrinking ? shrinkEnd : undefined;
 
   // Vary meter size for visual variety (still readable)
   const sizeRoll = rand();

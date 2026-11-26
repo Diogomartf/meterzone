@@ -222,7 +222,8 @@ describe('makeRound deep levels', () => {
       for (let i = 0; i < 20; i++) {
         const r = makeRound(level, { rng });
         if (!r.shrinking) continue;
-        expect(r.zoneHalfEnd).toBeLessThanOrEqual(r.zoneHalf);
+        // A round tagged shrinking really shrinks
+        expect(r.zoneHalfEnd).toBeLessThan(r.zoneHalf);
         expect(zoneAt(r, 1).zoneHalf).toBeLessThanOrEqual(r.zoneHalf);
       }
     }
