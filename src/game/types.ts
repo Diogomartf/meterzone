@@ -53,6 +53,11 @@ export type SessionStats = {
   cleanRounds: number;
   bestCombo: number;
   coinsEarned: number;
+  /** Rounds with a moving / shrinking zone, and how many of each cost a life. */
+  movingRounds: number;
+  movingMisses: number;
+  shrinkingRounds: number;
+  shrinkingMisses: number;
 };
 
 export type SkinId = 'toxic' | 'lava' | 'ice' | 'gold';

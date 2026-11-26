@@ -147,6 +147,28 @@ describe('scoring a round', () => {
     expect(s.stats.bestCombo).toBe(4);
   });
 
+  test('moving and shrinking rounds are tallied with their misses', () => {
+    const withRound = (r: RoundConfig) =>
+      run(initialRunState(r), { type: 'startRun', daily: false });
+    // `startRun` may swap the round, so set the kind after starting.
+    const kind = (s: RunState, over: Partial<RoundConfig>): RunState => ({
+      ...s,
+      round: { ...s.round, ...over },
+    });
+
+    let s = kind(withRound(round()), { moving: true });
+    s = tap(s, s.round.target); // moving hit
+    s = tap(kind(s, { moving: true }), 0.999); // moving miss
+    s = tap(kind(s, { moving: false, shrinking: true }), 0.999); // shrinking miss
+    s = tap(kind(s, { moving: false, shrinking: false }), 0.999); // static miss
+
+    expect(s.stats.movingRounds).toBe(2);
+    expect(s.stats.movingMisses).toBe(1);
+    expect(s.stats.shrinkingRounds).toBe(1);
+    expect(s.stats.shrinkingMisses).toBe(1);
+    expect(s.stats.misses).toBe(3);
+  });
+
   test('the feedback chip is carried into state for the callout', () => {
     const s = tap(started(), 0.5);
     expect(s.feedback?.label).toBe('Perfect');

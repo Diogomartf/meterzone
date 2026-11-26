@@ -32,8 +32,30 @@ export type MakeRoundOptions = {
 };
 
 /**
- * Infinite increasing difficulty — a focus / timing game, not a reaction game.
- * Pace stays deliberate; challenge comes from a tighter aim window.
+ * Bump when the curve changes, so analytics can tell runs on one curve from
+ * another (`game_ended.difficulty_version`). 1 was the original slow curve.
+ */
+export const DIFFICULTY_VERSION = 2;
+
+/** Warm-up rounds before the pressure starts. */
+export const WARMUP_LEVELS = 9;
+/** First levels that can roll a moving / shrinking zone. */
+export const MOVING_FROM = 12;
+export const SHRINKING_FROM = 18;
+/** Levels where the game steps up at once: faster meter, tighter zone. */
+export const STEP_LEVELS = [10, 20] as const;
+const STEP_SPEED = 0.85; // fill time × this at each step
+const STEP_ZONE = 0.85; // zone, Great and Perfect × this at each step
+
+/** How many step-ups a level has passed (0, 1 or 2). */
+export function stepsAt(level: number) {
+  return STEP_LEVELS.filter((s) => level >= s).length;
+}
+
+/**
+ * Infinite increasing difficulty, Flappy Bird style: nine very slow warm-up
+ * rounds to learn the tap, then a step up at level 10 (and again at 20) and a
+ * steady climb in speed and tightness after that.
  */
 export function makeRound(
   level: number,
@@ -41,46 +63,48 @@ export function makeRound(
 ): RoundConfig {
   const n = Math.max(1, level);
   const rand = opts.rng ?? Math.random;
-  const easy = n <= 10;
-  const easyT = easy ? (n - 1) / 9 : 1; // 0 at lvl1 → 1 at lvl10
+  const easy = n <= WARMUP_LEVELS;
+  const easyT = easy ? (n - 1) / (WARMUP_LEVELS - 1) : 1; // 0 at lvl1 → 1 at the last warm-up
 
-  // Zone width carries the grind; speed barely moves so taps stay considered
-  const hardLevel = Math.max(1, n - 10);
-  const speedR = ramp(hardLevel, 160);
-  const zoneR = ramp(hardLevel, 75);
-  const placeR = ramp(hardLevel, 120);
+  // Speed climbs steadily; the zone closes in within ~30 levels
+  const hardLevel = Math.max(1, n - WARMUP_LEVELS);
+  const speedR = ramp(hardLevel, 25);
+  const zoneR = ramp(hardLevel, 22);
+  const placeR = ramp(hardLevel, 30);
   const g = grind(hardLevel);
 
   let fillMs: number;
   let zoneHalf: number;
 
   if (easy) {
-    // Slow, watchable fills — teach the commit, not reflexes
-    fillMs = Math.round(lerp(4600, 3800, easyT));
-    // Readable early, then a modest shrink into the midgame
-    zoneHalf = lerp(0.082, 0.048, easyT);
+    // Very slow, wide warm-up: learn the tap, not the reflex
+    fillMs = Math.round(lerp(3600, 3200, easyT));
+    zoneHalf = lerp(0.082, 0.056, easyT);
   } else {
-    // Still deliberate deep in a run — never races the player
-    fillMs = Math.round(clamp(lerp(3800, 3000, speedR) - g * 12, 2600, 4000));
+    // Faster every level, down to a floor that still leaves time to aim
+    fillMs = Math.round(clamp(lerp(2800, 1500, speedR) - g * 40, 1300, 2800));
     // Precision pressure: outer Nice tightens first
-    zoneHalf = clamp(lerp(0.048, 0.022, zoneR) - g * 0.001, 0.014, 0.055);
+    zoneHalf = clamp(lerp(0.056, 0.022, zoneR) - g * 0.001, 0.014, 0.055);
   }
-  // +30% fill velocity
-  fillMs = Math.round(fillMs / 1.469);
 
   // Slim Perfect strike; Great is a modest ring — aim, don't spam
-  const coreR = easy ? easyT * 0.4 : ramp(hardLevel, 95);
+  const coreR = easy ? easyT * 0.3 : lerp(0.3, 1, ramp(hardLevel, 25));
+  // Step-ups at levels 10 and 20: a jump on top of the smooth ramp
+  const stepZone = STEP_ZONE ** stepsAt(n);
+  fillMs = Math.round(Math.max(900, fillMs * STEP_SPEED ** stepsAt(n)));
+  zoneHalf *= stepZone;
+
   const perfectHalf = clamp(
-    lerp(0.013, easy ? 0.011 : 0.0055, coreR) - (easy ? 0 : g * 0.0003),
+    (lerp(0.013, 0.0055, coreR) - (easy ? 0 : g * 0.0003)) * stepZone,
     0.0045,
-    easy ? 0.015 : 0.013,
+    0.013,
   );
   let greatHalf = Math.max(perfectHalf * 2.2, perfectHalf + 0.0045);
 
   // Nice margin outside Great — eaten before the core shrinks
   const niceMargin = easy
-    ? lerp(0.026, 0.015, easyT)
-    : clamp(lerp(0.015, 0.004, zoneR) - g * 0.00045, 0.0035, 0.02);
+    ? lerp(0.024, 0.016, easyT)
+    : clamp(lerp(0.016, 0.004, zoneR) - g * 0.00045, 0.0035, 0.02);
   zoneHalf = Math.max(zoneHalf, greatHalf + niceMargin);
   greatHalf = Math.min(greatHalf, zoneHalf - 0.003);
 
@@ -105,10 +129,13 @@ export function makeRound(
   }
 
   // Moving / shrinking are rare extras — they add focus, not panic
+  // Moving / shrinking zones join early and get common
   const moving =
-    !easy && n >= 35 && rand() < clamp(0.05 + (n - 35) * 0.0025, 0.05, 0.28);
+    n >= MOVING_FROM &&
+    rand() < clamp(0.08 + (n - MOVING_FROM) * 0.008, 0.08, 0.35);
   const shrinking =
-    !easy && n >= 45 && rand() < clamp(0.04 + (n - 45) * 0.002, 0.04, 0.22);
+    n >= SHRINKING_FROM &&
+    rand() < clamp(0.06 + (n - SHRINKING_FROM) * 0.006, 0.06, 0.28);
 
   let targetEnd: number | undefined;
   if (moving) {
@@ -120,7 +147,7 @@ export function makeRound(
 
   const zoneHalfEnd = shrinking
     ? clamp(
-        Math.max(greatHalf + 0.004, zoneHalf * lerp(0.85, 0.7, ramp(n, 100))),
+        Math.max(greatHalf + 0.004, zoneHalf * lerp(0.85, 0.7, ramp(n, 40))),
         greatHalf + 0.004,
         zoneHalf,
       )
@@ -151,6 +178,14 @@ export function makeRound(
     shrinking,
     meterScale,
   };
+}
+
+/** What kind of zone a round has, for analytics. */
+export function roundKind(round: Pick<RoundConfig, 'moving' | 'shrinking'>) {
+  if (round.moving && round.shrinking) return 'moving_shrinking';
+  if (round.moving) return 'moving';
+  if (round.shrinking) return 'shrinking';
+  return 'static';
 }
 
 /** Resolve live zone position/size at fill progress t (0–1). */

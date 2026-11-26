@@ -94,6 +94,10 @@ export function emptyStats(): SessionStats {
     cleanRounds: 0,
     bestCombo: 0,
     coinsEarned: 0,
+    movingRounds: 0,
+    movingMisses: 0,
+    shrinkingRounds: 0,
+    shrinkingMisses: 0,
   };
 }
 
@@ -101,7 +105,9 @@ export function emptyStats(): SessionStats {
 export function tallyRound(
   prev: SessionStats,
   result: RoundOutcome,
+  round: Pick<RoundConfig, 'moving' | 'shrinking'>,
 ): SessionStats {
+  const missed = result.costsLife ? 1 : 0;
   return {
     attempts: prev.attempts + 1,
     hits: result.result === 'miss' ? prev.hits : prev.hits + 1,
@@ -113,6 +119,10 @@ export function tallyRound(
         : prev.cleanRounds,
     bestCombo: Math.max(prev.bestCombo, result.combo),
     coinsEarned: prev.coinsEarned + result.coins,
+    movingRounds: prev.movingRounds + (round.moving ? 1 : 0),
+    movingMisses: prev.movingMisses + (round.moving ? missed : 0),
+    shrinkingRounds: prev.shrinkingRounds + (round.shrinking ? 1 : 0),
+    shrinkingMisses: prev.shrinkingMisses + (round.shrinking ? missed : 0),
   };
 }
 
@@ -215,7 +225,7 @@ export function runReducer(s: RunState, action: RunAction): RunState {
         // Points are 0 on a miss, so this is safe for both branches.
         score: s.score + result.points,
         lives: result.costsLife ? s.lives - 1 : s.lives,
-        stats: tallyRound(s.stats, result),
+        stats: tallyRound(s.stats, result, s.round),
         feedback: action.feedback,
       };
     }

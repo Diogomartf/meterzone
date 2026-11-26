@@ -44,7 +44,12 @@ import {
 } from '@/game/VerticalMeter';
 import { formatScore } from '@/game/format';
 import { gameHaptics, setGameHapticsEnabled } from '@/game/haptics';
-import { createRng, makeRound } from '@/game/levels';
+import {
+  createRng,
+  DIFFICULTY_VERSION,
+  makeRound,
+  roundKind,
+} from '@/game/levels';
 import { shouldShowReviewPrompt } from '@/game/review';
 import { comboMultiplier, scoreFill, STARTING_LIVES } from '@/game/scoring';
 import {
@@ -544,6 +549,16 @@ export function GameScreen() {
       mode: stateRef.current.dailyMode ? 'daily' : 'normal',
       score: finalScore,
       level: stateRef.current.round.level,
+      // Is a moving or shrinking zone a wall? Compare their miss rate with
+      // the rest of the run's rounds.
+      difficulty_version: DIFFICULTY_VERSION,
+      final_round_kind: roundKind(stateRef.current.round),
+      rounds_played: session.attempts,
+      misses: session.misses,
+      moving_rounds: session.movingRounds,
+      moving_misses: session.movingMisses,
+      shrinking_rounds: session.shrinkingRounds,
+      shrinking_misses: session.shrinkingMisses,
       coins_earned: session.coinsEarned,
       best_combo: session.bestCombo,
       is_new_best: beatBest,
