@@ -1,8 +1,18 @@
 import { describe, expect, test } from 'bun:test';
 
-import { createRng, makeRound, zoneAt } from '@/game/levels';
+import {
+  createRng,
+  levelBand,
+  makeRound,
+  MOVING_FROM,
+  roundKind,
+  SHRINKING_FROM,
+  STEP_LEVELS,
+  WARMUP_LEVELS,
+  zoneAt,
+} from '@/game/levels';
 
-const LEVELS = Array.from({ length: 200 }, (_, i) => i + 1);
+const LEVELS = Array.from({ length: 600 }, (_, i) => i + 1);
 
 describe('createRng', () => {
   test('is deterministic for a given seed', () => {
@@ -55,11 +65,19 @@ describe('makeRound band invariants', () => {
     }
   });
 
-  test('fill stays deliberate — never a reaction test', () => {
+  test('fill is fast but never below the floor', () => {
     for (const level of LEVELS) {
       const r = makeRound(level, { rng: createRng(level) });
-      expect(r.fillMs).toBeGreaterThan(1500);
-      expect(r.fillMs).toBeLessThan(4000);
+      expect(r.fillMs).toBeGreaterThanOrEqual(900);
+      expect(r.fillMs).toBeLessThanOrEqual(3600);
+    }
+  });
+
+  test('the meter never slows down as levels go up', () => {
+    for (const level of LEVELS.slice(1)) {
+      const prev = makeRound(level - 1, { rng: createRng(1) });
+      const r = makeRound(level, { rng: createRng(1) });
+      expect(r.fillMs).toBeLessThanOrEqual(prev.fillMs);
     }
   });
 
@@ -76,22 +94,34 @@ describe('makeRound band invariants', () => {
   });
 });
 
-describe('makeRound easy ramp', () => {
-  test('levels 1-10 keep a full-size meter and a wide zone', () => {
-    for (let level = 1; level <= 10; level++) {
+describe('makeRound step-ups', () => {
+  test('each step level is a clear jump in speed and zone size', () => {
+    for (const step of STEP_LEVELS) {
+      const before = makeRound(step - 1, { rng: createRng(5) });
+      const at = makeRound(step, { rng: createRng(5) });
+      expect(at.fillMs).toBeLessThan(before.fillMs * 0.85);
+      expect(at.zoneHalf).toBeLessThan(before.zoneHalf * 0.9);
+      expect(at.perfectHalf).toBeLessThan(before.perfectHalf);
+    }
+  });
+});
+
+describe('makeRound warm-up', () => {
+  test('warm-up levels keep a full-size meter and a wide zone', () => {
+    for (let level = 1; level <= WARMUP_LEVELS; level++) {
       const r = makeRound(level, { rng: createRng(level) });
       expect(r.meterScale).toBe(1);
-      expect(r.zoneHalf).toBeGreaterThanOrEqual(0.048);
+      expect(r.zoneHalf).toBeGreaterThanOrEqual(0.05);
       expect(r.moving).toBe(false);
       expect(r.shrinking).toBe(false);
     }
   });
 
   test('moving and shrinking zones never appear before their gate levels', () => {
-    for (let level = 1; level < 35; level++) {
+    for (let level = 1; level < MOVING_FROM; level++) {
       expect(makeRound(level, { rng: createRng(level) }).moving).toBe(false);
     }
-    for (let level = 1; level < 45; level++) {
+    for (let level = 1; level < SHRINKING_FROM; level++) {
       expect(makeRound(level, { rng: createRng(level) }).shrinking).toBe(false);
     }
   });
@@ -118,11 +148,11 @@ describe('makeRound determinism — the daily challenge contract', () => {
 });
 
 describe('makeRound target spacing', () => {
-  test('consecutive targets are pushed apart past the easy ramp', () => {
+  test('consecutive targets are pushed apart past the warm-up', () => {
     const rng = createRng(42);
     let previousTarget = 0.5;
     let tooClose = 0;
-    for (let level = 11; level <= 100; level++) {
+    for (let level = WARMUP_LEVELS + 1; level <= 100; level++) {
       const r = makeRound(level, { previousTarget, rng });
       if (Math.abs(r.target - previousTarget) < 0.09) tooClose++;
       previousTarget = r.target;
@@ -182,5 +212,53 @@ describe('zoneAt', () => {
       greatHalf: 0.01,
     };
     expect(zoneAt(r, 1).zoneHalf).toBeGreaterThan(r.greatHalf);
+  });
+});
+
+describe('makeRound deep levels', () => {
+  test('a shrinking zone never widens, however deep the run', () => {
+    const rng = createRng(1);
+    for (let level = SHRINKING_FROM; level <= 600; level++) {
+      for (let i = 0; i < 20; i++) {
+        const r = makeRound(level, { rng });
+        if (!r.shrinking) continue;
+        // A round tagged shrinking really shrinks
+        expect(r.zoneHalfEnd).toBeLessThan(r.zoneHalf);
+        expect(zoneAt(r, 1).zoneHalf).toBeLessThanOrEqual(r.zoneHalf);
+      }
+    }
+  });
+});
+
+describe('levelBand', () => {
+  test('splits at the step-ups and at 30', () => {
+    expect([1, 9, 10, 19, 20, 29, 30, 300].map(levelBand)).toEqual([
+      'l1_9',
+      'l1_9',
+      'l10_19',
+      'l10_19',
+      'l20_29',
+      'l20_29',
+      'l30p',
+      'l30p',
+    ]);
+  });
+});
+
+describe('roundKind', () => {
+  test('names each zone kind for analytics', () => {
+    const base = makeRound(5);
+    expect(roundKind({ ...base, moving: false, shrinking: false })).toBe(
+      'static',
+    );
+    expect(roundKind({ ...base, moving: true, shrinking: false })).toBe(
+      'moving',
+    );
+    expect(roundKind({ ...base, moving: false, shrinking: true })).toBe(
+      'shrinking',
+    );
+    expect(roundKind({ ...base, moving: true, shrinking: true })).toBe(
+      'moving_shrinking',
+    );
   });
 });
